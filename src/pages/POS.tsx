@@ -1,0 +1,808 @@
+import { useState, useRef, useEffect } from 'react';
+import { db } from '../db';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X } from 'lucide-react';
+import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
+import { useToast } from '../components/Toast';
+import { printReceipt } from '../utils/receipt';
+
+import { addCartItem, type CartItem } from '../utils/cart';
+
+const SHORTCUTS = [
+  { keys: 'Enter', desc: 'Scan / add highlighted item' },
+  { keys: '+ or F1', desc: 'Checkout with Cash (Single Key "+", no Fn needed)' },
+  { keys: '- or F2', desc: 'Checkout with Card (Single Key "-", no Fn needed)' },
+  { keys: '↑ / ↓', desc: 'Navigate search results' },
+  { keys: '?', desc: 'Show this shortcuts panel' },
+  { keys: 'Esc', desc: 'Close dialogs / cancel' },
+];
+
+export default function POS() {
+  const toast = useToast();
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const checkoutPending = useRef(false);
+  const checkoutRequestId = useRef<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [lastSale, setLastSale] = useState<any>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [discountType, setDiscountType] = useState<'AMOUNT' | 'PERCENT'>('AMOUNT');
+  const [discountInput, setDiscountInput] = useState<string>('');
+  const [itemDiscountSettings, setItemDiscountSettings] = useState<Record<string, { mode: '%' | 'Rs'; text: string }>>({});
+
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchSearchResults = async (term: string) => {
+    if (!term.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const res = await db.inventory.search(term);
+      setSearchResults(res.data ?? []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Debounced search to prevent rapid IPC queries on every keystroke
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchSearchResults(searchTerm);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fetchLastSale = async () => {
+    try {
+      const res = await db.sales.getRecent(1);
+      const sale = res.data?.[0];
+      if (!sale) { setLastSale(null); return; }
+      const itemsRes = await db.saleItems.getBySale(sale.id!);
+      const billDiscount = sale.bill_discount ?? 0;
+      setLastSale({
+        ...sale,
+        items: itemsRes.data ?? [],
+        bill_discount: billDiscount,
+        subtotal: sale.total_amount + billDiscount,
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchLastSale();
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setIsDropdownOpen(true);
+    setSelectedIndex(-1);
+  };
+
+  const isServiceItem = (item: any) =>
+    item?.category === 'SERVICE' || item?.barcode?.startsWith('SRV-');
+
+  const selectItem = (item: any) => {
+    const isService = isServiceItem(item);
+    if (!isService && item.quantity <= 0) {
+      toast.warning('This item is out of stock!');
+    } else {
+      const discount = item.discount_percent || 0;
+      const finalPrice = item.selling_price * (1 - discount / 100);
+
+      addToCart({
+        id: item.id!,
+        category: item.category,
+        barcode: item.barcode,
+        title: item.title,
+        selling_price: finalPrice,
+        cost_price: item.cost_price,
+        quantity: 1,
+        stock_limit: isService ? 999999 : item.quantity,
+        discount_percent: discount,
+        original_price: item.selling_price
+      });
+    }
+    setSearchTerm('');
+    setIsDropdownOpen(false);
+    setSelectedIndex(-1);
+  };
+
+  const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Single-key shortcuts when search input is empty (No Fn key required)
+    if (!searchTerm.trim()) {
+      if (e.key === '+' || e.key === 'Add' || e.key === 'End') {
+        e.preventDefault();
+        if (cart.length > 0) handleCheckout('CASH');
+        return;
+      }
+      if (e.key === '-' || e.key === 'Subtract' || e.key === 'Home') {
+        e.preventDefault();
+        if (cart.length > 0) handleCheckout('CARD');
+        return;
+      }
+    }
+
+    if (e.key === 'ArrowDown') {
+      if (!searchResults || searchResults.length === 0) return;
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < searchResults.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      if (!searchResults || searchResults.length === 0) return;
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const term = searchTerm.trim();
+      if (!term) return;
+
+      // 1. If dropdown item was selected using arrow keys
+      if (selectedIndex >= 0 && searchResults && selectedIndex < searchResults.length) {
+        selectItem(searchResults[selectedIndex]);
+        return;
+      }
+
+      // 2. Immediate direct barcode lookup via inventory search
+      try {
+        const res = await db.inventory.search(term);
+        const directMatch = (res.data ?? []).find((i: any) => i.barcode === term);
+        if (directMatch) {
+          selectItem(directMatch);
+          return;
+        }
+      } catch (err) {
+        console.error('Barcode lookup error', err);
+      }
+
+      // 3. Fallback to existing search results
+      if (searchResults && searchResults.length > 0) {
+        const exactMatch = searchResults.find(i => i.barcode === term);
+        selectItem(exactMatch || searchResults[0]);
+      }
+    }
+  };
+
+  const addToCart = (item: Omit<CartItem, 'lineId'>) => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+    setCart(prev => addCartItem(prev, item));
+  };
+
+  const updateQuantity = (id: string, delta: number) => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+    setCart(prev => prev.map(i => {
+      if (i.lineId === id) {
+        const newQty = clampCartQuantity(i.quantity, delta, i.stock_limit);
+        const origPrice = i.original_price ?? i.selling_price;
+        const currentMode = itemDiscountSettings[id]?.mode ?? (i.discount_percent && i.discount_percent > 0 ? '%' : 'Rs');
+        const discountText = itemDiscountSettings[id]?.text;
+        const val = parseFloat(discountText || '');
+
+        let finalSellingPrice = origPrice;
+        let discountPercent = 0;
+
+        if (!isNaN(val) && val > 0 && newQty > 0) {
+          const lineOrigTotal = origPrice * newQty;
+          if (currentMode === '%') {
+            discountPercent = Math.min(100, Math.max(0, val));
+            finalSellingPrice = Math.round(origPrice * (1 - discountPercent / 100) * 100) / 100;
+          } else {
+            // Rs discount is the total discount for the whole item line (not per quantity)
+            const totalLineDiscount = Math.min(lineOrigTotal, Math.max(0, val));
+            discountPercent = Math.round(((totalLineDiscount / lineOrigTotal) * 100) * 100) / 100;
+            const finalLineTotal = lineOrigTotal - totalLineDiscount;
+            finalSellingPrice = Math.round((finalLineTotal / newQty) * 100) / 100;
+          }
+        } else if (!discountText && (i.discount_percent ?? 0) > 0) {
+          discountPercent = i.discount_percent ?? 0;
+          finalSellingPrice = Math.round(origPrice * (1 - discountPercent / 100) * 100) / 100;
+        }
+
+        return { ...i, quantity: newQty, selling_price: finalSellingPrice, discount_percent: discountPercent };
+      }
+      return i;
+    }));
+  };
+
+  const removeItem = (id: string) => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+    setCart(prev => prev.filter(i => i.lineId !== id));
+    setItemDiscountSettings(prev => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  };
+
+  const getItemDiscountMode = (item: CartItem): '%' | 'Rs' => {
+    return itemDiscountSettings[item.lineId]?.mode ?? (item.discount_percent && item.discount_percent > 0 ? '%' : 'Rs');
+  };
+
+  const getItemDiscountValue = (item: CartItem): string => {
+    if (itemDiscountSettings[item.lineId]) {
+      return itemDiscountSettings[item.lineId].text;
+    }
+    return item.discount_percent && item.discount_percent > 0 ? String(item.discount_percent) : '';
+  };
+
+  const handleItemDiscountChange = (lineId: string, rawText: string) => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+
+    setCart(prev => prev.map(item => {
+      if (item.lineId !== lineId) return item;
+      const currentMode = itemDiscountSettings[lineId]?.mode ?? (item.discount_percent && item.discount_percent > 0 ? '%' : 'Rs');
+      const origPrice = item.original_price ?? item.selling_price;
+      const qty = Math.max(1, item.quantity);
+      const lineOrigTotal = origPrice * qty;
+      const val = parseFloat(rawText);
+
+      let discountPercent = 0;
+      let finalSellingPrice = origPrice;
+
+      if (!isNaN(val) && val > 0 && lineOrigTotal > 0) {
+        if (currentMode === '%') {
+          discountPercent = Math.min(100, Math.max(0, val));
+          finalSellingPrice = Math.round(origPrice * (1 - discountPercent / 100) * 100) / 100;
+        } else {
+          // Total discount for this whole item line (not multiplied by each quantity)
+          const totalLineDiscount = Math.min(lineOrigTotal, Math.max(0, val));
+          discountPercent = Math.round(((totalLineDiscount / lineOrigTotal) * 100) * 100) / 100;
+          const finalLineTotal = lineOrigTotal - totalLineDiscount;
+          finalSellingPrice = Math.round((finalLineTotal / qty) * 100) / 100;
+        }
+      }
+
+      return {
+        ...item,
+        original_price: origPrice,
+        discount_percent: discountPercent,
+        selling_price: finalSellingPrice,
+      };
+    }));
+
+    setItemDiscountSettings(prev => ({
+      ...prev,
+      [lineId]: {
+        mode: prev[lineId]?.mode ?? (prev[lineId]?.text ? prev[lineId].mode : 'Rs'),
+        text: rawText,
+      },
+    }));
+  };
+
+  const toggleItemDiscountMode = (lineId: string, newMode: '%' | 'Rs') => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+
+    const item = cart.find(i => i.lineId === lineId);
+    if (!item) return;
+
+    const origPrice = item.original_price ?? item.selling_price;
+    const qty = Math.max(1, item.quantity);
+    let newText = '';
+
+    if (item.discount_percent && item.discount_percent > 0) {
+      if (newMode === 'Rs') {
+        const totalDiscountAmt = Math.round((((origPrice * qty) * item.discount_percent) / 100) * 100) / 100;
+        newText = String(totalDiscountAmt);
+      } else {
+        newText = String(item.discount_percent);
+      }
+    }
+
+    setItemDiscountSettings(prev => ({
+      ...prev,
+      [lineId]: {
+        mode: newMode,
+        text: newText,
+      },
+    }));
+  };
+
+  const { totalAmount: subtotal, totalCost, grossProfit: baseProfit } = calculateCartTotals(cart);
+
+  const originalSubtotal = cart.reduce((sum, item) => sum + ((item.original_price ?? item.selling_price) * item.quantity), 0);
+  const totalItemDiscounts = Math.max(0, Math.round((originalSubtotal - subtotal) * 100) / 100);
+
+  const parsedDiscount = parseFloat(discountInput) || 0;
+  let billDiscount = 0;
+  if (parsedDiscount > 0 && subtotal > 0) {
+    if (discountType === 'PERCENT') {
+      const pct = Math.min(100, Math.max(0, parsedDiscount));
+      billDiscount = Math.round(((subtotal * pct) / 100) * 100) / 100;
+    } else {
+      billDiscount = Math.min(subtotal, Math.round(parsedDiscount * 100) / 100);
+    }
+  }
+
+  const netTotal = Math.max(0, Math.round((subtotal - billDiscount) * 100) / 100);
+  const netProfit = Math.round((netTotal - totalCost) * 100) / 100;
+
+  const handleCheckout = async (method: string) => {
+    if (cart.length === 0 || checkoutPending.current) return;
+    checkoutPending.current = true;
+    setIsCheckingOut(true);
+    checkoutRequestId.current ??= crypto.randomUUID();
+
+    const now = new Date().toISOString();
+
+    try {
+      const res = await db.executeCheckout({
+        requestId: checkoutRequestId.current,
+        totalAmount: netTotal,
+        totalCost,
+        grossProfit: netProfit,
+        paymentType: method,
+        createdAt: now,
+        items: cart,
+        billDiscount,
+      });
+
+      if (!res.success) {
+        checkoutRequestId.current = null;
+        throw new Error(res.error || 'Checkout transaction failed');
+      }
+
+      const receiptNo = res.receiptNo || 'REC-?';
+      toast.success(
+        `Receipt ${receiptNo} • ${method} • Rs.${netTotal.toFixed(2)}${billDiscount > 0 ? ` (Disc: Rs.${billDiscount.toFixed(2)})` : ''}`,
+        'Sale completed'
+      );
+      setCart([]);
+      setDiscountInput('');
+      setItemDiscountSettings({});
+      // Keep the ID until the cart changes so a stale event cannot create another sale.
+      fetchLastSale();
+      setSearchTerm('');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Database error', 'Checkout failed');
+    } finally {
+      checkoutPending.current = false;
+      setIsCheckingOut(false);
+    }
+  };
+
+  const handlePrintLastReceipt = () => {
+    if (!lastSale) {
+      toast.info('No previous receipts found.');
+      return;
+    }
+    printReceipt({
+      receipt_no: lastSale.receipt_no,
+      created_at: lastSale.created_at,
+      payment_type: lastSale.payment_type,
+      total_amount: lastSale.total_amount,
+      items: lastSale.items || [],
+      bill_discount: lastSale.bill_discount ?? 0,
+      subtotal: lastSale.subtotal ?? ((lastSale.total_amount ?? 0) + (lastSale.bill_discount ?? 0)),
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
+
+      // Checkout shortcuts
+      if (e.key === 'F1' || (!isInput && (e.key === '+' || e.key === 'Add' || e.key === 'End'))) {
+        e.preventDefault();
+        if (cart.length > 0) handleCheckout('CASH');
+      } else if (e.key === 'F2' || (!isInput && (e.key === '-' || e.key === 'Subtract' || e.key === 'Home'))) {
+        e.preventDefault();
+        if (cart.length > 0) handleCheckout('CARD');
+      } else if (e.key === '?' && !showShortcuts) {
+        if (!isInput) {
+          e.preventDefault();
+          setShowShortcuts(true);
+        }
+      } else if (e.key === 'Escape') {
+        if (showShortcuts) setShowShortcuts(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, handleCheckout, showShortcuts]);
+
+  return (
+    <>
+      {/* POS UI - This section is completely hidden when printing */}
+      <div className="flex h-full bg-gray-100 dark:bg-gray-900 p-6 gap-6 print:hidden">
+
+        {/* Left Panel: Search & Cart */}
+        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible z-10">
+
+          {/* Search Bar with Dropdown */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center relative" ref={searchRef}>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Scan barcode or type item title..."
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchKeyDown}
+                onFocus={() => setIsDropdownOpen(true)}
+                autoFocus
+              />
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && searchTerm.trim() && searchResults && searchResults.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-64 overflow-y-auto z-50">
+                  {searchResults.map((item, index) => {
+                    const discount = item.discount_percent || 0;
+                    const finalPrice = item.selling_price * (1 - discount / 100);
+                    return (
+                      <li
+                        key={item.searchKey || `${item.id}-${item.selling_price}-${index}`}
+                        onClick={() => selectItem(item)}
+                        className={`p-3 cursor-pointer border-b last:border-0 border-gray-100 dark:border-gray-700 flex justify-between items-center transition-colors ${index === selectedIndex ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-200' : 'hover:bg-blue-50 dark:hover:bg-gray-700/50'}`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className={`font-bold ${index === selectedIndex ? 'text-blue-900 dark:text-blue-200' : 'text-gray-800 dark:text-gray-100'}`}>{item.title}</h4>
+                            {item.batch_label && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                item.batch_label?.startsWith('OLD')
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              }`}>
+                                {item.batch_label}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Barcode: {item.barcode}</p>
+                        </div>
+                        <div className="text-right">
+                          {discount > 0 ? (
+                            <>
+                              <span className="font-bold text-blue-600 dark:text-blue-400">Rs. {finalPrice.toFixed(2)}</span>
+                              <span className="text-xs text-red-500 ml-1 line-through">Rs. {item.selling_price.toFixed(2)}</span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-blue-600 dark:text-blue-400">Rs. {item.selling_price.toFixed(2)}</span>
+                          )}
+                          {isServiceItem(item) ? (
+                            <span className="inline-block text-[11px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 mt-1">
+                              Service (Unlimited)
+                            </span>
+                          ) : (
+                            <p className={`text-xs mt-1 ${item.quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                              {item.quantity > 0 ? `${item.quantity} in stock` : 'Out of stock'}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {isDropdownOpen && searchTerm.trim() && searchResults?.length === 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4 text-center text-gray-500 dark:text-gray-400 z-50">
+                  No matching items found.
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowShortcuts(true)}
+              title="Keyboard shortcuts (?)"
+              className="ml-3 p-2.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Keyboard className="w-5 h-5" />
+            </button>
+          </div>
+
+
+
+          {/* Cart Items */}
+          <div className="flex-1 overflow-y-auto p-4 z-0 relative">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                <ShoppingCartIcon />
+                <p className="text-lg">Cart is empty</p>
+                <p className="text-sm">Scan an item to begin</p>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {cart.map(item => {
+                  const origPrice = item.original_price ?? item.selling_price;
+                  const hasDiscount = (item.discount_percent ?? 0) > 0;
+                  const discountMode = getItemDiscountMode(item);
+                  const discountVal = getItemDiscountValue(item);
+                  const itemDiscountTotal = ((origPrice - item.selling_price) * item.quantity);
+
+                  return (
+                    <li key={item.lineId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-lg hover:border-blue-100 dark:hover:border-blue-900/40 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-800 dark:text-gray-100 text-base truncate">{item.title}</h4>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-700 dark:text-gray-300">{item.barcode}</span>
+                          <span>•</span>
+                          <span>
+                            Cost: <strong className="text-gray-700 dark:text-gray-300">Rs. {item.cost_price.toFixed(2)}</strong>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Price: <strong className="text-gray-800 dark:text-gray-200">Rs. {item.selling_price.toFixed(2)}</strong>
+                            {hasDiscount && (
+                              <span className="ml-1 text-gray-400 line-through">Rs. {origPrice.toFixed(2)}</span>
+                            )}
+                          </span>
+                          <span>•</span>
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            Margin: Rs. {(item.selling_price - item.cost_price).toFixed(2)}/ea
+                          </span>
+                        </div>
+
+                        {/* Item-wise Discount Controls */}
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            Item Disc:
+                          </span>
+                          <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 overflow-hidden shadow-2xs">
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0"
+                              value={discountVal}
+                              onChange={(e) => handleItemDiscountChange(item.lineId, e.target.value)}
+                              className="w-16 px-2 py-1 text-xs font-bold text-gray-900 dark:text-gray-100 bg-transparent focus:outline-none text-right"
+                            />
+                            <div className="flex bg-gray-200 dark:bg-gray-600 p-0.5 text-[10px] font-bold">
+                              <button
+                                type="button"
+                                onClick={() => toggleItemDiscountMode(item.lineId, 'Rs')}
+                                title="Fixed Rupee discount on this item"
+                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                                  discountMode === 'Rs'
+                                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                Rs
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => toggleItemDiscountMode(item.lineId, '%')}
+                                title="Percentage discount on this item"
+                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                                  discountMode === '%'
+                                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                %
+                              </button>
+                            </div>
+                          </div>
+
+                          {hasDiscount && (
+                            <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-800 animate-in fade-in">
+                              -Rs. {itemDiscountTotal.toFixed(2)} ({item.discount_percent}%)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 self-end sm:self-center">
+                        <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                          <button onClick={() => updateQuantity(item.lineId, -1)} className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded shadow-sm text-gray-600 dark:text-gray-300 cursor-pointer"><Minus className="w-4 h-4" /></button>
+                          <span className="w-10 text-center font-bold text-gray-900 dark:text-gray-100">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.lineId, 1)} disabled={item.quantity >= item.stock_limit} className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded shadow-sm text-gray-600 dark:text-gray-300 disabled:opacity-30 cursor-pointer"><Plus className="w-4 h-4" /></button>
+                        </div>
+                        <div className="w-28 text-right">
+                          <p className="font-bold text-lg text-gray-900 dark:text-gray-100">Rs. {(item.selling_price * item.quantity).toFixed(2)}</p>
+                          {hasDiscount && (
+                            <p className="text-xs text-gray-400 line-through">Rs. {(origPrice * item.quantity).toFixed(2)}</p>
+                          )}
+                        </div>
+                        <button onClick={() => removeItem(item.lineId)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer" title="Remove item">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel: Checkout Summary */}
+        <div className="w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 z-0">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 pb-4 mb-4">Order Summary</h3>
+
+          <div className="flex-1 space-y-4">
+            {totalItemDiscounts > 0 && (
+              <>
+                <div className="flex justify-between text-gray-500 dark:text-gray-400 text-sm">
+                  <span>Original Total</span>
+                  <span className="line-through">Rs. {originalSubtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 text-sm font-semibold">
+                  <span>Item Discounts</span>
+                  <span>- Rs. {totalItemDiscounts.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between text-gray-600 dark:text-gray-300">
+              <span>Subtotal</span>
+              <span className="font-medium">Rs. {subtotal.toFixed(2)}</span>
+            </div>
+
+            {/* Bill Discount Section */}
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                  Bill Discount
+                </span>
+                <div className="flex bg-gray-200 dark:bg-gray-600 rounded-lg p-0.5 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType('AMOUNT')}
+                    className={`px-2 py-0.5 rounded-md transition-all ${discountType === 'AMOUNT' ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-xs' : 'text-gray-600 dark:text-gray-300'}`}
+                  >
+                    Rs.
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType('PERCENT')}
+                    className={`px-2 py-0.5 rounded-md transition-all ${discountType === 'PERCENT' ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-xs' : 'text-gray-600 dark:text-gray-300'}`}
+                  >
+                    %
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative flex items-center">
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder={discountType === 'PERCENT' ? 'Enter % discount...' : 'Enter Rs. discount...'}
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  disabled={cart.length === 0}
+                  className="w-full pl-3 pr-8 py-2 text-sm font-semibold rounded-lg border border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                />
+                {discountInput && (
+                  <button
+                    type="button"
+                    onClick={() => setDiscountInput('')}
+                    className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {billDiscount > 0 && (
+                <div className="flex justify-between items-center text-xs mt-2 text-red-600 dark:text-red-400 font-medium">
+                  <span>Discount Applied:</span>
+                  <span className="font-bold">- Rs. {billDiscount.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between text-gray-600 dark:text-gray-300">
+              <span>Tax (0%)</span>
+              <span className="font-medium">Rs. 0.00</span>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700 mt-auto">
+              <div className="flex justify-between items-end mb-1">
+                <span className="text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">Total Amount</span>
+                <span className="text-4xl font-black text-gray-900 dark:text-gray-100">Rs. {netTotal.toFixed(2)}</span>
+              </div>
+              {cart.length > 0 && (
+                <p className="text-right text-xs text-green-600 dark:text-green-400 font-medium">Est. Gross Profit: Rs. {netProfit.toFixed(2)}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-8">
+            <button
+              onClick={() => handleCheckout('CASH')}
+              disabled={cart.length === 0 || isCheckingOut}
+              className="flex flex-col items-center justify-center p-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              title="Checkout with Cash (1-Click or press + or F1)"
+            >
+              <Banknote className="w-7 h-7 mb-1" />
+              <span className="text-base font-extrabold flex items-center gap-1.5">
+                Cash
+                <span className="text-xs bg-green-700/60 px-2 py-0.5 rounded font-mono">+</span>
+              </span>
+              <span className="text-[10px] text-green-100 font-normal mt-0.5">1-Click or press +</span>
+            </button>
+            <button
+              onClick={() => handleCheckout('CARD')}
+              disabled={cart.length === 0 || isCheckingOut}
+              className="flex flex-col items-center justify-center p-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              title="Checkout with Card (1-Click or press - or F2)"
+            >
+              <CreditCard className="w-7 h-7 mb-1" />
+              <span className="text-base font-extrabold flex items-center gap-1.5">
+                Card
+                <span className="text-xs bg-blue-700/60 px-2 py-0.5 rounded font-mono">-</span>
+              </span>
+              <span className="text-[10px] text-blue-100 font-normal mt-0.5">1-Click or press -</span>
+            </button>
+          </div>
+
+          <button
+            onClick={handlePrintLastReceipt}
+            disabled={!lastSale}
+            className="mt-3 flex items-center justify-center w-full p-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Printer className="w-5 h-5 mr-2" />
+            Print Last Receipt
+          </button>
+        </div>
+
+      </div>
+
+
+
+      {/* Keyboard Shortcuts Help Overlay */}
+      {showShortcuts && (
+        <div className="fixed inset-0 z-[90] bg-black/40 flex items-center justify-center p-4 print:hidden" onClick={() => setShowShortcuts(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <Keyboard className="w-5 h-5 text-blue-600" />
+                Keyboard Shortcuts
+              </h3>
+              <button onClick={() => setShowShortcuts(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ul className="space-y-2">
+              {SHORTCUTS.map(s => (
+                <li key={s.keys} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">{s.desc}</span>
+                  <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono font-bold text-gray-700 dark:text-gray-200">{s.keys}</kbd>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ShoppingCartIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-gray-300 dark:text-gray-600">
+      <circle cx="8" cy="21" r="1"/>
+      <circle cx="19" cy="21" r="1"/>
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+    </svg>
+  );
+}

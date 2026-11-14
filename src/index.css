@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+/* Dark-mode safety net for native form controls on pages that don't hand-apply
+   dark: variants to every input. Keeps text legible without per-element edits. */
+.dark input:not([type="file"]):not(.hidden),
+.dark select,
+.dark textarea {
+  background-color: rgb(31 41 55);
+  color: rgb(243 244 246);
+  border-color: rgb(75 85 99);
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(107 114 128);
+}
+/* Native date/month picker calendar icon stays visible on dark backgrounds. */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}

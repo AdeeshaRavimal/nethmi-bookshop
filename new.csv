@@ -1,0 +1,134 @@
+Barcode,Title,Category,Cost Price,Selling Price,Discount Percent,Quantity,Reorder Level
+BK-EX-040SR,Ex 40 single rule,Books,47.2875,65,0,6,2
+BK-EX-080SR,Ex 80 single rule,Books,58.2,80,0,6,2
+BK-EX-120SR,Ex 120 single rule,Books,90.9375,125,0,6,2
+BK-EX-160SR,Ex 160 single rule,Books,145.5,200,0,6,2
+BK-EX-200SR,Ex 200 single rule,Books,174.6,240,0,6,2
+BK-EX-080SQ,ex 80 squre rule,Books,58.2,80,0,6,2
+BK-EX-120SQ,ex 120 squre rule,Books,90.9375,125,0,6,2
+BK-EX-160SQ,ex 160 squre rule,Books,123.675,170,0,6,2
+BK-EX-200SQ,ex 200 squre rule,Books,152.775,210,0,6,2
+BK-CR-080SR,CR 80 single rule,Books,123.675,170,0,6,2
+BK-CR-120SR,CR 120 single rule,Books,181.875,250,0,6,2
+BK-CR-160SR,CR 160 single rule,Books,254.625,350,0,3,2
+BK-CR-200SR,CR 200 single rule,Books,320.1,440,0,3,2
+BK-CR-080SQ,CR 80 squre rule,Books,129.7333,160,0,3,2
+BK-DRW-040P,Drawing book 40 pages,Books,87.3,120,0,6,2
+BK-DRW-080P,Drawing book 80 pages,Books,141.8622,195,0,6,2
+BK-EX-080DR,Ex 80 double rule,Books,58.2,80,0,6,2
+BK-EX-080BL,Ex 80 blank,Books,58.2,80,0,6,2
+BK-NT-A6,Note book A6,Books,45,75,0,10,2
+BK-NT-A7,Note book A7,Books,22.5,50,0,10,2
+PEN-CHOOTY-T,Chooty T pen,Stationery,18,25,0,150,2
+PEN-COL-MLT,colour pen multicolor card,Stationery,18.75,25,0,30,2
+PEN-GLITTER,glitter pen,Stationery,65,100,0,10,2
+PEN-5COL-SET,5 colour pens,Stationery,100,125,0,5,2
+ART-BRUSH-STD,Art brush,Stationery,16.6667,250,0,12,2
+PLT-ATL-06C,Atlas 06 color platingum,Stationery,195,260,0,3,2
+PLT-ATL-12C,Atlas 12 color platingum,Stationery,352.5,470,0,3,2
+PLT-RBB-SET,Platingum Red/black/blue,Stationery,30,40,0,36,2
+PNC-SUNFLOWER,Sunflower pencil,Stationery,30,40,0,36,2
+PNC-YELLOW-STD,yellow pencil,Stationery,20,30,0,36,2
+PNC-ATL-06C,Atlas color pencil 6,Stationery,187.5,250,0,3,2
+PNC-ATL-12C,Atlas color pencil 12,Stationery,360,480,0,3,2
+PST-ATL-12C,Atlas pastel 12,Stationery,157.5,210,0,3,2
+WTR-COL-16C,Water color 16,Stationery,250,350,0,3,2
+SHRP-STD,sharpners,Stationery,26.25,35,0,45,2
+ERS-STD,earasers,Stationery,15,130,0,60,2
+COR-PEN-WHT,Whitex correction pens,Stationery,97.5,130,0,6,2
+COR-BOT-TPX,Tipex bottle,Stationery,105,140,0,12,2
+CLY-KDZ-STD,Kidz clay,Stationery,56,130,0,12,2
+MKR-WB-RBB,Whiteboard markepen Blue/red/black,Stationery,97.5,130,0,18,2
+GLU-LIQ-25ML,25 ml glue,Stationery,28.75,40,0,12,2
+GLU-ATL-50ML,Atlas clear 50ml glue,Stationery,56.25,75,0,12,2
+GLU-BND-40G,Maris 40g binder glue,Stationery,40,85,0,12,2
+GLU-SUP-KMC,super glue kimcol,Stationery,38.3333,60,0,12,2
+GLU-SUP-ATL,atlas super glue,Stationery,60,80,0,12,2
+SCS-STD,scissors,Stationery,62.4,120,0,25,2
+SCS-DESIGN,design scissors,Stationery,79.1667,180,0,6,2
+ENV-5.5X6,Envelop 5 1/2* 6,Stationery,1.6,5,0,50,2
+ENV-9X4,Envelop 9*4,Stationery,2.9,10,0,50,2
+COV-PLY-5YD,Polythin role 5y,Others,125,150,0,6,2
+COV-BK-EX,book cover Ex,Stationery,16,25,0,10,2
+COV-BK-CR,book cover CR,Stationery,28,40,0,10,2
+PPR-A4-COL,Color A4,Stationery,3.92,10,0,250,2
+PNT-FABRIC-SET,Fabric paints,Stationery,90,140,0,20,2
+CUT-PAPER-STD,paper cutter,Stationery,24.5833,45,0,12,2
+HL-SET-4PC,Highlighter 4pcs,Stationery,221.25,295,0,2,2
+HL-SGL-STD,Highlighter ,Stationery,80,150,0,24,2
+RUL-06IN,"6"" rullers",Stationery,25,40,0,12,2
+RUL-12IN,"12""rullers",Stationery,35,80,0,12,2
+TAP-CEL-1X40Y,"Celo tape 1"" 40y",Stationery,15,80,0,12,2
+TAP-CEL-0.5X20Y,Celo tape 1/2 20y,Stationery,15.4167,35,0,12,2
+TAP-CEL-0.5X30Y,Celo tape 1/2 30 y,Stationery,18.75,60,0,12,2
+TAP-CEL-2X20Y,"Celo tape 2"" 20y",Stationery,60,85,0,3,2
+TAP-PVC-STD,PVC tape,Stationery,35,80,0,12,2
+TAP-DBL-FOAM,Double tape foam,Stationery,75,110,0,3,2
+TAP-DBL-STD,Double tape   ,Stationery,80,130,0,3,2
+PIN-SUN-BOX,Sun pin box,Stationery,9.95,25,0,100,2
+PIN-STP-SML,stepler pin small,Stationery,22,35,0,10,2
+PIN-STP-STD,stepler pin  ,Stationery,39.5,50,0,10,2
+FST-PAPER-STD,paper fastner,Stationery,3.5,5,0,50,2
+CLP-PPR-STD,paper clip,Stationery,31,60,0,10,2
+CLP-PPR-COL,paper clip color,Stationery,57.5,75,0,10,2
+PIN-DRAWING,drawing pin,Stationery,25,35,0,10,2
+PIN-OFFICE,office pin,Stationery,57.5,65,0,10,2
+BAG-CLR-MY,My clear bag,Stationery,41.25,60,0,24,2
+FIL-FC-STD,FC files,Stationery,80,100,0,6,2
+FIL-CARDBOARD,Cardboard files,Stationery,12.5,20,0,100,2
+PPR-GRAPH-SHT,Graph sheets,Stationery,2.5,5,0,100,2
+PPR-ANSW-SHT,Answer sheets,Stationery,250,325,0,4,2
+MAP-SL-DIV,Sri lanka Map divided,Stationery,2.5,6,0,100,2
+MAP-WORLD-STD,world map,Stationery,2.5,6,0,100,2
+PPR-VARNISH,Varnish paper,Stationery,13.5,15,0,72,2
+PPR-PST-COL,Poster paper color,Stationery,17,25,0,24,2
+PPR-PST-WHT,poster paper White,Stationery,17,25,0,6,2
+BRD-BRS-WHT,Bristal board White,Stationery,27.5,30,0,6,2
+BRD-BRS-COL,Bristal board colour,Stationery,37.5,40,0,24,2
+PPR-BRN-SHT,Brown paper sheets,Stationery,10,25,0,19,2
+BAG-BRN-PPR,Brown paper bags,Others,9,15,0,100,2
+BAL-BDAY-STD,Balloon BD,Others,7.5,15,0,50,2
+BAL-PLAIN-STD,Balloon ,Others,7,10,0,50,2
+STK-NOTE-STD,Sticky notes,Stationery,85,130,0,12,2
+STK-NOTE-PLS,sticky notes plastic,Stationery,125,140,0,3,2
+BOX-PNC-CUT,Pencil box with cutter,Stationery,230,415,0,3,2
+BOX-PNC-STD,pencil box  ,Stationery,185,395,0,3,2
+SPT-SKIPPING,Skipping,Others,115,180,0,3,2
+STK-SMILE-SHT,Sticker smile,Stationery,50,80,0,5,2
+STK-PLAIN-SHT,sticker  ,Stationery,65,100,0,2,2
+STK-STAR-SHT,sticker star,Stationery,10,30,0,10,2
+ERS-SMILE-STD,Smile earser,Stationery,7.8462,35,0,65,2
+ABC-03BAR,03 bar abacus,Stationery,227.5,340,0,1,2
+ABC-04BAR,04 bar abacus,Stationery,262.5,390,0,1,2
+ABC-05BAR,05 bar abacus,Stationery,304.5,415,0,1,2
+SET-GEOM-SLD,Solid set,Stationery,240,325,0,2,2
+CLK-STD,Clock,Others,85,125,0,5,2
+ACC-RBN-BW,Ribbon hair role black/white,Others,75,100,0,5,2
+ACC-HAIR-CLP,Hair clips design,Others,100,175,0,5,2
+ACC-HAIR-BLD,Hair bool design,Others,70,80,0,10,2
+SPT-BALL-TEN,Tennis ball,Others,155,200,0,3,2
+BAG-PRS-TRN,Trasparent perse,Others,45,80,0,6,2
+BAG-PRS-UNC,Unicorn perse,Others,35,80,0,6,2
+TOY-CAR-STD,Toy car,Others,33.3333,50,0,6,2
+TOY-BIKE-STD,Toy bike,Others,33.3333,50,0,6,2
+CRD-CRAFT-EYE,eye card,Stationery,30,60,0,20,2
+CRD-CORD-NOL,cord nool,Stationery,25,50,0,20,2
+CRD-CRAFT-LEF,leef card,Stationery,75,150,0,5,2
+CRD-CRAFT-FLW,flower card,Stationery,75,150,0,5,2
+CRD-CRAFT-FTH,feather card,Stationery,85,250,0,5,2
+CRD-CRAFT-MAG,magent card,Stationery,43.75,200,0,20,2
+FIL-LACE-STD,file lase,Stationery,2.95,5,0,100,2
+BK-LOG-STD,log books,Books,25,35,0,10,2
+TOY-MOTOR-SET,motor set,Others,175,350,0,12,2
+CRD-DUST-SHN,dust card shine,Stationery,24,60,0,20,2
+ACC-HAIR-GRP,hair grip,Others,6.6,15,0,75,2
+ERS-PERFUME,eraser perfume,Stationery,30,40,0,24,2
+SPT-CARROM-PWD,carrom powder,Others,30,50,0,12,2
+TIS-PACK-STD,tissues,Others,23,30,0,10,2
+STK-ICE-COL,ice cream sticks colour,Stationery,95,160,0,2,2
+CRD-DYE-STD,dye card,Stationery,5,20,0,80,2
+CRD-LETTER-STD,letter card,Stationery,,225,0,4,2
+RUL-METER-STK,meter stick,Stationery,100,150,0,2,2
+RUL-PLAY-SCL,play scale,Stationery,,350,0,1,2
+BND-RUBBER,rubber band,Stationery,,,0,,2
+MKR-WB-PRM,whiteboard marker permenet,Stationery,,125,0,,2
