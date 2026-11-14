@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
 import { printReceipt } from '../utils/receipt';
@@ -9,7 +9,7 @@ import { addCartItem, type CartItem } from '../utils/cart';
 
 const SHORTCUTS = [
   { keys: 'Enter', desc: 'Scan / add highlighted item' },
-  { keys: '+ or F1', desc: 'Checkout with Cash (Single Key "+", no Fn needed)' },
+  { keys: '+ or F1', desc: 'Cash Payment & Change Calculator' },
   { keys: '- or F2', desc: 'Checkout with Card (Single Key "-", no Fn needed)' },
   { keys: '↑ / ↓', desc: 'Navigate search results' },
   { keys: '?', desc: 'Show this shortcuts panel' },
@@ -31,6 +31,18 @@ export default function POS() {
   const [discountType, setDiscountType] = useState<'AMOUNT' | 'PERCENT'>('AMOUNT');
   const [discountInput, setDiscountInput] = useState<string>('');
   const [itemDiscountSettings, setItemDiscountSettings] = useState<Record<string, { mode: '%' | 'Rs'; text: string }>>({});
+
+  // Cash Payment & Change Modal state
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashReceived, setCashReceived] = useState<string>('');
+  const [autoPrintReceipt, setAutoPrintReceipt] = useState(true);
+  const [changeBanner, setChangeBanner] = useState<{
+    receiptNo: string;
+    total: number;
+    tendered: number;
+    change: number;
+  } | null>(null);
+  const cashInputRef = useRef<HTMLInputElement>(null);
 
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -133,7 +145,7 @@ export default function POS() {
     if (!searchTerm.trim()) {
       if (e.key === '+' || e.key === 'Add' || e.key === 'End') {
         e.preventDefault();
-        if (cart.length > 0) handleCheckout('CASH');
+        if (cart.length > 0) openCashModal();
         return;
       }
       if (e.key === '-' || e.key === 'Subtract' || e.key === 'Home') {
@@ -340,24 +352,57 @@ export default function POS() {
   const netTotal = Math.max(0, Math.round((subtotal - billDiscount) * 100) / 100);
   const netProfit = Math.round((netTotal - totalCost) * 100) / 100;
 
-  const handleCheckout = async (method: string) => {
+  const openCashModal = () => {
+    if (cart.length === 0 || isCheckingOut) return;
+    setCashReceived('');
+    setShowCashModal(true);
+  };
+
+  const getQuickNotes = (total: number) => {
+    const notes = [100, 500, 1000, 2000, 5000];
+    const candidates = new Set<number>();
+    const nextHundred = Math.ceil(total / 100) * 100;
+    if (nextHundred > total) candidates.add(nextHundred);
+    for (const n of notes) {
+      if (n >= total && candidates.size < 4) candidates.add(n);
+    }
+    return Array.from(candidates);
+  };
+
+  useEffect(() => {
+    if (showCashModal) {
+      const timer = setTimeout(() => {
+        cashInputRef.current?.focus();
+        cashInputRef.current?.select();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [showCashModal]);
+
+  const handleCheckout = async (method: string, tenderedAmount?: number, shouldPrint: boolean = true) => {
     if (cart.length === 0 || checkoutPending.current) return;
     checkoutPending.current = true;
     setIsCheckingOut(true);
     checkoutRequestId.current ??= crypto.randomUUID();
 
     const now = new Date().toISOString();
+    const finalCart = [...cart];
+    const finalSubtotal = originalSubtotal;
+    const finalBillDiscount = billDiscount;
+    const finalNetTotal = netTotal;
+    const finalTotalCost = totalCost;
+    const finalNetProfit = netProfit;
 
     try {
       const res = await db.executeCheckout({
         requestId: checkoutRequestId.current,
-        totalAmount: netTotal,
-        totalCost,
-        grossProfit: netProfit,
+        totalAmount: finalNetTotal,
+        totalCost: finalTotalCost,
+        grossProfit: finalNetProfit,
         paymentType: method,
         createdAt: now,
-        items: cart,
-        billDiscount,
+        items: finalCart,
+        billDiscount: finalBillDiscount,
       });
 
       if (!res.success) {
@@ -366,14 +411,46 @@ export default function POS() {
       }
 
       const receiptNo = res.receiptNo || 'REC-?';
+      const actualTendered = method === 'CASH' && tenderedAmount != null && tenderedAmount > 0
+        ? tenderedAmount
+        : finalNetTotal;
+      const actualChange = Math.max(0, Math.round((actualTendered - finalNetTotal) * 100) / 100);
+
+      if (method === 'CASH') {
+        setChangeBanner({
+          receiptNo,
+          total: finalNetTotal,
+          tendered: actualTendered,
+          change: actualChange,
+        });
+      } else {
+        setChangeBanner(null);
+      }
+
       toast.success(
-        `Receipt ${receiptNo} • ${method} • Rs.${netTotal.toFixed(2)}${billDiscount > 0 ? ` (Disc: Rs.${billDiscount.toFixed(2)})` : ''}`,
+        `Receipt ${receiptNo} • ${method} • Rs.${finalNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
         'Sale completed'
       );
+
+      if (shouldPrint) {
+        printReceipt({
+          receipt_no: receiptNo,
+          created_at: now,
+          payment_type: method,
+          total_amount: finalNetTotal,
+          items: finalCart,
+          bill_discount: finalBillDiscount,
+          subtotal: finalSubtotal,
+          cash_tendered: actualTendered,
+          change_amount: actualChange,
+        });
+      }
+
       setCart([]);
       setDiscountInput('');
       setItemDiscountSettings({});
-      // Keep the ID until the cart changes so a stale event cannot create another sale.
+      setShowCashModal(false);
+      setCashReceived('');
       fetchLastSale();
       setSearchTerm('');
     } catch (err: any) {
@@ -406,10 +483,18 @@ export default function POS() {
       const tag = (e.target as HTMLElement)?.tagName;
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
 
+      if (showCashModal) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowCashModal(false);
+        }
+        return;
+      }
+
       // Checkout shortcuts
       if (e.key === 'F1' || (!isInput && (e.key === '+' || e.key === 'Add' || e.key === 'End'))) {
         e.preventDefault();
-        if (cart.length > 0) handleCheckout('CASH');
+        if (cart.length > 0) openCashModal();
       } else if (e.key === 'F2' || (!isInput && (e.key === '-' || e.key === 'Subtract' || e.key === 'Home'))) {
         e.preventDefault();
         if (cart.length > 0) handleCheckout('CARD');
@@ -424,7 +509,7 @@ export default function POS() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, handleCheckout, showShortcuts]);
+  }, [cart, handleCheckout, showShortcuts, showCashModal]);
 
   return (
     <>
@@ -433,6 +518,39 @@ export default function POS() {
 
         {/* Left Panel: Search & Cart */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible z-10">
+
+          {/* Change to Return Banner (Persistent until dismissed or next sale) */}
+          {changeBanner && (
+            <div className="bg-emerald-600 text-white px-5 py-3.5 flex items-center justify-between border-b border-emerald-700 animate-in slide-in-from-top duration-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Coins className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="text-[11px] uppercase font-black text-emerald-100 tracking-wider">
+                    Receipt #{changeBanner.receiptNo} Completed
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                    <span className="text-xs text-emerald-100">
+                      Paid: <strong>Rs. {changeBanner.tendered.toFixed(2)}</strong> (Total: Rs. {changeBanner.total.toFixed(2)})
+                    </span>
+                    <span className="text-xs font-bold text-emerald-300">•</span>
+                    <span className="text-sm font-black text-white bg-emerald-800/70 px-2.5 py-0.5 rounded-lg shadow-xs">
+                      Change to Return: Rs. {changeBanner.change.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChangeBanner(null)}
+                className="p-1.5 hover:bg-white/20 rounded-lg text-emerald-100 hover:text-white transition-colors cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
 
           {/* Search Bar with Dropdown */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center relative" ref={searchRef}>
@@ -728,17 +846,17 @@ export default function POS() {
 
           <div className="grid grid-cols-2 gap-3 mt-8">
             <button
-              onClick={() => handleCheckout('CASH')}
+              onClick={openCashModal}
               disabled={cart.length === 0 || isCheckingOut}
               className="flex flex-col items-center justify-center p-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
-              title="Checkout with Cash (1-Click or press + or F1)"
+              title="Cash Payment & Change Calculator (press + or F1)"
             >
               <Banknote className="w-7 h-7 mb-1" />
               <span className="text-base font-extrabold flex items-center gap-1.5">
                 Cash
                 <span className="text-xs bg-green-700/60 px-2 py-0.5 rounded font-mono">+</span>
               </span>
-              <span className="text-[10px] text-green-100 font-normal mt-0.5">1-Click or press +</span>
+              <span className="text-[10px] text-green-100 font-normal mt-0.5">Calculate Change (+)</span>
             </button>
             <button
               onClick={() => handleCheckout('CARD')}
@@ -766,6 +884,232 @@ export default function POS() {
         </div>
 
       </div>
+
+      {/* Cash Payment & Change Calculator Modal */}
+      {showCashModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
+          onClick={() => setShowCashModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-4 flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Banknote className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">Cash Payment & Change</h3>
+                  <p className="text-xs text-green-100 font-medium">Enter cash received from customer</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowCashModal(false)}
+                className="p-1.5 hover:bg-white/20 rounded-xl text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Total Due Display */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Payable</span>
+                  {billDiscount > 0 && (
+                    <span className="ml-2 text-xs text-red-500 font-semibold">(Disc: Rs. {billDiscount.toFixed(2)})</span>
+                  )}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{cart.length} item(s) in cart</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-3xl font-black text-gray-900 dark:text-gray-100">
+                    Rs. {netTotal.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cash Received Input */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
+                  Cash Received / Tendered (Rs.)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400">Rs.</span>
+                  <input
+                    ref={cashInputRef}
+                    type="number"
+                    step="any"
+                    placeholder={netTotal.toFixed(2)}
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = parseFloat(cashReceived) || netTotal;
+                        if (val >= netTotal) {
+                          handleCheckout('CASH', val, autoPrintReceipt);
+                        } else {
+                          toast.error(`Cash received is less than total by Rs. ${(netTotal - val).toFixed(2)}`);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowCashModal(false);
+                      }
+                    }}
+                    className="w-full pl-14 pr-4 py-3 text-3xl font-black text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900 border-2 border-emerald-500 dark:border-emerald-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 text-right tracking-tight placeholder-gray-300 dark:placeholder-gray-600"
+                  />
+                </div>
+
+                {/* Quick Cash Note Buttons */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setCashReceived(String(netTotal))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      (parseFloat(cashReceived) || 0) === netTotal
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Exact (Rs. {netTotal.toFixed(2)})
+                  </button>
+
+                  {getQuickNotes(netTotal).map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setCashReceived(String(amt))}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        parseFloat(cashReceived) === amt
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      Rs. {amt.toLocaleString()}
+                    </button>
+                  ))}
+
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {[100, 500, 1000].map((add) => (
+                      <button
+                        key={add}
+                        type="button"
+                        onClick={() => {
+                          const curr = parseFloat(cashReceived) || 0;
+                          setCashReceived(String(curr + add));
+                        }}
+                        className="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg text-[11px] font-semibold cursor-pointer"
+                        title={`Add Rs. ${add}`}
+                      >
+                        +{add}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Change Calculation Box */}
+              {(() => {
+                const isProvided = cashReceived.trim() !== '';
+                const received = parseFloat(cashReceived) || 0;
+                const change = Math.round((received - netTotal) * 100) / 100;
+                const short = Math.round((netTotal - received) * 100) / 100;
+
+                if (!isProvided) {
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 flex items-center justify-between text-blue-800 dark:text-blue-300">
+                      <div className="flex items-center gap-2">
+                        <Coins className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-medium">Type cash given or click a note. (Press Enter for Exact)</span>
+                      </div>
+                      <span className="text-xs font-bold bg-blue-200 dark:bg-blue-800 px-2 py-0.5 rounded">Enter = Exact</span>
+                    </div>
+                  );
+                }
+
+                if (change >= 0) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 dark:border-emerald-600 flex items-center justify-between shadow-xs">
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                          Change to Return
+                        </span>
+                        <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+                          Hand back to customer
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                          Rs. {change.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                        Insufficient Amount
+                      </span>
+                      <p className="text-xs text-amber-700 dark:text-amber-500">Customer still owes:</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-amber-700 dark:text-amber-400">
+                        - Rs. {short.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Print Receipt Toggle */}
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={autoPrintReceipt}
+                    onChange={(e) => setAutoPrintReceipt(e.target.checked)}
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <span>Automatically Print Receipt on Complete</span>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCashModal(false)}
+                  className="py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-2xl transition-all cursor-pointer"
+                >
+                  Cancel (Esc)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = parseFloat(cashReceived) || netTotal;
+                    if (val >= netTotal) {
+                      handleCheckout('CASH', val, autoPrintReceipt);
+                    } else {
+                      toast.error(`Cash received is less than total by Rs. ${(netTotal - val).toFixed(2)}`);
+                    }
+                  }}
+                  disabled={isCheckingOut || (cashReceived.trim() !== '' && (parseFloat(cashReceived) || 0) < netTotal)}
+                  className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <Check className="w-5 h-5" />
+                  <span>Complete Sale (Enter)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
 
 

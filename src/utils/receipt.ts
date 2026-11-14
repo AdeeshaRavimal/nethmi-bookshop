@@ -14,6 +14,8 @@ export interface ReceiptData {
   items: ReceiptLineItem[];
   subtotal?: number;
   bill_discount?: number;
+  cash_tendered?: number;
+  change_amount?: number;
 }
 
 const SHOP_NAME = 'Hiru Bookshop & Communication';
@@ -127,6 +129,15 @@ export function printReceipt(data: ReceiptData): void {
       <span>NET TOTAL</span>
       <span>${money(data.total_amount)}</span>
     </div>
+    ${(data.cash_tendered != null && data.cash_tendered > 0) ? `
+    <div class="total-row" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px;">
+      <span>Cash Tendered</span>
+      <span>${money(data.cash_tendered)}</span>
+    </div>
+    <div class="total-row" style="font-weight: bold; color: #15803d;">
+      <span>Change Return</span>
+      <span>${money(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount))}</span>
+    </div>` : ''}
   </div>
 
   <div class="footer">
