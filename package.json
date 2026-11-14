@@ -15,6 +15,7 @@
   "build": {
     "appId": "com.hiru.bookshop",
     "productName": "Hiru Bookshop & Communication",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
     },
