@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
 import type { CreditCustomer } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
 import { printReceipt } from '../utils/receipt';
@@ -56,6 +56,13 @@ export default function POS() {
   const [newCustomerLimit, setNewCustomerLimit] = useState('');
   const [isSubmittingCredit, setIsSubmittingCredit] = useState(false);
   const creditSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Live Clock state
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -638,8 +645,8 @@ export default function POS() {
             </div>
           )}
 
-          {/* Search Bar with Dropdown */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center relative" ref={searchRef}>
+          {/* Search Bar with Dropdown & Live Clock */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-3 relative" ref={searchRef}>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -669,11 +676,10 @@ export default function POS() {
                           <div className="flex items-center gap-2">
                             <h4 className={`font-bold ${index === selectedIndex ? 'text-blue-900 dark:text-blue-200' : 'text-gray-800 dark:text-gray-100'}`}>{item.title}</h4>
                             {item.batch_label && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                                item.batch_label?.startsWith('OLD')
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                              }`}>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${item.batch_label?.startsWith('OLD')
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                }`}>
                                 {item.batch_label}
                               </span>
                             )}
@@ -719,6 +725,19 @@ export default function POS() {
             >
               <Keyboard className="w-5 h-5" />
             </button>
+
+            {/* Live POS Clock & Date */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-700/80 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-200 shadow-xs">
+              <Clock className="w-4 h-4 text-blue-500 animate-pulse" />
+              <div className="text-right leading-tight">
+                <span className="text-xs font-black font-mono block">
+                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <span className="text-[10px] text-gray-400 font-semibold block">
+                  {currentTime.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+            </div>
           </div>
 
 
@@ -783,11 +802,10 @@ export default function POS() {
                                 type="button"
                                 onClick={() => toggleItemDiscountMode(item.lineId, 'Rs')}
                                 title="Fixed Rupee discount on this item"
-                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
-                                  discountMode === 'Rs'
-                                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
+                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${discountMode === 'Rs'
+                                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                  }`}
                               >
                                 Rs
                               </button>
@@ -795,11 +813,10 @@ export default function POS() {
                                 type="button"
                                 onClick={() => toggleItemDiscountMode(item.lineId, '%')}
                                 title="Percentage discount on this item"
-                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
-                                  discountMode === '%'
-                                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
+                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${discountMode === '%'
+                                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                  }`}
                               >
                                 %
                               </button>
@@ -985,11 +1002,11 @@ export default function POS() {
 
       {/* Cash Payment & Change Calculator Modal */}
       {showCashModal && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
           onClick={() => setShowCashModal(false)}
         >
-          <div 
+          <div
             className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
@@ -1004,7 +1021,7 @@ export default function POS() {
                   <p className="text-xs text-green-100 font-medium">Enter cash received from customer</p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowCashModal(false)}
                 className="p-1.5 hover:bg-white/20 rounded-xl text-white/80 hover:text-white transition-colors cursor-pointer"
@@ -1066,11 +1083,10 @@ export default function POS() {
                   <button
                     type="button"
                     onClick={() => setCashReceived(String(netTotal))}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      (parseFloat(cashReceived) || 0) === netTotal
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${(parseFloat(cashReceived) || 0) === netTotal
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
                   >
                     Exact (Rs. {netTotal.toFixed(2)})
                   </button>
@@ -1080,11 +1096,10 @@ export default function POS() {
                       key={amt}
                       type="button"
                       onClick={() => setCashReceived(String(amt))}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        parseFloat(cashReceived) === amt
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${parseFloat(cashReceived) === amt
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                        }`}
                     >
                       Rs. {amt.toLocaleString()}
                     </button>
@@ -1292,11 +1307,10 @@ export default function POS() {
                             <div
                               key={cust.id}
                               onClick={() => setSelectedCreditCustomer(cust)}
-                              className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-purple-100 dark:bg-purple-900/40 border-l-4 border-purple-600'
-                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                              }`}
+                              className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${isSelected
+                                ? 'bg-purple-100 dark:bg-purple-900/40 border-l-4 border-purple-600'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                                }`}
                             >
                               <div>
                                 <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
@@ -1456,9 +1470,9 @@ export default function POS() {
 function ShoppingCartIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-4 text-gray-300 dark:text-gray-600">
-      <circle cx="8" cy="21" r="1"/>
-      <circle cx="19" cy="21" r="1"/>
-      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+      <circle cx="8" cy="21" r="1" />
+      <circle cx="19" cy="21" r="1" />
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
     </svg>
   );
 }

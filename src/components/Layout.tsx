@@ -69,7 +69,12 @@ export default function Layout() {
               className="w-10 h-10 rounded-xl shadow-xs object-cover border border-gray-100 dark:border-gray-700"
             />
             <div>
-              <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">Hiru Bookshop & Communication</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">Hiru Bookshop & Communication</h1>
+                <span className="text-[10px] font-mono font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                  v1.0.3
+                </span>
+              </div>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold tracking-wide">Maniyangama, Avissawella</p>
             </div>
           </div>
