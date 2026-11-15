@@ -15,6 +15,7 @@ import {
   Sun,
   ClipboardList,
   Wallet,
+  Users,
 } from 'lucide-react';
 import BackupModal from './BackupModal';
 import UpdateNotifier from './UpdateNotifier';
@@ -26,6 +27,7 @@ const navItems = [
   { name: 'POS & Sales', path: '/', icon: ShoppingCart },
   { name: 'Invoices', path: '/invoices', icon: FileText },
   { name: 'Cashbook', path: '/cashbook', icon: Wallet },
+  { name: 'Credit Book', path: '/credit', icon: Users },
   { name: 'Inventory', path: '/inventory', icon: Package },
   { name: 'GRN (Stock In)', path: '/grn', icon: ClipboardList },
   { name: 'Credit GRN Invoices', path: '/bills', icon: Receipt },

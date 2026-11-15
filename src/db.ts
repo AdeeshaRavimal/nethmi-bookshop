@@ -178,6 +178,27 @@ export interface UpdaterStatus {
   error?: string;
 }
 
+export interface CreditCustomer {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  credit_limit: number;
+  total_outstanding: number;
+  notes: string;
+  created_at: string;
+}
+
+export interface CreditLedgerEntry {
+  id: number;
+  amount: number;
+  payment_type: 'SALE' | 'PAYMENT' | 'ADJUSTMENT';
+  notes: string;
+  created_at: string;
+  receipt_no?: string;
+  sale_total?: number;
+}
+
 // ─── IPC bridge type ───────────────────────────────────────────────────────────
 
 declare global {
@@ -414,6 +435,7 @@ export const db = {
     createdAt: string;
     items: any[];
     billDiscount?: number;
+    customerId?: number;
   }): Promise<{ success: boolean; saleId?: number; receiptNo?: string; error?: string }> => {
     if (!window.ipcRenderer) return Promise.resolve({ success: true, saleId: Date.now(), receiptNo: `REC-${Date.now()}` });
     return window.ipcRenderer.invoke('execute-checkout', params);
@@ -449,6 +471,30 @@ export const db = {
 
   executeCloudBackup: (): Promise<{ success: boolean; filePath?: string; timestamp?: string; error?: string }> =>
     ipc('execute-cloud-backup'),
+
+  // ── Credit Customers ─────────────────────────────────────────────────────────
+  credit: {
+    getCustomers: (): Promise<{ success: boolean; data?: CreditCustomer[]; error?: string }> =>
+      ipc('db:credit:getCustomers'),
+
+    searchCustomers: (term: string): Promise<{ success: boolean; data?: CreditCustomer[]; error?: string }> =>
+      ipc('db:credit:searchCustomers', { term }),
+
+    createCustomer: (data: { name: string; phone?: string; address?: string; credit_limit?: number; notes?: string }): Promise<{ success: boolean; id?: number; error?: string }> =>
+      ipc('db:credit:createCustomer', data),
+
+    updateCustomer: (data: { id: number; name: string; phone?: string; address?: string; credit_limit?: number; notes?: string }): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:credit:updateCustomer', data),
+
+    deleteCustomer: (id: number): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:credit:deleteCustomer', { id }),
+
+    getCustomerLedger: (customerId: number): Promise<{ success: boolean; data?: { customer: CreditCustomer; ledger: CreditLedgerEntry[] }; error?: string }> =>
+      ipc('db:credit:getCustomerLedger', { customerId }),
+
+    recordPayment: (customerId: number, amount: number, notes?: string): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:credit:recordPayment', { customerId, amount, notes }),
+  },
 
   // ── Auto Updater ──────────────────────────────────────────────────────────────
   updater: {

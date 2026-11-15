@@ -1227,6 +1227,116 @@ ipcMain.handle('execute-checkout', (_e, params) => {
   }
 });
 
+// ─── Credit Customers ─────────────────────────────────────────────────────────
+
+ipcMain.handle('db:credit:getCustomers', () => {
+  try {
+    const db = getDb();
+    const data = db.prepare(`
+      SELECT id, name, phone, address, credit_limit, total_outstanding, notes, created_at
+      FROM credit_customers
+      ORDER BY name ASC
+    `).all();
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:credit:searchCustomers', (_e, { term }: { term: string }) => {
+  try {
+    const db = getDb();
+    const like = `%${term}%`;
+    const data = db.prepare(`
+      SELECT id, name, phone, address, credit_limit, total_outstanding, notes, created_at
+      FROM credit_customers
+      WHERE name LIKE ? OR phone LIKE ?
+      ORDER BY name ASC
+      LIMIT 20
+    `).all(like, like);
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:credit:createCustomer', (_e, data: { name: string; phone?: string; address?: string; credit_limit?: number; notes?: string }) => {
+  try {
+    const db = getDb();
+    if (!data.name?.trim()) throw new Error('Customer name is required');
+    const result = db.prepare(`
+      INSERT INTO credit_customers (name, phone, address, credit_limit, notes)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(data.name.trim(), data.phone ?? '', data.address ?? '', data.credit_limit ?? 0, data.notes ?? '');
+    return { success: true, id: Number(result.lastInsertRowid) };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:credit:updateCustomer', (_e, data: { id: number; name: string; phone?: string; address?: string; credit_limit?: number; notes?: string }) => {
+  try {
+    const db = getDb();
+    if (!data.id || !data.name?.trim()) throw new Error('Invalid customer data');
+    db.prepare(`
+      UPDATE credit_customers SET name = ?, phone = ?, address = ?, credit_limit = ?, notes = ?
+      WHERE id = ?
+    `).run(data.name.trim(), data.phone ?? '', data.address ?? '', data.credit_limit ?? 0, data.notes ?? '', data.id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:credit:deleteCustomer', (_e, { id }: { id: number }) => {
+  try {
+    const db = getDb();
+    const customer = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(id) as { total_outstanding: number } | undefined;
+    if (!customer) throw new Error('Customer not found');
+    if (customer.total_outstanding > 0) throw new Error('Cannot delete customer with outstanding balance');
+    db.prepare('DELETE FROM credit_customers WHERE id = ?').run(id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:credit:getCustomerLedger', (_e, { customerId }: { customerId: number }) => {
+  try {
+    const db = getDb();
+    const customer = db.prepare('SELECT * FROM credit_customers WHERE id = ?').get(customerId) as any;
+    if (!customer) throw new Error('Customer not found');
+    const ledger = db.prepare(`
+      SELECT cp.id, cp.amount, cp.payment_type, cp.notes, cp.created_at,
+             s.receipt_no, s.total_amount AS sale_total
+      FROM credit_payments cp
+      LEFT JOIN sales s ON cp.sale_id = s.id
+      WHERE cp.customer_id = ?
+      ORDER BY cp.created_at DESC
+    `).all(customerId);
+    return { success: true, data: { customer, ledger } };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:credit:recordPayment', (_e, { customerId, amount, notes }: { customerId: number; amount: number; notes?: string }) => {
+  try {
+    const db = getDb();
+    if (!customerId || !amount || amount <= 0) throw new Error('Invalid payment data');
+    const customer = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as { total_outstanding: number } | undefined;
+    if (!customer) throw new Error('Customer not found');
+    db.transaction(() => {
+      db.prepare('INSERT INTO credit_payments (customer_id, amount, payment_type, notes) VALUES (?, ?, ?, ?)').run(customerId, amount, 'PAYMENT', notes ?? '');
+      const newOutstanding = Math.max(0, Math.round((customer.total_outstanding - amount) * 100) / 100);
+      db.prepare('UPDATE credit_customers SET total_outstanding = ? WHERE id = ?').run(newOutstanding, customerId);
+    })();
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
 // ─── Backup / Restore ─────────────────────────────────────────────────────────
 
 ipcMain.handle('db-backup', async () => {

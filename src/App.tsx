@@ -11,6 +11,7 @@ import Reports from './pages/Reports';
 import Invoices from './pages/Invoices';
 import GRN from './pages/GRN';
 import Cashbook from './pages/Cashbook';
+import CreditCustomers from './pages/CreditCustomers';
 
 function App() {
   return (
@@ -40,6 +41,11 @@ function App() {
           <Route path="cashbook" element={
             <ErrorBoundary sectionName="Cashbook">
               <Cashbook />
+            </ErrorBoundary>
+          } />
+          <Route path="credit" element={
+            <ErrorBoundary sectionName="Credit Book">
+              <CreditCustomers />
             </ErrorBoundary>
           } />
           <Route path="assets" element={

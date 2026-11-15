@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check } from 'lucide-react';
+import type { CreditCustomer } from '../db';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
 import { printReceipt } from '../utils/receipt';
@@ -43,6 +44,18 @@ export default function POS() {
     change: number;
   } | null>(null);
   const cashInputRef = useRef<HTMLInputElement>(null);
+
+  // Credit Customer Modal state
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [creditSearch, setCreditSearch] = useState('');
+  const [creditCustomers, setCreditCustomers] = useState<CreditCustomer[]>([]);
+  const [selectedCreditCustomer, setSelectedCreditCustomer] = useState<CreditCustomer | null>(null);
+  const [isCreatingCreditCustomer, setIsCreatingCreditCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [newCustomerLimit, setNewCustomerLimit] = useState('');
+  const [isSubmittingCredit, setIsSubmittingCredit] = useState(false);
+  const creditSearchInputRef = useRef<HTMLInputElement>(null);
 
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -379,7 +392,69 @@ export default function POS() {
     }
   }, [showCashModal]);
 
-  const handleCheckout = async (method: string, tenderedAmount?: number, shouldPrint: boolean = true) => {
+  const openCreditModal = async () => {
+    setShowCreditModal(true);
+    setCreditSearch('');
+    setSelectedCreditCustomer(null);
+    setIsCreatingCreditCustomer(false);
+    setNewCustomerName('');
+    setNewCustomerPhone('');
+    setNewCustomerLimit('');
+    try {
+      const res = await db.credit.getCustomers();
+      if (res.success && res.data) {
+        setCreditCustomers(res.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setTimeout(() => {
+      creditSearchInputRef.current?.focus();
+    }, 50);
+  };
+
+  const handleQuickCreateCreditCustomer = async () => {
+    if (!newCustomerName.trim()) {
+      toast.error('Customer name is required');
+      return;
+    }
+    try {
+      setIsSubmittingCredit(true);
+      const res = await db.credit.createCustomer({
+        name: newCustomerName.trim(),
+        phone: newCustomerPhone.trim(),
+        credit_limit: parseFloat(newCustomerLimit) || 0,
+      });
+      if (!res.success || !res.id) throw new Error(res.error || 'Failed to create customer');
+      const newCust: CreditCustomer = {
+        id: res.id,
+        name: newCustomerName.trim(),
+        phone: newCustomerPhone.trim(),
+        address: '',
+        credit_limit: parseFloat(newCustomerLimit) || 0,
+        total_outstanding: 0,
+        notes: '',
+        created_at: new Date().toISOString(),
+      };
+      setSelectedCreditCustomer(newCust);
+      setIsCreatingCreditCustomer(false);
+      // Refresh customer list
+      const listRes = await db.credit.getCustomers();
+      if (listRes.success && listRes.data) setCreditCustomers(listRes.data);
+      toast.success(`Customer ${newCust.name} added!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Error creating customer');
+    } finally {
+      setIsSubmittingCredit(false);
+    }
+  };
+
+  const handleCheckout = async (
+    method: string,
+    tenderedAmount?: number,
+    shouldPrint: boolean = true,
+    creditCustomer?: CreditCustomer | null
+  ) => {
     if (cart.length === 0 || checkoutPending.current) return;
     checkoutPending.current = true;
     setIsCheckingOut(true);
@@ -403,6 +478,7 @@ export default function POS() {
         createdAt: now,
         items: finalCart,
         billDiscount: finalBillDiscount,
+        customerId: creditCustomer?.id,
       });
 
       if (!res.success) {
@@ -427,10 +503,18 @@ export default function POS() {
         setChangeBanner(null);
       }
 
-      toast.success(
-        `Receipt ${receiptNo} • ${method} • Rs.${finalNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
-        'Sale completed'
-      );
+      if (method === 'CREDIT' && creditCustomer) {
+        const newBalance = (creditCustomer.total_outstanding || 0) + finalNetTotal;
+        toast.success(
+          `Credit Sale to ${creditCustomer.name} (Due: Rs.${newBalance.toFixed(2)}) • Receipt ${receiptNo}`,
+          'Credit Bill Recorded'
+        );
+      } else {
+        toast.success(
+          `Receipt ${receiptNo} • ${method} • Rs.${finalNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
+          'Sale completed'
+        );
+      }
 
       if (shouldPrint) {
         printReceipt({
@@ -450,6 +534,8 @@ export default function POS() {
       setDiscountInput('');
       setItemDiscountSettings({});
       setShowCashModal(false);
+      setShowCreditModal(false);
+      setSelectedCreditCustomer(null);
       setCashReceived('');
       fetchLastSale();
       setSearchTerm('');
@@ -844,32 +930,44 @@ export default function POS() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-8">
+          <div className="grid grid-cols-3 gap-2.5 mt-8">
             <button
               onClick={openCashModal}
               disabled={cart.length === 0 || isCheckingOut}
-              className="flex flex-col items-center justify-center p-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              className="flex flex-col items-center justify-center p-2.5 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
               title="Cash Payment & Change Calculator (press + or F1)"
             >
-              <Banknote className="w-7 h-7 mb-1" />
-              <span className="text-base font-extrabold flex items-center gap-1.5">
+              <Banknote className="w-6 h-6 mb-1" />
+              <span className="text-sm font-extrabold flex items-center gap-1">
                 Cash
-                <span className="text-xs bg-green-700/60 px-2 py-0.5 rounded font-mono">+</span>
+                <span className="text-[10px] bg-green-700/60 px-1.5 py-0.2 rounded font-mono">+</span>
               </span>
-              <span className="text-[10px] text-green-100 font-normal mt-0.5">Calculate Change (+)</span>
+              <span className="text-[9px] text-green-100 font-normal mt-0.5">Calculate Change</span>
             </button>
             <button
               onClick={() => handleCheckout('CARD')}
               disabled={cart.length === 0 || isCheckingOut}
-              className="flex flex-col items-center justify-center p-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              className="flex flex-col items-center justify-center p-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
               title="Checkout with Card (1-Click or press - or F2)"
             >
-              <CreditCard className="w-7 h-7 mb-1" />
-              <span className="text-base font-extrabold flex items-center gap-1.5">
+              <CreditCard className="w-6 h-6 mb-1" />
+              <span className="text-sm font-extrabold flex items-center gap-1">
                 Card
-                <span className="text-xs bg-blue-700/60 px-2 py-0.5 rounded font-mono">-</span>
+                <span className="text-[10px] bg-blue-700/60 px-1.5 py-0.2 rounded font-mono">-</span>
               </span>
-              <span className="text-[10px] text-blue-100 font-normal mt-0.5">1-Click or press -</span>
+              <span className="text-[9px] text-blue-100 font-normal mt-0.5">1-Click Card</span>
+            </button>
+            <button
+              onClick={openCreditModal}
+              disabled={cart.length === 0 || isCheckingOut}
+              className="flex flex-col items-center justify-center p-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              title="Credit Payment (Assign bill to a credit customer account)"
+            >
+              <Users className="w-6 h-6 mb-1" />
+              <span className="text-sm font-extrabold flex items-center gap-1">
+                Credit
+              </span>
+              <span className="text-[9px] text-purple-200 font-normal mt-0.5">Customer Book</span>
             </button>
           </div>
 
@@ -1106,6 +1204,220 @@ export default function POS() {
                   <span>Complete Sale (Enter)</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credit Bill & Customer Selection Modal */}
+      {showCreditModal && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
+          onClick={() => setShowCreditModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-xs">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">Select Credit Customer</h3>
+                  <p className="text-xs text-purple-200">Bill will be added to customer's credit ledger</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreditModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Bill Amount Reminder */}
+              <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-2xl border border-purple-200 dark:border-purple-800 flex justify-between items-center">
+                <span className="text-xs font-bold uppercase text-purple-800 dark:text-purple-300">Total Credit Amount:</span>
+                <span className="text-2xl font-black text-purple-700 dark:text-purple-300">Rs. {netTotal.toFixed(2)}</span>
+              </div>
+
+              {!isCreatingCreditCustomer ? (
+                <>
+                  {/* Search Customer Input & Add Button */}
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        ref={creditSearchInputRef}
+                        type="text"
+                        placeholder="Search customer by name or phone..."
+                        value={creditSearch}
+                        onChange={(e) => setCreditSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingCreditCustomer(true)}
+                      className="px-3 py-2.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/50 dark:hover:bg-purple-900/80 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      New
+                    </button>
+                  </div>
+
+                  {/* Customer Results List */}
+                  <div className="max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
+                    {creditCustomers.filter(c =>
+                      c.name.toLowerCase().includes(creditSearch.toLowerCase()) ||
+                      c.phone.includes(creditSearch)
+                    ).length === 0 ? (
+                      <div className="p-6 text-center text-gray-400 text-xs">
+                        No credit customer found for "{creditSearch}". Click <strong>+ New</strong> to register.
+                      </div>
+                    ) : (
+                      creditCustomers
+                        .filter(c =>
+                          c.name.toLowerCase().includes(creditSearch.toLowerCase()) ||
+                          c.phone.includes(creditSearch)
+                        )
+                        .map(cust => {
+                          const isSelected = selectedCreditCustomer?.id === cust.id;
+                          return (
+                            <div
+                              key={cust.id}
+                              onClick={() => setSelectedCreditCustomer(cust)}
+                              className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-purple-100 dark:bg-purple-900/40 border-l-4 border-purple-600'
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                              }`}
+                            >
+                              <div>
+                                <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
+                                <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-gray-400 uppercase font-semibold block">Outstanding</span>
+                                <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                                  Rs. {(cust.total_outstanding || 0).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+
+                  {/* Selected Customer Preview */}
+                  {selectedCreditCustomer && (
+                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-300 dark:border-purple-700 flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-purple-700 dark:text-purple-300 font-bold">Selected:</span>
+                        <p className="text-sm font-black text-gray-900 dark:text-gray-100">{selectedCreditCustomer.name}</p>
+                        <p className="text-[11px] text-gray-500">
+                          Current Due: Rs. {(selectedCreditCustomer.total_outstanding || 0).toFixed(2)} → New Due: <strong className="text-rose-600">Rs. {((selectedCreditCustomer.total_outstanding || 0) + netTotal).toFixed(2)}</strong>
+                        </p>
+                      </div>
+                      <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreditModal(false)}
+                      className="py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedCreditCustomer || isCheckingOut}
+                      onClick={() => {
+                        if (selectedCreditCustomer) {
+                          handleCheckout('CREDIT', undefined, true, selectedCreditCustomer);
+                        }
+                      }}
+                      className="py-3 px-4 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Check className="w-5 h-5" />
+                      <span>Confirm Credit Bill</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Inline Add Customer Form */
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Register New Customer</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingCreditCustomer(false)}
+                      className="text-xs text-purple-600 dark:text-purple-400 font-semibold"
+                    >
+                      Back to search
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Customer Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Nimal Silva"
+                      value={newCustomerName}
+                      onChange={(e) => setNewCustomerName(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 0771234567"
+                      value={newCustomerPhone}
+                      onChange={(e) => setNewCustomerPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Credit Limit (Rs.)</label>
+                    <input
+                      type="number"
+                      placeholder="0 for unlimited"
+                      value={newCustomerLimit}
+                      onChange={(e) => setNewCustomerLimit(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingCreditCustomer(false)}
+                      className="flex-1 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-xs font-bold text-gray-700 dark:text-gray-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmittingCredit}
+                      onClick={handleQuickCreateCreditCustomer}
+                      className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                    >
+                      {isSubmittingCredit ? 'Saving...' : 'Save & Select'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

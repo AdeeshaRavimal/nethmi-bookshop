@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -168,6 +168,46 @@ export function runMigrations(instance: Database.Database) {
     currentVersion = 9;
   }
 
+  // ── Migration v9 → v10: Credit customers + credit_payments ─────────────────
+  if (currentVersion < 10) {
+    instance.exec(`
+      CREATE TABLE IF NOT EXISTS credit_customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT DEFAULT '',
+        address TEXT DEFAULT '',
+        credit_limit REAL DEFAULT 0,
+        total_outstanding REAL DEFAULT 0,
+        notes TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS credit_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL REFERENCES credit_customers(id),
+        sale_id INTEGER REFERENCES sales(id),
+        amount REAL NOT NULL,
+        payment_type TEXT DEFAULT 'PAYMENT',
+        notes TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_credit_payments_customer ON credit_payments(customer_id);
+      CREATE INDEX IF NOT EXISTS idx_credit_payments_sale ON credit_payments(sale_id);
+    `);
+    currentVersion = 10;
+  }
+
+  // ── Migration v10 → v11: Add customer_id to sales ───────────────────────────
+  if (currentVersion < 11) {
+    try {
+      instance.exec('ALTER TABLE sales ADD COLUMN customer_id INTEGER REFERENCES credit_customers(id);');
+    } catch {
+      // Column might already exist in fresh databases
+    }
+    currentVersion = 11;
+  }
+
   // Persist the version so we don't re-run migrations next time.
   if (row === undefined) {
     instance.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
@@ -318,6 +358,30 @@ export function initPragmasAndSchema(instance: Database.Database) {
       created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_cashbook_date ON cashbook_entries(entry_date);
+
+    CREATE TABLE IF NOT EXISTS credit_customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      phone TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      credit_limit REAL DEFAULT 0,
+      total_outstanding REAL DEFAULT 0,
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS credit_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL REFERENCES credit_customers(id),
+      sale_id INTEGER REFERENCES sales(id),
+      amount REAL NOT NULL,
+      payment_type TEXT DEFAULT 'PAYMENT',
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_credit_payments_customer ON credit_payments(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_credit_payments_sale ON credit_payments(sale_id);
   `);
 
   // Run incremental migrations after the base schema is in place.

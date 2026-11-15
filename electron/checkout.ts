@@ -51,12 +51,13 @@ export function executeCheckout(db: Database.Database, params: {
   requestId: string; paymentType: string;
   items: Array<{ id?: number; barcode: string; category?: string; title: string; quantity: number; cost_price: number; selling_price: number; discount_percent?: number; original_price?: number }>;
   billDiscount?: number;
+  customerId?: number;
 }) {
   if (typeof params.requestId !== 'string' || !params.requestId.trim() || params.requestId.length > 128) throw new Error('Missing checkout request ID');
   return db.transaction(() => {
     const existing = db.prepare('SELECT id AS saleId, receipt_no AS receiptNo, total_amount AS totalAmount, COALESCE(bill_discount, 0) AS billDiscount FROM sales WHERE checkout_request_id = ?').get(params.requestId);
     if (existing) return existing as { saleId: number; receiptNo: string; totalAmount: number; billDiscount: number };
-    if (!['CASH', 'CARD'].includes(params.paymentType) || !Array.isArray(params.items) || !params.items.length) throw new Error('Invalid checkout');
+    if (!['CASH', 'CARD', 'CREDIT'].includes(params.paymentType) || !Array.isArray(params.items) || !params.items.length) throw new Error('Invalid checkout');
     for (const item of params.items) {
       if (!item.title?.trim() || !Number.isInteger(item.quantity) || item.quantity <= 0 ||
           !Number.isFinite(item.selling_price) || item.selling_price < 0 || !Number.isFinite(item.cost_price) || item.cost_price < 0 ||
@@ -120,13 +121,21 @@ export function executeCheckout(db: Database.Database, params: {
     const finalTotalAmount   = Math.max(0, Math.round((totalAmount - billDiscount) * 100) / 100);
     const finalGrossProfit   = Math.round((finalTotalAmount - totalCost) * 100) / 100;
 
-    const sale = db.prepare('INSERT INTO sales (receipt_no, total_amount, total_cost, gross_profit, payment_type, created_at, checkout_request_id, bill_discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(receiptNo, finalTotalAmount, totalCost, finalGrossProfit, params.paymentType, now.toISOString(), params.requestId, billDiscount);
+    const sale = db.prepare('INSERT INTO sales (receipt_no, total_amount, total_cost, gross_profit, payment_type, created_at, checkout_request_id, bill_discount, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(receiptNo, finalTotalAmount, totalCost, finalGrossProfit, params.paymentType, now.toISOString(), params.requestId, billDiscount, params.customerId ?? null);
     const saleId = Number(sale.lastInsertRowid);
 
     for (const { product, item, actualCost } of resolvedItems) {
       db.prepare('INSERT INTO sale_items (sale_id, product_id, quantity, unit_cost, unit_price, discount_percent, original_price, title, barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
         .run(saleId, product.id, item.quantity, actualCost, item.selling_price, item.discount_percent ?? 0, item.original_price ?? item.selling_price, item.title, item.barcode);
+    }
+
+    // ── Credit sale: record outstanding balance ───────────────────────────────
+    if (params.paymentType === 'CREDIT' && params.customerId != null) {
+      db.prepare('INSERT INTO credit_payments (customer_id, sale_id, amount, payment_type, notes) VALUES (?, ?, ?, ?, ?)')
+        .run(params.customerId, saleId, finalTotalAmount, 'SALE', `Sale ${receiptNo}`);
+      db.prepare('UPDATE credit_customers SET total_outstanding = total_outstanding + ? WHERE id = ?')
+        .run(finalTotalAmount, params.customerId);
     }
 
     return { saleId, receiptNo, totalAmount: finalTotalAmount, billDiscount };

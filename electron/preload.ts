@@ -72,6 +72,15 @@ const ALLOWED_CHANNELS = new Set([
   // ── Auto-updater ─────────────────────────────────────────────────────────
   'updater:check',
   'updater:install',
+
+  // ── Credit Customers ─────────────────────────────────────────────────────
+  'db:credit:getCustomers',
+  'db:credit:searchCustomers',
+  'db:credit:createCustomer',
+  'db:credit:updateCustomer',
+  'db:credit:deleteCustomer',
+  'db:credit:getCustomerLedger',
+  'db:credit:recordPayment',
 ]);
 
 /** Channels the main process is allowed to push to the renderer. */

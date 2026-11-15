@@ -17,9 +17,8 @@ describe('Cashbook Database & Calculations', () => {
     memDb.close();
   });
 
-  it('creates cashbook_entries table with current schema version 9', () => {
+  it('creates cashbook_entries table with current schema version', () => {
     const row = memDb.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number };
-    expect(row.version).toBe(9);
     expect(row.version).toBe(CURRENT_SCHEMA_VERSION);
 
     const table = memDb
