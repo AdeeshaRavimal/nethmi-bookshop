@@ -16,7 +16,10 @@ import {
   ClipboardList,
   Wallet,
   Users,
+  RefreshCw,
 } from 'lucide-react';
+import { db } from '../db';
+import { useToast } from './Toast';
 import BackupModal from './BackupModal';
 import UpdateNotifier from './UpdateNotifier';
 import AboutModal from './AboutModal';
@@ -55,7 +58,28 @@ function useTheme() {
 export default function Layout() {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const toast = useToast();
   const { dark, toggle } = useTheme();
+
+  const handleManualCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    toast.info('Checking for latest updates...');
+    try {
+      const res = await db.updater.check();
+      if (!res.success && res.error) {
+        if (res.error === 'Dev mode') {
+          toast.info('Updates are disabled in development mode.');
+        } else {
+          toast.error(res.error, 'Update check error');
+        }
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to check updates');
+    } finally {
+      setTimeout(() => setIsCheckingUpdate(false), 2000);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950 font-sans">
@@ -131,6 +155,20 @@ export default function Layout() {
               <span>Data & Backup</span>
             </div>
             <ShieldCheck className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+          </button>
+
+          {/* Check for Updates button */}
+          <button
+            onClick={handleManualCheckUpdate}
+            disabled={isCheckingUpdate}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 transition-colors text-xs font-bold border border-purple-100 dark:border-purple-800 shadow-xs cursor-pointer disabled:opacity-50"
+            title="Check for software updates online"
+          >
+            <div className="flex items-center gap-2">
+              <RefreshCw className={`w-4 h-4 text-purple-600 dark:text-purple-400 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+              <span>{isCheckingUpdate ? 'Checking Online...' : 'Check for Updates'}</span>
+            </div>
+            <span className="text-[10px] font-mono text-purple-500 font-bold">Online</span>
           </button>
 
           {/* System & Company Info button */}
