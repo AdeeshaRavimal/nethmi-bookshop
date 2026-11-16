@@ -17,10 +17,9 @@ describe('Supplier Payables & Payments Ledger', () => {
     db.close();
   });
 
-  it('initializes schema to CURRENT_SCHEMA_VERSION 14 with supplier_payments, cheques, and sales_returns tables', () => {
+  it('initializes schema to CURRENT_SCHEMA_VERSION with supplier_payments, cheques, and sales_returns tables', () => {
     const versionRow = db.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number };
     expect(versionRow.version).toBe(CURRENT_SCHEMA_VERSION);
-    expect(versionRow.version).toBe(14);
 
     const supPayTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='supplier_payments'").get();
     expect(supPayTable).toBeDefined();

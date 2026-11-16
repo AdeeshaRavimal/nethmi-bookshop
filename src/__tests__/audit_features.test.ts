@@ -16,10 +16,9 @@ describe('Audit Features (A, B, D, E, F)', () => {
     db.close();
   });
 
-  it('Schema v14: cheques and sales_returns tables exist with correct schema', () => {
+  it('Schema v15: cheques, sales_returns, and credit_payments payment_date exist with correct schema', () => {
     const versionRow = db.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number };
     expect(versionRow.version).toBe(CURRENT_SCHEMA_VERSION);
-    expect(versionRow.version).toBe(14);
 
     const chequesCols = db.prepare("PRAGMA table_info('cheques')").all() as Array<{ name: string }>;
     const chequeColNames = chequesCols.map(c => c.name);

@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 14;
+export const CURRENT_SCHEMA_VERSION = 15;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -309,6 +309,15 @@ export function runMigrations(instance: Database.Database) {
     currentVersion = 14;
   }
 
+  // ── Migration v14 → v15: Add payment_date to credit_payments ─────────────────
+  if (currentVersion < 15) {
+    try {
+      instance.exec('ALTER TABLE credit_payments ADD COLUMN payment_date TEXT;');
+      instance.exec("UPDATE credit_payments SET payment_date = SUBSTR(created_at, 1, 10) WHERE payment_date IS NULL;");
+    } catch {}
+    currentVersion = 15;
+  }
+
   // Persist the version so we don't re-run migrations next time.
   if (row === undefined) {
     instance.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
@@ -497,6 +506,7 @@ export function initPragmasAndSchema(instance: Database.Database) {
       amount REAL NOT NULL,
       payment_type TEXT DEFAULT 'PAYMENT',
       notes TEXT DEFAULT '',
+      payment_date TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 

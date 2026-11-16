@@ -75,7 +75,10 @@ export default function Cashbook() {
   const [summary, setSummary] = useState<CashbookSummary>({
     openingBalance: 0,
     posCashSales: 0,
+    customerCashIn: 0,
+    supplierCashOut: 0,
     manualCashIn: 0,
+    manualCashOut: 0,
     totalCashIn: 0,
     totalCashOut: 0,
     netCashFlow: 0,
@@ -387,6 +390,12 @@ export default function Cashbook() {
                 <span>POS Cash ({summary.posSalesCount} sales):</span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">Rs. {summary.posCashSales.toFixed(2)}</span>
               </div>
+              {(summary.customerCashIn != null && summary.customerCashIn > 0) && (
+                <div className="flex justify-between text-teal-600 dark:text-teal-400 font-medium">
+                  <span>Customer Debt Collected:</span>
+                  <span>Rs. {summary.customerCashIn.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Manual Cash In:</span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">Rs. {summary.manualCashIn.toFixed(2)}</span>
@@ -407,9 +416,18 @@ export default function Cashbook() {
             <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-2">
               - Rs. {summary.totalCashOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
-              Expenses, supplier cash & owner drawings
-            </p>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
+              {(summary.supplierCashOut != null && summary.supplierCashOut > 0) && (
+                <div className="flex justify-between text-purple-600 dark:text-purple-400 font-medium">
+                  <span>Supplier Cash Paid:</span>
+                  <span>Rs. {summary.supplierCashOut.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Expenses & Cash Out:</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">Rs. {(summary.manualCashOut ?? Math.max(0, summary.totalCashOut - (summary.supplierCashOut ?? 0))).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
           {/* Card 4: Closing Balance (Cash in Hand) */}

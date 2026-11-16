@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { CURRENT_SCHEMA_VERSION } from './database';
 
 function validateBackup(candidate: Database.Database) {
   const result = candidate.pragma('integrity_check') as Array<{ integrity_check: string }>;
@@ -20,7 +21,7 @@ function validateBackup(candidate: Database.Database) {
   const hasVersion = candidate.prepare("SELECT name FROM sqlite_master WHERE name = 'schema_version'").get();
   if (hasVersion) {
     const row = candidate.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined;
-    if (row && row.version > 14) throw new Error('Backup requires a newer application version');
+    if (row && row.version > CURRENT_SCHEMA_VERSION) throw new Error('Backup requires a newer application version');
   }
   if (candidate.pragma('foreign_key_check').length) throw new Error('Backup has invalid record references');
 }

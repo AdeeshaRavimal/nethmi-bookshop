@@ -143,4 +143,49 @@ describe('Cashbook Database & Calculations', () => {
     expect(netFlow).toBe(3550);
     expect(closingBalance).toBe(6850);
   });
+
+  it('includes customer credit debt collections in cashbook daily transactions and cash in', () => {
+    // Insert a credit customer
+    memDb.prepare(`
+      INSERT INTO credit_customers (id, name, phone, total_outstanding)
+      VALUES (?, ?, ?, ?)
+    `).run(1, 'Kannangara', '0724207000', 1000);
+
+    // Customer settles 600 via recordPayment
+    const targetDate = '2026-11-16';
+    const nowIso = '2026-11-16T10:30:00.000Z';
+    memDb.prepare(`
+      INSERT INTO credit_payments (customer_id, amount, payment_type, notes, payment_date, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(1, 600, 'PAYMENT', 'Settled part of debt', targetDate, nowIso);
+
+    // Query for customer collections matching target date
+    const custCollections = memDb.prepare(`
+      SELECT cp.id, cp.amount, cp.notes, cp.created_at, c.name AS customer_name
+      FROM credit_payments cp
+      LEFT JOIN credit_customers c ON c.id = cp.customer_id
+      WHERE cp.payment_type = 'PAYMENT'
+        AND (
+          cp.payment_date = ?
+          OR SUBSTR(cp.created_at, 1, 10) = ?
+        )
+    `).all(targetDate, targetDate) as any[];
+
+    expect(custCollections).toHaveLength(1);
+    expect(custCollections[0].amount).toBe(600);
+    expect(custCollections[0].customer_name).toBe('Kannangara');
+
+    // Customer debt collections total sum
+    const custSum = (memDb.prepare(`
+      SELECT COALESCE(SUM(amount), 0) AS total_customer_cash
+      FROM credit_payments
+      WHERE payment_type = 'PAYMENT'
+        AND (
+          payment_date = ?
+          OR SUBSTR(created_at, 1, 10) = ?
+        )
+    `).get(targetDate, targetDate) as any).total_customer_cash;
+
+    expect(custSum).toBe(600);
+  });
 });

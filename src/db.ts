@@ -151,7 +151,10 @@ export interface CashbookEntry {
 export interface CashbookSummary {
   openingBalance: number;
   posCashSales: number;
+  customerCashIn?: number;
+  supplierCashOut?: number;
   manualCashIn: number;
+  manualCashOut?: number;
   totalCashIn: number;
   totalCashOut: number;
   netCashFlow: number;

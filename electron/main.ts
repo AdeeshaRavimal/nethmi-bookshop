@@ -979,19 +979,29 @@ ipcMain.handle('db:cashbook:getDayTransactions', (_e, { date }: { date?: string 
     });
 
     // 4. Automated customer credit debt collections for this day
+    const hasPaymentDateCol = !!db.prepare("SELECT 1 FROM pragma_table_info('credit_payments') WHERE name='payment_date'").get();
     const custDebtCollections = db.prepare(`
       SELECT cp.id, cp.amount, cp.notes, cp.created_at, c.name AS customer_name
       FROM credit_payments cp
       LEFT JOIN credit_customers c ON c.id = cp.customer_id
-      WHERE cp.payment_type = 'PAYMENT' AND cp.created_at >= ? AND cp.created_at < ?
+      WHERE cp.payment_type = 'PAYMENT'
+        AND (
+          ${hasPaymentDateCol ? 'cp.payment_date = ? OR' : ''}
+          (cp.created_at >= ? AND cp.created_at < ?)
+          OR SUBSTR(cp.created_at, 1, 10) = ?
+        )
       ORDER BY cp.created_at ASC
-    `).all(startDay, endDay) as any[];
+    `).all(...(hasPaymentDateCol ? [targetDate, startDay, endDay, targetDate] : [startDay, endDay, targetDate])) as any[];
 
     const custRows = custDebtCollections.map(cp => {
       let time = '';
       try {
-        const d = new Date(cp.created_at);
-        time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        if (cp.created_at?.includes('T')) {
+          const d = new Date(cp.created_at);
+          time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        } else if (cp.created_at?.includes(' ')) {
+          time = cp.created_at.split(' ')[1]?.substring(0, 8) || '';
+        }
       } catch {
         time = cp.created_at?.split('T')[1]?.substring(0, 8) || '';
       }
@@ -1043,11 +1053,17 @@ ipcMain.handle('db:cashbook:getSummary', (_e, { date }: { date?: string } = {}) 
     `).get(targetDate) as any;
 
     // 3. Customer Debt Collections for this day
+    const hasPaymentDateColSummary = !!db.prepare("SELECT 1 FROM pragma_table_info('credit_payments') WHERE name='payment_date'").get();
     const custCashRow = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) AS total_customer_cash
       FROM credit_payments
-      WHERE payment_type = 'PAYMENT' AND created_at >= ? AND created_at < ?
-    `).get(startDay, endDay) as any;
+      WHERE payment_type = 'PAYMENT'
+        AND (
+          ${hasPaymentDateColSummary ? 'payment_date = ? OR' : ''}
+          (created_at >= ? AND created_at < ?)
+          OR SUBSTR(created_at, 1, 10) = ?
+        )
+    `).get(...(hasPaymentDateColSummary ? [targetDate, startDay, endDay, targetDate] : [startDay, endDay, targetDate])) as any;
 
     // 4. Manual cash entries for this day
     const cashbookAgg = db.prepare(`
@@ -1074,8 +1090,12 @@ ipcMain.handle('db:cashbook:getSummary', (_e, { date }: { date?: string } = {}) 
     const priorCustCash = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) AS total
       FROM credit_payments
-      WHERE payment_type = 'PAYMENT' AND created_at < ?
-    `).get(startDay) as any;
+      WHERE payment_type = 'PAYMENT'
+        AND (
+          ${hasPaymentDateColSummary ? '(payment_date IS NOT NULL AND payment_date < ?) OR' : ''}
+          (created_at < ? AND SUBSTR(created_at, 1, 10) < ?)
+        )
+    `).get(...(hasPaymentDateColSummary ? [targetDate, startDay, targetDate] : [startDay, targetDate])) as any;
 
     const priorCashbook = db.prepare(`
       SELECT
@@ -1108,7 +1128,10 @@ ipcMain.handle('db:cashbook:getSummary', (_e, { date }: { date?: string } = {}) 
       data: {
         openingBalance,
         posCashSales,
+        customerCashIn,
+        supplierCashOut,
         manualCashIn,
+        manualCashOut,
         totalCashIn,
         totalCashOut,
         netCashFlow,
@@ -1631,10 +1654,21 @@ ipcMain.handle('db:credit:recordPayment', (_e, { customerId, amount, notes }: { 
   try {
     const db = getDb();
     if (!customerId || !amount || amount <= 0) throw new Error('Invalid payment data');
-    const customer = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as { total_outstanding: number } | undefined;
+    const customer = db.prepare('SELECT id, name, total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as { id: number; name: string; total_outstanding: number } | undefined;
     if (!customer) throw new Error('Customer not found');
+    const now = new Date();
+    const today = localDateString(now);
+    const isoNow = now.toISOString();
+
     db.transaction(() => {
-      db.prepare('INSERT INTO credit_payments (customer_id, amount, payment_type, notes) VALUES (?, ?, ?, ?)').run(customerId, amount, 'PAYMENT', notes ?? '');
+      const hasPaymentDateCol = !!db.prepare("SELECT 1 FROM pragma_table_info('credit_payments') WHERE name='payment_date'").get();
+      if (hasPaymentDateCol) {
+        db.prepare('INSERT INTO credit_payments (customer_id, amount, payment_type, notes, payment_date, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(customerId, amount, 'PAYMENT', notes ?? '', today, isoNow);
+      } else {
+        db.prepare('INSERT INTO credit_payments (customer_id, amount, payment_type, notes, created_at) VALUES (?, ?, ?, ?, ?)')
+          .run(customerId, amount, 'PAYMENT', notes ?? '', isoNow);
+      }
       const newOutstanding = Math.max(0, Math.round((customer.total_outstanding - amount) * 100) / 100);
       db.prepare('UPDATE credit_customers SET total_outstanding = ? WHERE id = ?').run(newOutstanding, customerId);
     })();
