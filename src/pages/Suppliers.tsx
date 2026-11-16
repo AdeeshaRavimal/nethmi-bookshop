@@ -577,17 +577,17 @@ export default function Suppliers() {
   };
 
   return (
-    <div className="p-8 h-full flex flex-col overflow-y-auto">
+    <div className="p-6 lg:p-8 h-full flex flex-col overflow-y-auto space-y-4">
       {/* Top Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <div className="p-2.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
-              {activeView === 'SUPPLIERS' ? <Truck className="w-6 h-6" /> : <Calendar className="w-6 h-6 text-amber-600 dark:text-amber-400" />}
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/50">
+              {activeView === 'SUPPLIERS' ? <Truck className="w-4 h-4" /> : <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
             </div>
             <span>{activeView === 'SUPPLIERS' ? 'Supplier Directory & Payables Ledger' : 'Cheque Management & Post-Dated Alerts'}</span>
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {activeView === 'SUPPLIERS'
               ? 'Track book distributors, credit balances, and payment statements'
               : 'Manage supplier cheques, customer cheques, and track upcoming deposit maturities'}
@@ -597,9 +597,9 @@ export default function Suppliers() {
         {activeView === 'SUPPLIERS' ? (
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-semibold text-xs shadow-xs transition-colors cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Add Distributor</span>
           </button>
         ) : (
@@ -619,25 +619,25 @@ export default function Suppliers() {
               });
               setShowAddChequeModal(true);
             }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-xl font-bold text-sm shadow-md shadow-amber-600/25 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-semibold text-xs shadow-xs transition-colors cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Issue / Add Cheque</span>
           </button>
         )}
       </div>
 
       {/* View Switcher Tabs */}
-      <div className="flex items-center gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-3">
+      <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium border border-slate-200/60 dark:border-slate-700/60 w-fit">
         <button
           onClick={() => setActiveView('SUPPLIERS')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
             activeView === 'SUPPLIERS'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <Truck className="w-4 h-4" />
+          <Truck className="w-3.5 h-3.5" />
           <span>Distributors & Ledger ({suppliers.length})</span>
         </button>
 
@@ -646,16 +646,16 @@ export default function Suppliers() {
             setActiveView('CHEQUES');
             fetchCheques();
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer relative ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer relative ${
             activeView === 'CHEQUES'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-3.5 h-3.5" />
           <span>Cheques & Post-Dated Alerts ({cheques.length})</span>
           {dueAlerts.length > 0 && (
-            <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white animate-pulse">
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white">
               {dueAlerts.length} Due
             </span>
           )}
@@ -666,88 +666,88 @@ export default function Suppliers() {
         <>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
               Total Suppliers
             </span>
-            <span className="text-2xl font-black text-gray-900 dark:text-gray-100">
+            <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums">
               {metrics.totalCount}
             </span>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            <Building2 className="w-6 h-6" />
+          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
+            <Building2 className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-rose-500 uppercase tracking-wider block mb-1">
+            <span className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider block mb-0.5">
               Outstanding Payables (Debt)
             </span>
-            <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+            <span className="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 tabular-nums">
               {fmtRs(metrics.totalDebt)}
             </span>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-            <AlertCircle className="w-6 h-6" />
+          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <AlertCircle className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-amber-200 dark:border-amber-900/40 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-amber-500 uppercase tracking-wider block mb-1">
+            <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider block mb-0.5">
               Pending Credit Bills
             </span>
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
+            <span className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 tabular-nums">
               {metrics.pendingBillsCount} GRNs
             </span>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <Calendar className="w-6 h-6" />
+          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <Calendar className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
               Total Purchases
             </span>
-            <span className="text-2xl font-black text-gray-900 dark:text-gray-100">
+            <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums">
               {fmtRs(metrics.totalPurchases)}
             </span>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <DollarSign className="w-6 h-6" />
+          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
+            <DollarSign className="w-4 h-4" />
           </div>
         </div>
       </div>
 
       {/* Supplier Debt Aging Breakdown (<15d, 15-30d, 30-60d, 60d+) */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-lg">
-              <Clock className="w-4 h-4" />
+            <div className="p-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-md">
+              <Clock className="w-3.5 h-3.5" />
             </div>
             <div>
-              <span className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 block">
+              <span className="text-xs font-semibold tracking-tight text-slate-900 dark:text-slate-100 block">
                 Payables Debt Aging Analysis
               </span>
-              <span className="text-[11px] text-gray-400">Aging breakdown across unpaid credit GRN invoices</span>
+              <span className="text-[11px] text-slate-400">Aging breakdown across unpaid credit GRN invoices</span>
             </div>
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Pending Invoices Total: <strong className="text-gray-900 dark:text-gray-100 font-bold">{fmtRs(agingSummary.totalAgingDebt || metrics.totalDebt)}</strong>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+            Pending Invoices Total: <strong className="text-slate-900 dark:text-slate-100 tabular-nums">{fmtRs(agingSummary.totalAgingDebt || metrics.totalDebt)}</strong>
           </span>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
-            <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="p-2.5 bg-slate-50/60 dark:bg-slate-950/40 rounded-lg border border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               <span>&lt; 15 Days</span>
-              <span className="text-[10px] bg-emerald-200/70 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded font-mono">{agingSummary.countUnder15} bills</span>
+              <span className="text-[10px] bg-slate-200/70 dark:bg-slate-800 px-1 py-0.2 rounded font-mono">{agingSummary.countUnder15} bills</span>
             </div>
             <span className="text-base font-black text-emerald-700 dark:text-emerald-400 block">
               {fmtRs(agingSummary.under15)}

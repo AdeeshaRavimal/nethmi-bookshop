@@ -15,11 +15,6 @@ interface State {
 /**
  * Catches JavaScript errors in any child component tree and renders a friendly
  * fallback instead of crashing the entire application.
- *
- * Usage:
- *   <ErrorBoundary sectionName="POS">
- *     <POS />
- *   </ErrorBoundary>
  */
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -32,7 +27,6 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Log to console so the developer can inspect it in DevTools / log files.
     console.error('[ErrorBoundary] Uncaught error:', error, info.componentStack);
   }
 
@@ -48,37 +42,39 @@ export default class ErrorBoundary extends Component<Props, State> {
     const section = this.props.sectionName ?? 'This section';
 
     return (
-      <div className="flex items-center justify-center h-full min-h-[300px] p-8">
-        <div className="bg-white border border-red-200 rounded-2xl shadow-md p-8 max-w-md w-full text-center space-y-4">
+      <div className="flex items-center justify-center h-full min-h-[360px] p-8">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-900/5 p-8 max-w-md w-full text-center space-y-4">
           <div className="flex justify-center">
-            <span className="bg-red-100 p-4 rounded-full">
-              <AlertTriangle className="w-8 h-8 text-red-500" />
+            <span className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-3.5 rounded-2xl text-rose-600 dark:text-rose-400 shadow-2xs">
+              <AlertTriangle className="w-6 h-6 stroke-[1.8]" />
             </span>
           </div>
 
           <div>
-            <h2 className="text-lg font-bold text-gray-800">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               {section} crashed unexpectedly
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               An error occurred while rendering this page. The rest of the app is still working.
             </p>
           </div>
 
           {/* Show error message in a copyable code block */}
           {this.state.error && (
-            <pre className="text-left bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-700 overflow-auto max-h-32 whitespace-pre-wrap break-words">
+            <pre className="text-left bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-rose-600 dark:text-rose-400 font-mono overflow-auto max-h-32 whitespace-pre-wrap break-words">
               {this.state.error.message}
             </pre>
           )}
 
-          <button
-            onClick={this.handleReset}
-            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Try Again
-          </button>
+          <div>
+            <button
+              onClick={this.handleReset}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow-sm shadow-blue-600/20 transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -59,48 +59,44 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
           type: 'success',
           text: `Cloud sync folder updated to:\n${res.folderPath}`
         });
+        toast.success('Backup folder updated!');
       }
     } catch (err: any) {
-      setStatusMessage({
-        type: 'error',
-        text: err.message || 'Failed to select folder.'
-      });
+      toast.error(err.message || 'Failed to select folder');
     }
   };
 
-  const handleToggleAutoBackup = async (checked: boolean) => {
-    setAutoBackupOnClose(checked);
-    await db.saveBackupSettings({ autoBackupOnClose: checked });
+  const handleToggleAutoBackup = async (val: boolean) => {
+    setAutoBackupOnClose(val);
+    try {
+      await db.saveBackupSettings({ autoBackupOnClose: val });
+      toast.success(val ? 'Automatic exit backup enabled' : 'Automatic exit backup disabled');
+    } catch (err: any) {
+      toast.error('Failed to save settings');
+    }
   };
 
   const handleExecuteCloudBackup = async () => {
-    if (!cloudFolder) {
-      toast.warning('Please select your Google Drive or Cloud backup folder first.');
-      return;
-    }
-
     setCloudLoading(true);
     setStatusMessage(null);
     try {
       const res = await db.executeCloudBackup();
-      if (res.success && res.filePath) {
-        setLastBackupTime(res.timestamp || new Date().toISOString());
+      if (res.success) {
         setStatusMessage({
           type: 'success',
-          text: `Cloud backup created successfully!\nFile: ${res.filePath}`
+          text: `Backup saved successfully!\nFile: ${res.fileName}\nPath: ${res.destination}`
         });
+        toast.success('Backup created in cloud folder!');
         loadSettings();
-      } else if (res.error) {
+      } else {
         setStatusMessage({
           type: 'error',
-          text: res.error
+          text: res.error || 'Failed to perform cloud backup.'
         });
+        toast.error(res.error || 'Backup failed');
       }
     } catch (err: any) {
-      setStatusMessage({
-        type: 'error',
-        text: err.message || 'Cloud backup failed.'
-      });
+      setStatusMessage({ type: 'error', text: err.message || 'Error occurred.' });
     } finally {
       setCloudLoading(false);
     }
@@ -111,21 +107,22 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
     setStatusMessage(null);
     try {
       const res = await db.backup();
-      if (res.success && res.filePath) {
+      if (res.success && res.destination) {
         setStatusMessage({
           type: 'success',
-          text: `Backup successfully saved to:\n${res.filePath}`
+          text: `Standalone database snapshot saved to:\n${res.destination}`
         });
-      } else if (res.error) {
+        toast.success('Manual backup saved successfully!');
+      } else if (!res.cancelled) {
         setStatusMessage({
           type: 'error',
-          text: res.error
+          text: res.error || 'Failed to backup database.'
         });
       }
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
-        text: err.message || 'Failed to create backup.'
+        text: err.message || 'An unexpected error occurred during backup.'
       });
     } finally {
       setLoading(false);
@@ -134,7 +131,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
 
   const handleRestore = async () => {
     const confirmed = window.confirm(
-      '⚠️ WARNING: Restoring a backup will overwrite the current database with the selected backup file.\n\nAny unsaved changes or new transactions since that backup will be replaced.\n\nDo you want to proceed?'
+      'WARNING: Restoring will overwrite all current system data with the selected backup file.\n\nA safety recovery snapshot of your current database will be saved before restoring.\n\nDo you want to proceed?'
     );
     if (!confirmed) return;
 
@@ -142,19 +139,26 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
     setStatusMessage(null);
     try {
       const res = await db.restore();
-      if (res.success && res.filePath) {
-        toast.success('Database restored successfully! The application will now reload.');
-        onClose();
-      } else if (res.error) {
+      if (res.success) {
+        setStatusMessage({
+          type: 'success',
+          text: 'Database restored successfully! Application will now reload in 2 seconds...'
+        });
+        toast.success('Restore complete! Reloading...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else if (!res.cancelled) {
         setStatusMessage({
           type: 'error',
-          text: res.error
+          text: res.error || 'Failed to restore database.'
         });
+        toast.error(res.error || 'Restore failed');
       }
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
-        text: err.message || 'Failed to restore database.'
+        text: err.message || 'An unexpected error occurred during restore.'
       });
     } finally {
       setLoading(false);
@@ -164,154 +168,159 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-gray-100 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
         
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white flex justify-between items-center shrink-0">
+        <div className="px-5 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-white dark:bg-gray-800/10 rounded-lg">
-              <Cloud className="w-5 h-5 text-blue-200" />
+            <div className="p-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg">
+              <Cloud className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-lg leading-tight">Google Drive & Database Safety</h3>
-              <p className="text-xs text-blue-200">Automatic cloud backup & restore protection</p>
+              <h3 className="font-bold text-sm leading-tight text-white">Database Safety & Cloud Backup</h3>
+              <p className="text-[11px] text-slate-400">Automated local and cloud snapshots for SQLite</p>
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose}
-            className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white dark:bg-gray-800/10 transition-colors"
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-5 space-y-5 overflow-y-auto flex-1">
 
           {/* Status Alert Banner */}
           {statusMessage && (
-            <div className={`p-4 rounded-xl text-sm flex items-start gap-3 ${
+            <div className={`p-3.5 rounded-xl text-xs flex items-start gap-2.5 ${
               statusMessage.type === 'success' 
-                ? 'bg-green-50 text-green-800 border border-green-200' 
-                : 'bg-red-50 text-red-800 border border-red-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
             }`}>
               {statusMessage.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               ) : (
-                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               )}
-              <div className="whitespace-pre-wrap font-mono text-xs flex-1">
+              <div className="whitespace-pre-wrap font-mono text-[11px] flex-1 leading-relaxed">
                 {statusMessage.text}
               </div>
             </div>
           )}
 
           {/* Section 1: Google Drive / Cloud Auto-Backup */}
-          <div className="p-5 bg-gradient-to-br from-blue-50/70 to-indigo-50/50 rounded-2xl border border-blue-100 space-y-4">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/80 space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-600 text-white rounded-md shadow-xs">
-                  <FolderSync className="w-4 h-4" />
+                <div className="p-1.5 bg-blue-600 text-white rounded-md">
+                  <FolderSync className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Google Drive / Cloud Folder Sync</h4>
-                  <p className="text-xs text-gray-500">Syncs to Google Drive, OneDrive, or USB Flash Drive</p>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs">Cloud Folder Sync</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Syncs to Google Drive, OneDrive, or Flash Drive</p>
                 </div>
               </div>
 
               {cloudFolder ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   Active
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-600">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                   Not Configured
                 </span>
               )}
             </div>
 
             {/* Folder Path Display & Selector */}
-            <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <div className="flex items-center gap-2 overflow-hidden flex-1">
-                <FolderOpen className="w-4 h-4 text-blue-600 shrink-0" />
-                <span className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate" title={cloudFolder || 'No folder selected'}>
-                  {cloudFolder || 'No Google Drive folder selected yet...'}
+                <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate" title={cloudFolder || 'No folder selected'}>
+                  {cloudFolder || 'No folder selected yet...'}
                 </span>
               </div>
               <button
+                type="button"
                 onClick={handleSelectFolder}
-                className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:text-gray-100 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-md text-xs font-semibold transition-colors shrink-0 cursor-pointer"
               >
-                {cloudFolder ? 'Change Folder' : 'Select Google Drive Folder'}
+                {cloudFolder ? 'Change Folder' : 'Select Cloud Folder'}
               </button>
             </div>
 
             {/* Auto-backup settings & triggers */}
-            <div className="space-y-3 pt-1">
-              <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+            <div className="space-y-2.5 pt-1">
+              <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={autoBackupOnClose}
                   onChange={(e) => handleToggleAutoBackup(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                  className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
                 />
                 <span className="font-medium">
-                  <strong>Auto-backup when closing store / exiting app</strong> (Takes a 0.1s snapshot on exit)
+                  Auto-backup snapshot when exiting application
                 </span>
               </label>
 
               {lastBackupTime && (
-                <div className="text-xs text-gray-500 bg-white dark:bg-gray-800/80 p-2.5 rounded-lg border border-gray-200 flex items-center justify-between">
-                  <span>Last backup: <strong>{new Date(lastBackupTime).toLocaleString()}</strong></span>
-                  <span className="font-mono text-[11px] text-gray-400">{lastBackupFile}</span>
+                <div className="text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+                  <span>Last backup: <strong className="text-slate-700 dark:text-slate-200">{new Date(lastBackupTime).toLocaleString()}</strong></span>
+                  <span className="font-mono text-[10px] text-slate-400 truncate max-w-[180px]">{lastBackupFile}</span>
                 </div>
               )}
 
               <div className="flex justify-end pt-1">
                 <button
+                  type="button"
                   onClick={handleExecuteCloudBackup}
                   disabled={cloudLoading || !cloudFolder}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white rounded-lg font-semibold text-xs transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${cloudLoading ? 'animate-spin' : ''}`} />
-                  {cloudLoading ? 'Syncing to Drive...' : 'Backup to Google Drive Now'}
+                  {cloudLoading ? 'Backing up...' : 'Backup to Cloud Now'}
                 </button>
               </div>
             </div>
           </div>
 
           {/* Section 2: Manual Backup & Restore */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-gray-800 dark:text-gray-100 text-xs uppercase tracking-wider">Manual Data Controls</h4>
+          <div className="space-y-2.5">
+            <h4 className="font-bold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">Manual Controls</h4>
 
             {/* Manual Backup */}
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-center gap-4">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 flex justify-between items-center gap-4">
               <div>
-                <span className="font-bold text-xs text-gray-800 dark:text-gray-100 block">Export Snapshot to Custom Location</span>
-                <span className="text-[11px] text-gray-500">Save a standalone <code className="bg-gray-200 px-1 py-0.5 rounded">.sqlite</code> copy anywhere.</span>
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">Export Standalone Snapshot</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Save a standalone <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.2 rounded text-[10px]">.sqlite</code> file anywhere.</span>
               </div>
               <button
+                type="button"
                 onClick={handleManualBackup}
                 disabled={loading}
-                className="px-3.5 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 hover:bg-gray-100 text-gray-700 dark:text-gray-300 rounded-lg font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors shadow-2xs shrink-0 flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                Save Copy
+                Export
               </button>
             </div>
 
             {/* Restore */}
-            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200 flex justify-between items-center gap-4">
+            <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 rounded-xl border border-rose-200 dark:border-rose-900/40 flex justify-between items-center gap-4">
               <div>
-                <span className="font-bold text-xs text-amber-900 block">Restore Database from Backup</span>
-                <span className="text-[11px] text-amber-700">Load an existing backup file to recover previous data.</span>
+                <span className="font-bold text-xs text-rose-900 dark:text-rose-300 block">Restore Database from Backup</span>
+                <span className="text-[11px] text-rose-700 dark:text-rose-400">Load a previous backup file to restore system data.</span>
               </div>
               <button
+                type="button"
                 onClick={handleRestore}
                 disabled={loading}
-                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg font-semibold text-xs transition-colors shadow-2xs shrink-0 flex items-center gap-1.5 cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
                 Restore
@@ -319,21 +328,22 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
             </div>
           </div>
 
-          {/* Helpful Tip */}
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 flex items-start gap-2.5 text-xs text-gray-600">
-            <HardDrive className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          {/* Info note */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <HardDrive className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed">
-              <strong>How Google Drive Sync works:</strong> When you select your <em>Google Drive for Desktop</em> folder (e.g. inside <code>G:\My Drive</code>), Hiru POS creates daily backups. Google Drive silently uploads each file to the cloud as soon as your computer is online. Backups older than 30 days are automatically cleaned up to save space.
+              <strong>Automatic retention:</strong> Backups older than 30 days are automatically pruned to conserve disk space. Backups run silently in under 0.1s.
             </div>
           </div>
 
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
+        <div className="px-5 py-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+            className="px-4 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
           >
             Close
           </button>

@@ -387,43 +387,52 @@ export default function Invoices() {
   const editNetTotal = Math.max(0, Math.round((editSubtotal - editBillDiscount) * 100) / 100);
 
   return (
-    <div className="p-8 h-full flex flex-col relative">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-          <FileText className="mr-3 text-blue-600 dark:text-blue-400" />
-          Invoices & Sales History
-        </h2>
-        <div className="relative">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+    <div className="p-6 lg:p-8 h-full flex flex-col relative space-y-5">
+      {/* Top Header & Search Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/50">
+              <FileText className="w-4 h-4" />
+            </div>
+            <span>Invoices & Sales History</span>
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Audit transactions, reprint receipts, and process returns or corrections
+          </p>
+        </div>
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search Receipt No..."
-            className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            placeholder="Search receipt or customer..."
+            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors shadow-2xs"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
           />
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex-1 overflow-hidden">
-        <div className="overflow-x-auto h-full">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0">
+      {/* Main Table Container */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200/90 dark:border-slate-800/90 flex-1 overflow-hidden flex flex-col">
+        <div className="overflow-x-auto flex-1">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
+            <thead className="bg-slate-50/80 dark:bg-slate-950/50 sticky top-0 z-10 backdrop-blur-xs">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Date & Time</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Receipt No</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Payment</th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Actions</th>
+                <th className="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px]">Date & Time</th>
+                <th className="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px]">Receipt No</th>
+                <th className="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px]">Payment Method</th>
+                <th className="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Net Amount</th>
+                <th className="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800/70">
               {loading && <SkeletonRows rows={6} cols={5} />}
               {!loading && sales?.length === 0 && (
                 <tr>
                   <td colSpan={5}>
                     <EmptyState
-                      icon={<FileText className="w-12 h-12" />}
+                      icon={<FileText className="w-10 h-10" />}
                       title="No invoices found"
                       subtitle="Completed sales will appear here with their receipt numbers."
                     />
@@ -431,53 +440,56 @@ export default function Invoices() {
                 </tr>
               )}
               {!loading && sales?.map((sale) => (
-                <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                    {new Date(sale.created_at).toLocaleString()}
+                <tr key={sale.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                  <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 font-mono tabular-nums whitespace-nowrap">
+                    {new Date(sale.created_at).toLocaleString('en-LK', { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                  <td className="px-5 py-3.5 font-mono font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                     {sale.receipt_no}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${sale.payment_type === 'CASH'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
-                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                      }`}>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide border ${
+                      sale.payment_type === 'CASH'
+                        ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        : sale.payment_type === 'CREDIT'
+                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/50'
+                        : 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200/80 dark:border-blue-900/50'
+                    }`}>
                       {sale.payment_type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                    Rs. {sale.total_amount.toFixed(2)}
+                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums whitespace-nowrap">
+                    Rs. {Number(sale.total_amount).toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap">
+                  <td className="px-5 py-3.5 text-center whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => handleViewInvoice(sale)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-colors cursor-pointer"
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
                         title="View Receipt"
                       >
-                        <Eye className="w-3.5 h-3.5 mr-1" /> View
+                        <Eye className="w-3.5 h-3.5 mr-1 text-slate-400 group-hover:text-blue-600" /> View
                       </button>
                       <button
                         onClick={() => handleOpenReturn(sale)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/40 transition-colors cursor-pointer"
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
                         title="Return or Exchange Items"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Return
+                        <RotateCcw className="w-3.5 h-3.5 mr-1 text-slate-400" /> Return
                       </button>
                       <button
                         onClick={() => handleStartEdit(sale)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors cursor-pointer"
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
                         title="Edit Invoice"
                       >
-                        <Edit className="w-3.5 h-3.5 mr-1" /> Edit
+                        <Edit className="w-3.5 h-3.5 mr-1 text-slate-400" /> Edit
                       </button>
                       <button
                         onClick={() => handleDeleteInvoice(sale)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors cursor-pointer"
+                        className="inline-flex items-center p-1 text-xs font-medium rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                         title="Delete Invoice and return stock"
                       >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
@@ -486,103 +498,153 @@ export default function Invoices() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div className="flex items-center justify-end gap-4 py-3 text-sm">
-        <button disabled={loading || page === 0} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">Previous</button>
-        <span className="text-gray-600 dark:text-gray-400 font-medium">Page {page + 1}</span>
-        <button disabled={loading || !hasMore} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">Next</button>
+        {/* Pagination Bar */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs">
+          <span className="text-slate-500 dark:text-slate-400 font-medium">
+            Page {page + 1}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={loading || page === 0}
+              onClick={() => setPage(p => p - 1)}
+              className="px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              Previous
+            </button>
+            <button
+              disabled={loading || !hasMore}
+              onClick={() => setPage(p => p + 1)}
+              className="px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Invoice Modal (Screen View) */}
       {selectedSale && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 rounded-t-xl">
-              <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Invoice Details</h3>
-              <button onClick={() => setSelectedSale(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/70 dark:bg-slate-950/50">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Invoice Details</h3>
+              </div>
+              <button
+                onClick={() => setSelectedSale(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 font-mono text-sm text-gray-800 dark:text-gray-100">
-              <h2 className="text-2xl font-bold text-center mb-2">Bookshop Receipt</h2>
-              <p className="text-center text-gray-500 dark:text-gray-400 mb-6">{new Date(selectedSale.created_at).toLocaleString()}</p>
+            <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-slate-800 dark:text-slate-200 space-y-4">
+              <div className="text-center pb-3 border-b border-dashed border-slate-300 dark:border-slate-700">
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">HIRU BOOKSHOP & COMMUNICATION</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Maniyangama, Avissawella • Tel: 070200042</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{new Date(selectedSale.created_at).toLocaleString('en-LK')}</p>
+              </div>
 
-              <div className="border-b border-dashed border-gray-400 dark:border-gray-600 mb-4 pb-4">
-                <p><strong>Receipt No:</strong> {selectedSale.receipt_no}</p>
-                <p><strong>Payment:</strong> {selectedSale.payment_type}</p>
+              <div className="space-y-1 text-slate-600 dark:text-slate-300 border-b border-dashed border-slate-300 dark:border-slate-700 pb-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Receipt No:</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{selectedSale.receipt_no}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Payment:</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedSale.payment_type}</span>
+                </div>
                 {selectedSale.customer_name && (
-                  <p><strong>Customer:</strong> {selectedSale.customer_name} {selectedSale.customer_phone ? `(${selectedSale.customer_phone})` : ''}</p>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Customer:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedSale.customer_name} {selectedSale.customer_phone ? `(${selectedSale.customer_phone})` : ''}</span>
+                  </div>
                 )}
               </div>
 
-              <table className="w-full mb-4">
+              <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-300 dark:border-gray-600">
-                    <th className="text-left pb-2">Item</th>
-                    <th className="text-right pb-2">Qty</th>
-                    <th className="text-right pb-2">Price</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 text-[10px] uppercase">
+                    <th className="text-left pb-1.5">Item</th>
+                    <th className="text-right pb-1.5">Qty</th>
+                    <th className="text-right pb-1.5">Price</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {selectedSale.items.map((item: any, idx: number) => (
-                    <tr key={idx} className="border-b border-gray-100 dark:border-gray-700 align-top">
+                    <tr key={idx} className="align-top">
                       <td className="py-2 pr-2">
-                        <div>{item.title}</div>
+                        <div className="font-medium text-slate-900 dark:text-slate-100">{item.title}</div>
                         {item.discount_percent > 0 && (
-                          <div className="text-xs text-gray-500 mt-1">Discount: {item.discount_percent}%</div>
+                          <div className="text-[10px] text-blue-600 dark:text-blue-400">Disc: {item.discount_percent}%</div>
                         )}
                       </td>
-                      <td className="py-2 text-right">{item.quantity}</td>
-                      <td className="py-2 text-right">
+                      <td className="py-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{item.quantity}</td>
+                      <td className="py-2 text-right tabular-nums">
                         {item.discount_percent > 0 && item.original_price && (
-                          <div className="text-xs text-gray-400 line-through">Rs. {(item.quantity * item.original_price).toFixed(2)}</div>
+                          <div className="text-[10px] text-slate-400 line-through">Rs. {(item.quantity * item.original_price).toFixed(2)}</div>
                         )}
-                        <div>Rs. {(item.quantity * item.unit_price).toFixed(2)}</div>
+                        <div className="font-medium text-slate-900 dark:text-slate-100">Rs. {(item.quantity * item.unit_price).toFixed(2)}</div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              <div className="text-right space-y-1 mt-4 border-t border-dashed border-gray-400 dark:border-gray-600 pt-4">
+              <div className="space-y-1 pt-3 border-t border-dashed border-slate-300 dark:border-slate-700">
                 {selectedSale.bill_discount > 0 && (
                   <>
-                    <p className="text-sm">Subtotal: Rs. {(selectedSale.total_amount + selectedSale.bill_discount).toFixed(2)}</p>
-                    <p className="text-sm text-red-500 font-bold">Bill Discount: - Rs. {selectedSale.bill_discount.toFixed(2)}</p>
+                    <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                      <span>Subtotal:</span>
+                      <span className="tabular-nums">Rs. {(selectedSale.total_amount + selectedSale.bill_discount).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                      <span>Bill Discount:</span>
+                      <span className="tabular-nums">- Rs. {selectedSale.bill_discount.toFixed(2)}</span>
+                    </div>
                   </>
                 )}
-                <p className="text-lg font-bold">Total: Rs. {selectedSale.total_amount.toFixed(2)}</p>
+                <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-slate-100 pt-1">
+                  <span>Net Total:</span>
+                  <span className="tabular-nums">Rs. {Number(selectedSale.total_amount).toFixed(2)}</span>
+                </div>
                 {(selectedSale.customer_total_outstanding != null || selectedSale.credit_due_amount != null) && (
-                  <div className="pt-2 mt-2 border-t-2 border-dashed border-red-300 dark:border-red-700 text-sm space-y-1">
+                  <div className="pt-2 mt-2 border-t border-dashed border-slate-300 dark:border-slate-700 text-xs space-y-1">
                     {selectedSale.payment_type === 'CREDIT' && (
                       <>
-                        <div className="flex justify-between text-gray-500 dark:text-gray-400">
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400">
                           <span>Previous Due:</span>
-                          <span>Rs. {Math.max(0, (selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount) - (selectedSale.total_amount || 0)).toFixed(2)}</span>
+                          <span className="tabular-nums">Rs. {Math.max(0, (selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount) - (selectedSale.total_amount || 0)).toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-gray-500 dark:text-gray-400">
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400">
                           <span>This Bill:</span>
-                          <span>Rs. {Number(selectedSale.total_amount).toFixed(2)}</span>
+                          <span className="tabular-nums">Rs. {Number(selectedSale.total_amount).toFixed(2)}</span>
                         </div>
                       </>
                     )}
-                    <div className="flex justify-between text-red-600 dark:text-red-400 font-bold text-base pt-1 border-t border-red-200 dark:border-red-800">
+                    <div className="flex justify-between text-slate-900 dark:text-slate-100 font-bold pt-1 border-t border-slate-200 dark:border-slate-700">
                       <span>{selectedSale.payment_type === 'CREDIT' ? 'Total Credit Due:' : 'Remaining Credit Due:'}</span>
-                      <span>Rs. {Number(selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount).toFixed(2)}</span>
+                      <span className="text-rose-600 dark:text-rose-400 tabular-nums">Rs. {Number(selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount).toFixed(2)}</span>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-xl flex gap-3">
-              <button onClick={() => setSelectedSale(null)} className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-lg font-bold transition-colors cursor-pointer">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex gap-3">
+              <button
+                onClick={() => setSelectedSale(null)}
+                className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              >
                 Close
               </button>
-              <button onClick={handlePrint} className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center cursor-pointer">
-                <Printer className="w-4 h-4 mr-2" /> Print
+              <button
+                onClick={handlePrint}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Printer className="w-3.5 h-3.5" /> Print
               </button>
             </div>
           </div>
@@ -591,59 +653,68 @@ export default function Invoices() {
 
       {/* Edit Invoice Modal */}
       {editingSale && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95">
-            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 rounded-t-2xl">
-              <div>
-                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                  <Edit className="w-5 h-5 text-amber-600" />
-                  Edit Invoice #{editingSale.receipt_no}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {new Date(editingSale.created_at).toLocaleString()}
-                </p>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/70 dark:bg-slate-950/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-900/40">
+                  <Edit className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                    Edit Invoice #{editingSale.receipt_no}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    {new Date(editingSale.created_at).toLocaleString('en-LK')}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setEditingSale(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setEditingSale(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 space-y-5">
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
               {/* Payment Type Selection */}
               <div>
-                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                   Payment Method
                 </label>
-                <div className="grid grid-cols-2 gap-3 max-w-xs">
+                <div className="grid grid-cols-2 gap-2.5 max-w-xs">
                   <button
                     type="button"
                     onClick={() => setEditingSale({ ...editingSale, payment_type: 'CASH' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-sm border transition-all cursor-pointer ${editingSale.payment_type === 'CASH'
-                        ? 'bg-green-500 text-white border-green-600 shadow-sm'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
-                      }`}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
+                      editingSale.payment_type === 'CASH'
+                        ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
                   >
-                    <Banknote className="w-4 h-4" /> Cash
+                    <Banknote className="w-3.5 h-3.5" /> Cash
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingSale({ ...editingSale, payment_type: 'CARD' })}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-sm border transition-all cursor-pointer ${editingSale.payment_type === 'CARD'
-                        ? 'bg-blue-500 text-white border-blue-600 shadow-sm'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
-                      }`}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
+                      editingSale.payment_type === 'CARD'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
                   >
-                    <CreditCard className="w-4 h-4" /> Card
+                    <CreditCard className="w-3.5 h-3.5" /> Card
                   </button>
                 </div>
               </div>
 
               {/* Items List */}
               <div>
-                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2">
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                   Invoice Items ({editingSale.items.length})
                 </label>
-                <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
                   {editingSale.items.map((item: any, idx: number) => {
                     const origPrice = item.original_price ?? item.unit_price;
                     const lineOrigTotal = origPrice * item.quantity;
@@ -651,14 +722,14 @@ export default function Invoices() {
                     const itemSavings = Math.max(0, lineOrigTotal - lineTotal);
 
                     return (
-                      <div key={idx} className="p-3 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div key={idx} className="p-3 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate">{item.title}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{item.barcode}</p>
-                          <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                            Unit Price: <span className="font-bold text-blue-600 dark:text-blue-400">Rs. {item.unit_price.toFixed(2)}</span>
+                          <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-xs truncate">{item.title}</h4>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5">{item.barcode}</p>
+                          <div className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-mono tabular-nums">
+                            Unit Price: <span className="font-semibold text-blue-600 dark:text-blue-400">Rs. {item.unit_price.toFixed(2)}</span>
                             {itemSavings > 0 && (
-                              <span className="ml-1.5 line-through text-gray-400">Rs. {origPrice.toFixed(2)}</span>
+                              <span className="ml-1.5 line-through text-slate-400 text-[11px]">Rs. {origPrice.toFixed(2)}</span>
                             )}
                           </div>
                         </div>
@@ -666,7 +737,7 @@ export default function Invoices() {
                         {/* Qty & Item Discount Controls */}
                         <div className="flex items-center gap-3 self-end sm:self-center">
                           {/* Item Discount */}
-                          <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 overflow-hidden text-xs">
+                          <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 overflow-hidden text-xs">
                             <input
                               type="number"
                               min="0"
@@ -674,21 +745,21 @@ export default function Invoices() {
                               placeholder="0"
                               value={item.discountVal}
                               onChange={(e) => handleEditItemDiscount(idx, e.target.value)}
-                              className="w-14 px-2 py-1 font-bold text-gray-900 dark:text-gray-100 bg-transparent focus:outline-none text-right"
+                              className="w-12 px-2 py-1 font-mono text-xs font-semibold text-slate-900 dark:text-slate-100 bg-transparent focus:outline-none text-right"
                               title="Item discount"
                             />
-                            <div className="flex bg-gray-200 dark:bg-gray-600 p-0.5 text-[10px] font-bold">
+                            <div className="flex bg-slate-200/80 dark:bg-slate-700 p-0.5 text-[10px] font-semibold">
                               <button
                                 type="button"
                                 onClick={() => handleToggleItemDiscountMode(idx, 'Rs')}
-                                className={`px-1.5 py-0.5 rounded cursor-pointer ${item.discountMode === 'Rs' ? 'bg-white dark:bg-gray-800 text-blue-600 font-bold shadow-2xs' : 'text-gray-500'}`}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${item.discountMode === 'Rs' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs font-bold' : 'text-slate-500'}`}
                               >
                                 Rs
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleToggleItemDiscountMode(idx, '%')}
-                                className={`px-1.5 py-0.5 rounded cursor-pointer ${item.discountMode === '%' ? 'bg-white dark:bg-gray-800 text-blue-600 font-bold shadow-2xs' : 'text-gray-500'}`}
+                                className={`px-1.5 py-0.5 rounded cursor-pointer ${item.discountMode === '%' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs font-bold' : 'text-slate-500'}`}
                               >
                                 %
                               </button>
@@ -696,28 +767,28 @@ export default function Invoices() {
                           </div>
 
                           {/* Qty Counter */}
-                          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 text-xs">
+                          <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 p-0.5 text-xs">
                             <button
                               type="button"
                               onClick={() => handleEditItemQty(idx, -1)}
                               disabled={item.quantity <= 1}
-                              className="p-1.5 hover:bg-white dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300 disabled:opacity-30 cursor-pointer"
+                              className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-8 text-center font-bold text-gray-900 dark:text-gray-100">{item.quantity}</span>
+                            <span className="w-7 text-center font-mono font-bold text-slate-900 dark:text-slate-100 text-xs">{item.quantity}</span>
                             <button
                               type="button"
                               onClick={() => handleEditItemQty(idx, 1)}
-                              className="p-1.5 hover:bg-white dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300 cursor-pointer"
+                              className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 cursor-pointer"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
 
                           {/* Line Total */}
-                          <div className="w-24 text-right">
-                            <p className="font-bold text-sm text-gray-900 dark:text-gray-100">Rs. {lineTotal.toFixed(2)}</p>
+                          <div className="w-20 text-right">
+                            <p className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100 tabular-nums">Rs. {lineTotal.toFixed(2)}</p>
                           </div>
 
                           {/* Delete Item */}
@@ -725,10 +796,10 @@ export default function Invoices() {
                             type="button"
                             onClick={() => handleRemoveEditItem(idx)}
                             disabled={editingSale.items.length <= 1}
-                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-20 cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded transition-colors disabled:opacity-20 cursor-pointer"
                             title="Remove item"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -738,12 +809,12 @@ export default function Invoices() {
               </div>
 
               {/* Bill Discount Input */}
-              <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="bg-slate-50/70 dark:bg-slate-950/40 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <span className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider block">
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
                     Bill Discount (Rs.)
                   </span>
-                  <span className="text-xs text-gray-400">Additional discount off the whole invoice total</span>
+                  <span className="text-[11px] text-slate-400">General discount applied to invoice net total</span>
                 </div>
                 <div className="relative">
                   <input
@@ -753,35 +824,35 @@ export default function Invoices() {
                     placeholder="0.00"
                     value={editingSale.billDiscountInput}
                     onChange={(e) => setEditingSale({ ...editingSale, billDiscountInput: e.target.value })}
-                    className="w-36 px-3 py-1.5 text-sm font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+                    className="w-32 px-3 py-1.5 text-xs font-mono font-semibold border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 text-right"
                   />
                 </div>
               </div>
 
               {/* Summary Totals */}
-              <div className="bg-gray-50 dark:bg-gray-900/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2 text-sm">
-                <div className="flex justify-between text-gray-600 dark:text-gray-300">
+              <div className="bg-slate-50/70 dark:bg-slate-950/40 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs font-mono">
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
                   <span>Subtotal</span>
-                  <span className="font-semibold">Rs. {editSubtotal.toFixed(2)}</span>
+                  <span className="font-semibold tabular-nums">Rs. {editSubtotal.toFixed(2)}</span>
                 </div>
                 {editBillDiscount > 0 && (
-                  <div className="flex justify-between text-red-600 dark:text-red-400 font-medium">
+                  <div className="flex justify-between text-rose-600 dark:text-rose-400">
                     <span>Bill Discount</span>
-                    <span>- Rs. {editBillDiscount.toFixed(2)}</span>
+                    <span className="tabular-nums">- Rs. {editBillDiscount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-base font-black text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-slate-100 pt-2 border-t border-slate-200 dark:border-slate-800">
                   <span>Net Total</span>
-                  <span className="text-blue-600 dark:text-blue-400 text-lg">Rs. {editNetTotal.toFixed(2)}</span>
+                  <span className="text-blue-600 dark:text-blue-400 tabular-nums">Rs. {editNetTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex gap-3">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex gap-3">
               <button
                 type="button"
                 onClick={() => setEditingSale(null)}
-                className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-xl font-bold transition-colors cursor-pointer text-sm"
+                className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -789,9 +860,9 @@ export default function Invoices() {
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={isSavingEdit || editingSale.items.length === 0}
-                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl font-bold transition-colors flex items-center justify-center cursor-pointer shadow-sm text-sm"
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
               >
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-3.5 h-3.5" />
                 {isSavingEdit ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -802,47 +873,47 @@ export default function Invoices() {
       {/* Item Return & Restock Modal */}
       {returnSale && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setReturnSale(null)}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-rose-600 to-rose-700 p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <RotateCcw className="w-6 h-6 text-white" />
+            <div className="bg-slate-900 dark:bg-slate-950 p-4 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 text-rose-400 flex items-center justify-center border border-white/10">
+                  <RotateCcw className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">Invoice Item Return & Refund</h3>
-                  <p className="text-xs text-rose-100">Receipt: {returnSale.receipt_no} • Restock items to inventory</p>
+                  <h3 className="text-sm font-bold tracking-tight">Invoice Item Return & Refund</h3>
+                  <p className="text-[11px] text-slate-400 font-mono">Receipt: {returnSale.receipt_no} • Restock items to inventory</p>
                 </div>
               </div>
               <button
                 onClick={() => setReturnSale(null)}
-                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
               {/* Sale Summary Banner */}
-              <div className="bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div>
-                  <span className="font-mono font-bold text-sm text-gray-900 dark:text-gray-100 block">
+                  <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100 block">
                     Receipt: {returnSale.receipt_no}
                   </span>
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Date: {new Date(returnSale.created_at).toLocaleString()} • Original Payment: <strong>{returnSale.payment_type}</strong>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                    Date: {new Date(returnSale.created_at).toLocaleString('en-LK')} • Payment: <strong>{returnSale.payment_type}</strong>
                   </span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block">Original Sale Total</span>
-                  <span className="text-base font-black text-gray-900 dark:text-gray-100">
+                <div className="text-right font-mono">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Original Sale Total</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                     Rs. {Number(returnSale.total_amount).toFixed(2)}
                   </span>
                 </div>
@@ -850,12 +921,12 @@ export default function Invoices() {
 
               {/* Return Items Selection Table */}
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                   Select Items to Return & Quantity
                 </h4>
-                <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-gray-50 dark:bg-gray-750 text-gray-500 dark:text-gray-400 uppercase font-bold border-b border-gray-200 dark:border-gray-700">
+                    <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800 text-[10px]">
                       <tr>
                         <th className="py-2.5 px-3">Item</th>
                         <th className="py-2.5 px-2 text-center">Sold Qty</th>
@@ -864,28 +935,28 @@ export default function Invoices() {
                         <th className="py-2.5 px-3 text-right">Refund Total</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-750">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {returnItems.map((item, idx) => {
                         const isFullyReturned = item.max_return_qty <= 0;
                         return (
-                          <tr key={idx} className={isFullyReturned ? 'bg-gray-50/50 dark:bg-gray-800/50 opacity-60' : 'hover:bg-rose-50/30'}>
+                          <tr key={idx} className={isFullyReturned ? 'bg-slate-50/50 dark:bg-slate-850/50 opacity-60' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40'}>
                             <td className="py-2.5 px-3">
-                              <span className="font-bold text-gray-900 dark:text-gray-100 block">
+                              <span className="font-medium text-slate-900 dark:text-slate-100 block">
                                 {item.title}
                               </span>
-                              <span className="text-[10px] text-gray-400 font-mono">
+                              <span className="text-[10px] text-slate-400 font-mono">
                                 {item.barcode || 'N/A'} • Rs. {Number(item.unit_price).toFixed(2)}/ea
                               </span>
                             </td>
-                            <td className="py-2.5 px-2 text-center font-bold text-gray-700 dark:text-gray-300">
+                            <td className="py-2.5 px-2 text-center font-mono text-slate-700 dark:text-slate-300">
                               {item.sold_qty}
                             </td>
-                            <td className="py-2.5 px-2 text-center font-bold text-amber-600 dark:text-amber-400">
+                            <td className="py-2.5 px-2 text-center font-mono font-medium text-amber-600 dark:text-amber-400">
                               {item.already_returned_qty}
                             </td>
                             <td className="py-2.5 px-3 text-center">
                               {isFullyReturned ? (
-                                <span className="text-[10px] font-bold text-gray-400">Returned</span>
+                                <span className="text-[10px] font-medium text-slate-400">Returned</span>
                               ) : (
                                 <input
                                   type="number"
@@ -893,11 +964,11 @@ export default function Invoices() {
                                   max={item.max_return_qty}
                                   value={item.return_qty}
                                   onChange={(e) => handleReturnQtyChange(idx, e.target.value)}
-                                  className="w-16 px-2 py-1 text-center font-bold text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                  className="w-14 px-2 py-1 text-center font-mono font-semibold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-600"
                                 />
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-black text-rose-600 dark:text-rose-400 text-sm">
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400 text-xs tabular-nums">
                               Rs. {item.refund_amount.toFixed(2)}
                             </td>
                           </tr>
@@ -909,9 +980,9 @@ export default function Invoices() {
               </div>
 
               {/* Return Reason & Method */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Return Reason *
                   </label>
                   <input
@@ -919,7 +990,7 @@ export default function Invoices() {
                     value={returnReason}
                     onChange={(e) => setReturnReason(e.target.value)}
                     placeholder="e.g. Defective, Wrong Book, Customer Exchange"
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
                   />
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {['Defective', 'Wrong Item', 'Exchange', 'Changed Mind'].map(r => (
@@ -927,7 +998,7 @@ export default function Invoices() {
                         key={r}
                         type="button"
                         onClick={() => setReturnReason(r)}
-                        className="px-2 py-0.5 rounded text-[10px] bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-600 dark:text-gray-300 cursor-pointer"
+                        className="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 cursor-pointer"
                       >
                         {r}
                       </button>
@@ -936,13 +1007,13 @@ export default function Invoices() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Refund / Settlement Method *
                   </label>
                   <select
                     value={returnRefundMethod}
                     onChange={(e) => setReturnRefundMethod(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
                   >
                     <option value="CASH">Cash Refund (Drawer Outflow)</option>
                     <option value="EXCHANGE">POS Exchange (Restock & Issue Credit)</option>
@@ -952,18 +1023,18 @@ export default function Invoices() {
               </div>
 
               {/* Refund Summary Banner */}
-              <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="bg-slate-50 dark:bg-slate-950/40 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 block">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                     Total Items Returning: <strong>{returnItems.reduce((sum, i) => sum + i.return_qty, 0)} units</strong>
                   </span>
-                  <span className="text-[11px] text-gray-400">
-                    Items will immediately be restored to stock batches.
+                  <span className="text-[11px] text-slate-400">
+                    Inventory quantities will automatically update.
                   </span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block">Total Refund Due</span>
-                  <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                <div className="text-right font-mono">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 block">Total Refund Due</span>
+                  <span className="text-lg font-bold text-rose-600 dark:text-rose-400 tabular-nums">
                     Rs. {returnItems.reduce((sum, i) => sum + i.refund_amount, 0).toFixed(2)}
                   </span>
                 </div>
@@ -971,16 +1042,16 @@ export default function Invoices() {
 
               {/* Last Processed Return Voucher Banner */}
               {lastProcessedReturn && (
-                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 rounded-2xl p-4 flex items-center justify-between gap-3 animate-in fade-in">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-600 text-white rounded-xl">
-                      <Check className="w-5 h-5" />
+                <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-lg p-3.5 flex items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-emerald-600 text-white rounded-md">
+                      <Check className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="font-bold text-emerald-900 dark:text-emerald-200 text-sm block">
+                      <span className="font-semibold text-emerald-900 dark:text-emerald-200 text-xs block">
                         Return {lastProcessedReturn.return_no} Processed Successfully!
                       </span>
-                      <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono">
                         Refund: <strong>Rs. {lastProcessedReturn.total_refund.toFixed(2)}</strong> ({lastProcessedReturn.refund_method})
                       </span>
                     </div>
@@ -988,7 +1059,7 @@ export default function Invoices() {
                   <button
                     type="button"
                     onClick={() => printReturnReceipt(lastProcessedReturn)}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <Printer className="w-3.5 h-3.5" />
                     Print Voucher
@@ -998,11 +1069,11 @@ export default function Invoices() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+            <div className="p-4 bg-slate-50/70 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setReturnSale(null)}
-                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg font-medium text-xs transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -1010,9 +1081,9 @@ export default function Invoices() {
                 type="button"
                 onClick={handleExecuteReturn}
                 disabled={isProcessingReturn || returnItems.reduce((sum, i) => sum + i.return_qty, 0) === 0}
-                className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-2"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white rounded-lg font-semibold text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-2"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
                 <span>{isProcessingReturn ? 'Processing...' : 'Confirm Return & Restock'}</span>
               </button>
             </div>

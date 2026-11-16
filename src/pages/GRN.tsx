@@ -84,22 +84,22 @@ function GRNDetailModal({ grnId, onClose, onMarkPaid }: { grnId: number; onClose
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
-              <ClipboardList className="w-5 h-5" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/50">
+              <ClipboardList className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 Goods Received Note Details
               </h3>
               {header && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                <p className="text-[11px] text-slate-400 font-mono">
                   {header.grn_number}
                 </p>
               )}
@@ -109,18 +109,18 @@ function GRNDetailModal({ grnId, onClose, onMarkPaid }: { grnId: number; onClose
             {header && items.length > 0 && (
               <button
                 onClick={() => printGRNVoucher({ header, items })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg font-bold text-xs transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-lg font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
                 title="Print official delivery voucher"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-3.5 h-3.5 text-blue-600" />
                 Print Voucher
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors cursor-pointer"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -132,19 +132,19 @@ function GRNDetailModal({ grnId, onClose, onMarkPaid }: { grnId: number; onClose
         ) : header ? (
           <>
             {/* Info grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 py-3.5 bg-slate-50/50 dark:bg-slate-950/30 border-b border-slate-200 dark:border-slate-800 text-xs font-mono">
               <div>
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">GRN Number</p>
-                <p className="font-bold text-blue-600 dark:text-blue-400 font-mono">{header.grn_number}</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">GRN Number</p>
+                <p className="font-bold text-blue-600 dark:text-blue-400">{header.grn_number}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Supplier</p>
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{header.supplier_name || 'Walk-in / Direct'}</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Supplier</p>
+                <p className="font-medium font-sans text-slate-900 dark:text-slate-100">{header.supplier_name || 'Walk-in / Direct'}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Supplier Inv / DN #</p>
-                <p className="font-semibold text-gray-800 dark:text-gray-200 font-mono">
-                  {header.supplier_invoice_no || <span className="text-gray-400 font-normal italic">—</span>}
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Supplier Inv / DN #</p>
+                <p className="font-medium text-slate-800 dark:text-slate-200">
+                  {header.supplier_invoice_no || <span className="text-slate-400 font-normal italic">—</span>}
                 </p>
               </div>
               <div>
@@ -881,67 +881,69 @@ export default function GRN() {
   const totalCredit = grns.filter(g => g.payment_type === 'CREDIT' && g.status === 'PENDING').reduce((s, g) => s + g.total_amount, 0);
 
   return (
-    <div className="p-8 h-full flex flex-col">
+    <div className="p-6 lg:p-8 h-full flex flex-col space-y-5">
       {/* Page Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-            <ClipboardList className="mr-3 text-blue-600 dark:text-blue-400" />
-            Goods Received Notes (GRN)
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/50">
+              <ClipboardList className="w-4 h-4" />
+            </div>
+            <span>Goods Received Notes (GRN)</span>
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Receive distributor shipments, print delivery vouchers, and audit batch margins.
           </p>
         </div>
         <button
           onClick={() => setShowNewModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors cursor-pointer text-sm shadow-sm"
+          className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-semibold text-xs shadow-xs transition-colors cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> New GRN
+          <Plus className="w-3.5 h-3.5" /> New GRN
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-2.5">
-            <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 rounded-xl p-4 flex items-center gap-3 shadow-2xs">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-2 text-slate-700 dark:text-slate-300">
+            <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{grns.length}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Total GRNs Recorded</p>
+            <p className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums">{grns.length}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Total GRNs Recorded</p>
           </div>
         </div>
-        <div className={`border rounded-xl p-4 flex items-center gap-3 shadow-sm ${
+        <div className={`border rounded-xl p-4 flex items-center gap-3 shadow-2xs ${
           overdueCount > 0
-            ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
-            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+            ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40'
+            : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800/90'
         }`}>
-          <div className={`rounded-lg p-2.5 ${pendingCount > 0 ? 'bg-amber-50 dark:bg-amber-900/30' : 'bg-green-50 dark:bg-green-900/30'}`}>
-            <Clock className={`w-5 h-5 ${pendingCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`} />
+          <div className="rounded-lg p-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <Clock className={`w-4 h-4 ${pendingCount > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
           </div>
           <div>
-            <p className={`text-2xl font-bold ${overdueCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
+            <p className={`text-lg font-bold font-mono tabular-nums ${overdueCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'}`}>
               {pendingCount}
-              {overdueCount > 0 && <span className="text-sm ml-1 font-semibold">({overdueCount} overdue!)</span>}
+              {overdueCount > 0 && <span className="text-xs ml-1 font-semibold">({overdueCount} overdue)</span>}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Pending Credit Deliveries</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Pending Credit Deliveries</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-2.5">
-            <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 rounded-xl p-4 flex items-center gap-3 shadow-2xs">
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-2 text-slate-700 dark:text-slate-300">
+            <CreditCard className="w-4 h-4 text-amber-500" />
           </div>
           <div>
-            <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{fmtRs(totalCredit)}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Outstanding Credit Payables</p>
+            <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 tabular-nums">{fmtRs(totalCredit)}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Outstanding Credit Payables</p>
           </div>
         </div>
       </div>
 
       {/* Filter Tabs and Search Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium border border-slate-200/60 dark:border-slate-700/60">
           {([
             { key: 'ALL', label: 'All GRNs' },
             { key: 'CREDIT_PENDING', label: `Pending Credit${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
@@ -951,10 +953,10 @@ export default function GRN() {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
                 filter === f.key
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-blue-400'
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {f.label}
@@ -963,11 +965,11 @@ export default function GRN() {
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search GRN #, supplier, inv #…"
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 shadow-2xs"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -975,23 +977,23 @@ export default function GRN() {
       </div>
 
       {/* Main Table */}
-      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200/90 dark:border-slate-800/90 overflow-hidden flex flex-col">
         <div className="overflow-x-auto flex-1 overflow-y-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+            <thead className="bg-slate-50/80 dark:bg-slate-950/50 sticky top-0 z-10 backdrop-blur-xs">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">GRN #</th>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Supplier</th>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inv / DN #</th>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Received</th>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment</th>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Due Date</th>
-                <th className="px-5 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                <th className="px-5 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">GRN #</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Supplier</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inv / DN #</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Received</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Payment</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                <th className="px-5 py-2.5 text-right text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                <th className="px-5 py-2.5 text-center text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
               {loading && [0, 1, 2, 3].map(r => (
                 <tr key={r}>
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(c => <td key={c} className="px-5 py-4"><Skeleton className="h-4 w-full" /></td>)}
@@ -1001,7 +1003,7 @@ export default function GRN() {
                 <tr>
                   <td colSpan={9}>
                     <EmptyState
-                      icon={<ClipboardList className="w-12 h-12" />}
+                      icon={<ClipboardList className="w-10 h-10" />}
                       title="No GRNs found"
                       subtitle={searchQuery ? 'Try clearing your search query.' : "Click 'New GRN' to record a distributor delivery and update stock."}
                     />
@@ -1011,71 +1013,71 @@ export default function GRN() {
               {!loading && filtered.map(grn => {
                 const overdue = isOverdue(grn);
                 return (
-                  <tr key={grn.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${overdue ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}>
-                    <td className="px-5 py-3.5 font-bold font-mono text-sm text-blue-600 dark:text-blue-400">
+                  <tr key={grn.id} className={`hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors ${overdue ? 'bg-rose-50/20 dark:bg-rose-950/10' : ''}`}>
+                    <td className="px-5 py-3 font-semibold font-mono text-xs text-blue-600 dark:text-blue-400">
                       {grn.grn_number}
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-800 dark:text-gray-200 font-medium">
-                      {grn.supplier_name || <span className="italic text-gray-400 dark:text-gray-500 font-normal">Walk-in</span>}
+                    <td className="px-5 py-3 text-xs text-slate-800 dark:text-slate-200 font-medium">
+                      {grn.supplier_name || <span className="italic text-slate-400 font-normal">Walk-in</span>}
                     </td>
-                    <td className="px-5 py-3.5 text-xs font-mono text-gray-600 dark:text-gray-400">
-                      {grn.supplier_invoice_no || <span className="text-gray-400 italic">—</span>}
+                    <td className="px-5 py-3 text-xs font-mono text-slate-600 dark:text-slate-400">
+                      {grn.supplier_invoice_no || <span className="text-slate-400 italic">—</span>}
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600 dark:text-gray-400">{fmtDate(grn.received_date)}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                    <td className="px-5 py-3 text-xs font-mono text-slate-600 dark:text-slate-400">{fmtDate(grn.received_date)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${
                         grn.payment_type === 'CASH'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                          ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/40'
                       }`}>
                         {grn.payment_type === 'CASH' ? <Banknote className="w-3 h-3" /> : <CreditCard className="w-3 h-3" />}
                         {grn.payment_type}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm">
+                    <td className="px-5 py-3 text-xs font-mono">
                       {grn.payment_type === 'CREDIT' ? (
-                        <span className={`flex items-center gap-1 text-xs ${overdue ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-600 dark:text-gray-400'}`}>
-                          {overdue && <AlertTriangle className="w-3.5 h-3.5" />}
+                        <span className={`flex items-center gap-1 ${overdue ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-slate-600 dark:text-slate-400'}`}>
+                          {overdue && <AlertTriangle className="w-3 h-3" />}
                           {fmtDate(grn.due_date)}
                         </span>
-                      ) : <span className="text-gray-400 text-xs">—</span>}
+                      ) : <span className="text-slate-400">—</span>}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3">
                       {grn.payment_type === 'CASH' || grn.status === 'PAID' ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Paid
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="w-3 h-3" /> Paid
                         </span>
                       ) : (
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${overdue ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                          <Clock className="w-3.5 h-3.5" /> Pending
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${overdue ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          <Clock className="w-3 h-3" /> Pending
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-bold text-gray-900 dark:text-gray-100">{fmtRs(grn.total_amount)}</td>
-                    <td className="px-5 py-3.5 text-center">
-                      <div className="flex justify-center items-center gap-1.5">
+                    <td className="px-5 py-3 text-right font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">{fmtRs(grn.total_amount)}</td>
+                    <td className="px-5 py-3 text-center">
+                      <div className="flex justify-center items-center gap-1">
                         <button
                           onClick={() => setViewId(grn.id!)}
                           title="View details"
-                          className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handlePrintVoucher(grn)}
                           disabled={printingId === grn.id}
                           title="Print official delivery voucher"
-                          className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                          className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Printer className="w-4 h-4" />
+                          <Printer className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(grn)}
                           disabled={deleting === grn.id}
                           title="Delete (reverses stock)"
-                          className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                          className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

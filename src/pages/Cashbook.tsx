@@ -390,13 +390,13 @@ export default function Cashbook() {
       {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-lg">
-              <Wallet className="w-5 h-5" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-100 dark:border-blue-900/60 shadow-2xs">
+              <Wallet className="w-5 h-5 stroke-[1.8]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Cashbook & Daily Ledger</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Cashbook & Daily Ledger</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Track daily cash in hand, POS collections, and expenses
               </p>
             </div>
@@ -406,12 +406,12 @@ export default function Cashbook() {
         {/* Date Selector & Action Buttons */}
         <div className="flex items-center flex-wrap gap-2">
           {/* Quick Date Pills */}
-          <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-0.5 text-xs font-medium">
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-medium">
             <button
               onClick={setToday}
               className={`px-3 py-1.5 rounded-md transition-colors ${selectedDate === localDateString()
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               Today
@@ -419,8 +419,8 @@ export default function Cashbook() {
             <button
               onClick={setYesterday}
               className={`px-3 py-1.5 rounded-md transition-colors ${selectedDate !== localDateString()
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
             >
               Yesterday / Other
@@ -429,54 +429,54 @@ export default function Cashbook() {
 
           {/* Date Picker Input */}
           <div className="relative">
-            <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="pl-9 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="pl-9 pr-3 py-1.5 text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-2xs"
             />
           </div>
 
           <button
             onClick={() => loadData()}
             title="Refresh"
-            className="p-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
+            className="p-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors cursor-pointer shadow-2xs"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
           <button
             onClick={handlePrint}
             title="Print daily cash sheet"
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-3.5 h-3.5" />
             <span>Print Sheet</span>
           </button>
 
           <button
             onClick={handleOpenShiftClose}
             title="End of day till reconciliation & print Daily Z-Report"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-sm font-bold shadow-sm transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
-            <Receipt className="w-4 h-4" />
+            <Receipt className="w-3.5 h-3.5" />
             <span>Close Day & Z-Report</span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => handleOpenAdd('IN')}
-              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              <ArrowDownLeft className="w-4 h-4" />
+              <ArrowDownLeft className="w-3.5 h-3.5" />
               <span>Cash In</span>
             </button>
             <button
               onClick={() => handleOpenAdd('OUT')}
-              className="flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              <ArrowUpRight className="w-4 h-4" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
               <span>Cash Out</span>
             </button>
           </div>
@@ -579,19 +579,19 @@ export default function Cashbook() {
           </div>
 
           {/* Card 4: Closing Balance (Cash in Hand) */}
-          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/30 p-5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 shadow-sm relative overflow-hidden">
+          <div className="bg-slate-900 text-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-900 dark:border-blue-900/60 shadow-sm relative overflow-hidden">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 dark:text-blue-300">
                 Closing Cash in Hand
               </span>
-              <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-sm">
+              <div className="p-2 bg-blue-600 text-white rounded-lg shadow-2xs">
                 <Wallet className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-2xl font-black text-indigo-950 dark:text-indigo-200 mt-2">
+            <p className="text-2xl font-black text-white dark:text-blue-200 mt-2">
               Rs. {summary.closingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-1 font-medium">
+            <p className="text-xs text-slate-300 dark:text-slate-400 mt-1 font-medium">
               Net Flow Today: {summary.netCashFlow >= 0 ? '+' : ''}Rs. {summary.netCashFlow.toFixed(2)}
             </p>
           </div>

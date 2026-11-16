@@ -1188,10 +1188,10 @@ export default function POS() {
   return (
     <>
       {/* POS UI - This section is completely hidden when printing */}
-      <div className="flex h-full bg-gray-100 dark:bg-gray-900 p-6 gap-6 print:hidden">
+      <div className="flex h-full bg-slate-100/70 dark:bg-slate-950 p-5 gap-5 print:hidden">
 
         {/* Left Panel: Search & Cart */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible z-10">
+        <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-visible z-10">
 
           {/* Change to Return Banner (Persistent until dismissed or next sale) */}
           {changeBanner && (
@@ -1594,8 +1594,8 @@ export default function POS() {
         </div>
 
         {/* Right Panel: Checkout Summary */}
-        <div className="w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 z-0">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 pb-4 mb-4">Order Summary</h3>
+        <div className="w-96 flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-5 z-0">
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-3 mb-4 tracking-tight">Order Summary</h3>
 
           <div className="flex-1 space-y-4">
             {totalItemDiscounts > 0 && (
@@ -1719,44 +1719,44 @@ export default function POS() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2.5 mt-8">
+          <div className="grid grid-cols-3 gap-2 mt-6">
             <button
               onClick={openCashModal}
               disabled={cart.length === 0 || isCheckingOut}
-              className="flex flex-col items-center justify-center p-2.5 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              className="flex flex-col items-center justify-center p-2.5 bg-slate-900 hover:bg-slate-800 active:bg-black dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed h-22 shadow-sm cursor-pointer"
               title="Cash Payment & Change Calculator (press + or F1)"
             >
-              <Banknote className="w-6 h-6 mb-1" />
-              <span className="text-sm font-extrabold flex items-center gap-1">
+              <Banknote className="w-5 h-5 mb-1 text-slate-200 dark:text-slate-800" />
+              <span className="text-xs font-bold flex items-center gap-1">
                 Cash
-                <span className="text-[10px] bg-green-700/60 px-1.5 py-0.2 rounded font-mono">+</span>
+                <span className="text-[10px] opacity-80 px-1 py-0.2 rounded font-mono font-normal border border-white/20 dark:border-black/20">+</span>
               </span>
-              <span className="text-[9px] text-green-100 font-normal mt-0.5">Calculate Change</span>
+              <span className="text-[10px] opacity-70 font-normal mt-0.5">F1 / Keypad +</span>
             </button>
             <button
               onClick={() => handleCheckout('CARD')}
               disabled={cart.length === 0 || isCheckingOut}
-              className="flex flex-col items-center justify-center p-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              className="flex flex-col items-center justify-center p-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed h-22 shadow-sm cursor-pointer"
               title="Checkout with Card (1-Click or press - or F2)"
             >
-              <CreditCard className="w-6 h-6 mb-1" />
-              <span className="text-sm font-extrabold flex items-center gap-1">
+              <CreditCard className="w-5 h-5 mb-1 text-blue-100" />
+              <span className="text-xs font-bold flex items-center gap-1">
                 Card
-                <span className="text-[10px] bg-blue-700/60 px-1.5 py-0.2 rounded font-mono">-</span>
+                <span className="text-[10px] bg-blue-700/60 px-1 py-0.2 rounded font-mono font-normal">-</span>
               </span>
-              <span className="text-[9px] text-blue-100 font-normal mt-0.5">1-Click Card</span>
+              <span className="text-[10px] text-blue-100/80 font-normal mt-0.5">F2 / 1-Click</span>
             </button>
             <button
               onClick={openCreditModal}
               disabled={cart.length === 0 || isCheckingOut}
-              className="flex flex-col items-center justify-center p-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed h-24 shadow-md cursor-pointer active:scale-98"
+              className="flex flex-col items-center justify-center p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed h-22 shadow-2xs cursor-pointer"
               title="Credit Payment (Assign bill to a credit customer account)"
             >
-              <Users className="w-6 h-6 mb-1" />
-              <span className="text-sm font-extrabold flex items-center gap-1">
+              <Users className="w-5 h-5 mb-1 text-slate-600 dark:text-slate-400" />
+              <span className="text-xs font-bold">
                 Credit
               </span>
-              <span className="text-[9px] text-purple-200 font-normal mt-0.5">Customer Book</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">Customer Ledger</span>
             </button>
           </div>
 
