@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { db, type InventoryItem, type Supplier } from '../db';
 import { useToast } from '../components/Toast';
-import { 
-  Plus, 
-  Package, 
-  AlertTriangle, 
-  Edit, 
-  Save, 
-  X, 
-  Search, 
-  Truck, 
-  Trash2, 
-  DollarSign,
+import {
+  Plus,
+  Package,
+  AlertTriangle,
+  Edit,
+  Save,
+  X,
+  Search,
+  Truck,
+  Trash2,
   FileSpreadsheet,
   Upload,
   Download,
@@ -142,7 +141,7 @@ export default function Inventory() {
 
     const supplierIdVal = formData.supplier_id ? parseInt(formData.supplier_id, 10) : null;
     const isServiceItem = formData.category === 'SERVICE' || formData.barcode.trim().startsWith('SRV-');
-    
+
     try {
       await db.inventory.upsert({
         id: editingId ?? undefined,
@@ -465,12 +464,12 @@ export default function Inventory() {
   return (
     <div className="p-8 h-full flex flex-col">
       {/* Hidden File Input for Excel/CSV Import */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept=".csv, application/vnd.ms-excel, text/csv" 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".csv, application/vnd.ms-excel, text/csv"
+        className="hidden"
       />
 
       {/* Top Header & Quick Metrics */}
@@ -527,13 +526,12 @@ export default function Inventory() {
 
           <button
             onClick={() => setShowLowStockOnly(prev => !prev)}
-            className={`px-3 py-1.5 rounded-lg shadow-2xs border transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
-              showLowStockOnly
+            className={`px-3 py-1.5 rounded-lg shadow-2xs border transition-all flex items-center gap-1.5 cursor-pointer text-xs ${showLowStockOnly
                 ? 'bg-rose-600 text-white border-rose-600 font-semibold'
                 : lowStockCount > 0
-                ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 hover:bg-amber-100'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
-            }`}
+                  ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 hover:bg-amber-100'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+              }`}
           >
             <AlertTriangle className={`w-3.5 h-3.5 ${showLowStockOnly ? 'text-white' : 'text-amber-500'}`} />
             <span>Low Stock ({lowStockCount})</span>
@@ -542,7 +540,7 @@ export default function Inventory() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 overflow-hidden">
-        
+
         {/* Left Side: Add/Edit Item Form (4 cols on xl) */}
         <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-5 rounded-xl shadow-2xs border border-slate-200/90 dark:border-slate-800/90 flex flex-col overflow-y-auto">
           <div className="flex justify-between items-center mb-3.5 border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -560,8 +558,8 @@ export default function Inventory() {
               )}
             </h3>
             {editingId && (
-              <button 
-                onClick={resetForm} 
+              <button
+                onClick={resetForm}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
                 title="Cancel Edit"
               >
@@ -569,19 +567,19 @@ export default function Inventory() {
               </button>
             )}
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-3 flex-1">
             <div>
               <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                 Barcode / ISBN <span className="text-rose-500">*</span>
               </label>
-              <input 
-                required 
-                type="text" 
+              <input
+                required
+                type="text"
                 placeholder="e.g. 9789551234567 or BK-101"
-                value={formData.barcode} 
-                onChange={e => setFormData({...formData, barcode: e.target.value})} 
-                className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 font-mono text-xs" 
+                value={formData.barcode}
+                onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 font-mono text-xs"
               />
             </div>
 
@@ -589,21 +587,21 @@ export default function Inventory() {
               <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                 Title / Product Name <span className="text-rose-500">*</span>
               </label>
-              <input 
-                required 
-                type="text" 
+              <input
+                required
+                type="text"
                 placeholder="e.g. Grade 10 Mathematics"
-                value={formData.title} 
-                onChange={e => setFormData({...formData, title: e.target.value})} 
-                className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs" 
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Category</label>
-                <select 
-                  value={formData.category} 
+                <select
+                  value={formData.category}
                   onChange={e => {
                     const cat = e.target.value;
                     setFormData(prev => ({
@@ -612,7 +610,7 @@ export default function Inventory() {
                       quantity: cat === 'SERVICE' ? '0' : (prev.quantity === '0' ? '' : prev.quantity),
                       reorder_level: cat === 'SERVICE' ? '0' : (prev.reorder_level === '0' ? '3' : prev.reorder_level),
                     }));
-                  }} 
+                  }}
                   className="w-full px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs"
                 >
                   <option value="BOOK">Book</option>
@@ -627,9 +625,9 @@ export default function Inventory() {
                   <Truck className="w-3 h-3 text-slate-400" />
                   Supplier
                 </label>
-                <select 
-                  value={formData.supplier_id} 
-                  onChange={e => setFormData({...formData, supplier_id: e.target.value})} 
+                <select
+                  value={formData.supplier_id}
+                  onChange={e => setFormData({ ...formData, supplier_id: e.target.value })}
                   className="w-full px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs"
                 >
                   <option value="">-- No Supplier --</option>
@@ -645,28 +643,28 @@ export default function Inventory() {
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Cost Price (Rs.)</label>
-                <input 
-                  required 
-                  type="number" 
-                  step="0.01" 
+                <input
+                  required
+                  type="number"
+                  step="0.01"
                   min="0"
                   placeholder="0.00"
-                  value={formData.cost_price} 
-                  onChange={e => setFormData({...formData, cost_price: e.target.value})} 
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono" 
+                  value={formData.cost_price}
+                  onChange={e => setFormData({ ...formData, cost_price: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono"
                 />
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Selling Price (Rs.)</label>
-                <input 
-                  required 
-                  type="number" 
-                  step="0.01" 
+                <input
+                  required
+                  type="number"
+                  step="0.01"
                   min="0"
                   placeholder="0.00"
-                  value={formData.selling_price} 
-                  onChange={e => setFormData({...formData, selling_price: e.target.value})} 
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 font-semibold font-mono text-xs" 
+                  value={formData.selling_price}
+                  onChange={e => setFormData({ ...formData, selling_price: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 font-semibold font-mono text-xs"
                 />
               </div>
             </div>
@@ -675,15 +673,15 @@ export default function Inventory() {
               <div className="space-y-2.5">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Discount %</label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    min="0" 
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
                     max="100"
                     placeholder="0"
-                    value={formData.discount_percent} 
-                    onChange={e => setFormData({...formData, discount_percent: e.target.value})} 
-                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono" 
+                    value={formData.discount_percent}
+                    onChange={e => setFormData({ ...formData, discount_percent: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono"
                   />
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-lg text-xs text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
@@ -694,38 +692,38 @@ export default function Inventory() {
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Discount %</label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    min="0" 
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
                     max="100"
                     placeholder="0"
-                    value={formData.discount_percent} 
-                    onChange={e => setFormData({...formData, discount_percent: e.target.value})} 
-                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono" 
+                    value={formData.discount_percent}
+                    onChange={e => setFormData({ ...formData, discount_percent: e.target.value })}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Quantity</label>
-                  <input 
-                    required 
-                    type="number" 
+                  <input
+                    required
+                    type="number"
                     min="0"
                     placeholder="0"
-                    value={formData.quantity} 
-                    onChange={e => setFormData({...formData, quantity: e.target.value})} 
-                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono font-semibold" 
+                    value={formData.quantity}
+                    onChange={e => setFormData({ ...formData, quantity: e.target.value })}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono font-semibold"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Reorder Alert</label>
-                  <input 
-                    required 
-                    type="number" 
+                  <input
+                    required
+                    type="number"
                     min="0"
-                    value={formData.reorder_level} 
-                    onChange={e => setFormData({...formData, reorder_level: e.target.value})} 
-                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono" 
+                    value={formData.reorder_level}
+                    onChange={e => setFormData({ ...formData, reorder_level: e.target.value })}
+                    className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-blue-600 text-xs font-mono"
                   />
                 </div>
               </div>
@@ -737,13 +735,13 @@ export default function Inventory() {
                 <span>Profit per unit:</span>
                 <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums">
                   Rs. {(
-                    (parseFloat(formData.selling_price) || 0) * (1 - (parseFloat(formData.discount_percent) || 0) / 100) - 
+                    (parseFloat(formData.selling_price) || 0) * (1 - (parseFloat(formData.discount_percent) || 0) / 100) -
                     (parseFloat(formData.cost_price) || 0)
                   ).toFixed(2)}
                 </span>
               </div>
             )}
-            
+
             <div className="pt-2 flex gap-2">
               {editingId && (
                 <button
@@ -754,8 +752,8 @@ export default function Inventory() {
                   Cancel
                 </button>
               )}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="flex-1 flex justify-center items-center py-2 rounded-lg font-semibold transition-colors text-white shadow-xs cursor-pointer text-xs bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
               >
                 {editingId ? (
@@ -770,21 +768,21 @@ export default function Inventory() {
 
         {/* Right Side: Inventory Table & Filters (8 cols on xl) */}
         <div className="xl:col-span-8 bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-slate-200/90 dark:border-slate-800/90 overflow-hidden flex flex-col">
-          
+
           {/* Controls Bar: Search & Category Tabs */}
           <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search by title, barcode, or supplier..." 
+              <input
+                type="text"
+                placeholder="Search by title, barcode, or supplier..."
                 className="w-full pl-8 pr-8 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:border-blue-600 shadow-2xs"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
-                <button 
+                <button
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
@@ -797,51 +795,46 @@ export default function Inventory() {
             <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium border border-slate-200/60 dark:border-slate-700/60">
               <button
                 onClick={() => setSelectedCategory('ALL')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                  selectedCategory === 'ALL'
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'ALL'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 All ({inventory.length})
               </button>
               <button
                 onClick={() => setSelectedCategory('BOOK')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                  selectedCategory === 'BOOK'
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'BOOK'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 Books ({inventory.filter(i => i.category === 'BOOK').length})
               </button>
               <button
                 onClick={() => setSelectedCategory('STATIONERY')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                  selectedCategory === 'STATIONERY'
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'STATIONERY'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 Stationery ({inventory.filter(i => i.category === 'STATIONERY').length})
               </button>
               <button
                 onClick={() => setSelectedCategory('SERVICE')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                  selectedCategory === 'SERVICE'
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'SERVICE'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 Services ({inventory.filter(i => i.category === 'SERVICE' || i.barcode?.startsWith('SRV-')).length})
               </button>
               <button
                 onClick={() => setSelectedCategory('OTHER')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                  selectedCategory === 'OTHER'
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'OTHER'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 Other ({inventory.filter(i => i.category === 'OTHER').length})
               </button>
@@ -855,8 +848,8 @@ export default function Inventory() {
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>Showing only items below reorder threshold (<strong>{filteredInventory.length}</strong> items found).</span>
               </div>
-              <button 
-                onClick={() => setShowLowStockOnly(false)} 
+              <button
+                onClick={() => setShowLowStockOnly(false)}
                 className="font-semibold underline hover:text-amber-950 dark:hover:text-amber-100 cursor-pointer"
               >
                 Show All Items
@@ -896,15 +889,14 @@ export default function Inventory() {
                   const isOutOfStock = !itemIsService && item.quantity === 0;
 
                   return (
-                    <tr 
-                      key={item.id} 
-                      className={`hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors ${
-                        editingId === item.id 
-                          ? 'bg-blue-50/40 dark:bg-blue-950/30' 
-                          : isOutOfStock 
-                          ? 'bg-rose-50/20 dark:bg-rose-950/10' 
-                          : ''
-                      }`}
+                    <tr
+                      key={item.id}
+                      className={`hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors ${editingId === item.id
+                          ? 'bg-blue-50/40 dark:bg-blue-950/30'
+                          : isOutOfStock
+                            ? 'bg-rose-50/20 dark:bg-rose-950/10'
+                            : ''
+                        }`}
                     >
                       {/* Title & Details */}
                       <td className="px-5 py-3">
@@ -932,7 +924,7 @@ export default function Inventory() {
                         </div>
                         {discount > 0 && (
                           <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                            Rs. {finalSellingPrice.toFixed(2)} 
+                            Rs. {finalSellingPrice.toFixed(2)}
                             <span className="text-[10px] text-rose-500 dark:text-rose-400 ml-1 font-normal">(-{discount}%)</span>
                           </div>
                         )}
@@ -954,11 +946,10 @@ export default function Inventory() {
 
                       {/* Margin */}
                       <td className="px-5 py-3 whitespace-nowrap font-mono tabular-nums">
-                        <span className={`px-2 py-0.5 inline-flex text-[11px] font-semibold rounded-md border ${
-                          margin >= 0 
-                            ? 'bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700' 
+                        <span className={`px-2 py-0.5 inline-flex text-[11px] font-semibold rounded-md border ${margin >= 0
+                            ? 'bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
                             : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/50'
-                        }`}>
+                          }`}>
                           +Rs. {margin.toFixed(2)}
                         </span>
                       </td>
@@ -975,16 +966,15 @@ export default function Inventory() {
                         ) : (
                           <>
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-xs font-mono font-semibold tabular-nums ${
-                                isOutOfStock 
-                                  ? 'text-rose-600 dark:text-rose-400' 
-                                  : isLowStock 
-                                  ? 'text-amber-600 dark:text-amber-400' 
-                                  : 'text-slate-900 dark:text-slate-100'
-                              }`}>
+                              <span className={`text-xs font-mono font-semibold tabular-nums ${isOutOfStock
+                                  ? 'text-rose-600 dark:text-rose-400'
+                                  : isLowStock
+                                    ? 'text-amber-600 dark:text-amber-400'
+                                    : 'text-slate-900 dark:text-slate-100'
+                                }`}>
                                 {item.quantity} in stock
                               </span>
-                              
+
                               {isOutOfStock ? (
                                 <span className="px-1.5 py-0.2 text-[10px] font-semibold rounded bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40">
                                   Out of stock
@@ -1003,15 +993,15 @@ export default function Inventory() {
                       {/* Actions */}
                       <td className="px-5 py-3 whitespace-nowrap text-right text-xs font-medium">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button 
-                            onClick={() => handleEdit(item)} 
+                          <button
+                            onClick={() => handleEdit(item)}
                             className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
                             title="Edit Item"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(item)} 
+                          <button
+                            onClick={() => handleDelete(item)}
                             className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded transition-colors"
                             title="Delete Item"
                           >
@@ -1039,11 +1029,10 @@ export default function Inventory() {
                     key={size}
                     type="button"
                     onClick={() => setPageSize(size)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition-colors ${
-                      pageSize === size
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition-colors ${pageSize === size
                         ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     {size}
                   </button>
@@ -1088,14 +1077,14 @@ export default function Inventory() {
       {isImportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            
+
             {/* Modal Header */}
             <div className="px-5 py-4 bg-slate-900 dark:bg-slate-950 text-white flex justify-between items-center border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <FileCheck className="w-4 h-4 text-blue-400" />
                 <h3 className="font-bold text-sm">Preview CSV Stock Import</h3>
               </div>
-              <button 
+              <button
                 onClick={() => { setIsImportModalOpen(false); setImportPreview([]); }}
                 className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/10 cursor-pointer"
               >

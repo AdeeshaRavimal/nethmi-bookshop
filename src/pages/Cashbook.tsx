@@ -8,7 +8,6 @@ import {
   Wallet,
   ArrowDownLeft,
   ArrowUpRight,
-  Plus,
   Search,
   Calendar,
   Printer,
@@ -23,9 +22,7 @@ import {
   Info,
   Receipt,
   AlertTriangle,
-  Check,
   Calculator,
-  Clock,
 } from 'lucide-react';
 
 const fmtRs = (n: number = 0) =>
@@ -150,7 +147,7 @@ export default function Cashbook() {
     try {
       const [closeRes, bdRes] = await Promise.all([
         db.cashbook.getShiftClose(selectedDate),
-        db.sales.getPaymentBreakdown({ date: selectedDate }),
+        db.sales.getPaymentBreakdown(selectedDate),
       ]);
       if (closeRes.success && closeRes.data) {
         setExistingClosing(closeRes.data);

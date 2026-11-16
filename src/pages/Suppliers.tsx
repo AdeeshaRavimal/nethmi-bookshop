@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { db, type Supplier, type SupplierPayment, type GRNHeader, type Cheque } from '../db';
 import {
   Plus, Truck, Phone, Search, DollarSign, AlertCircle, CheckCircle2,
-  Calendar, CreditCard, Banknote, Building2, User, Mail, MapPin,
-  FileText, Trash2, Edit2, X, ArrowUpRight, ArrowDownLeft, ShieldAlert,
-  Clock, AlertTriangle, FileSpreadsheet, Check, Ban, Bell
+  Calendar, CreditCard, Building2, User, Mail, MapPin,
+  FileText, Trash2, Edit2, X, ArrowUpRight, ArrowDownLeft,
+  Clock, AlertTriangle, FileSpreadsheet, Check, Ban
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { Skeleton, EmptyState } from '../components/Skeleton';

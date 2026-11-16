@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db, type RevenueAnalytics } from '../db';
 import { localDateString } from '../utils/dates';
 import { useToast } from '../components/Toast';
@@ -8,8 +8,6 @@ import {
   Calendar,
   DollarSign,
   Printer,
-  CreditCard,
-  Banknote,
   Search,
   BookOpen,
   Wrench,
@@ -18,9 +16,7 @@ import {
   TrendingUp,
   RefreshCw,
   Filter,
-  CheckCircle2,
   PieChart,
-  ArrowUpRight,
 } from 'lucide-react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -149,13 +145,7 @@ export default function Reports() {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  // Detected Categories List for Filters
-  const availableCategories = useMemo(() => {
-    const defaultList = ['BOOK', 'SERVICE', 'STATIONERY', 'OTHER'];
-    if (!data?.categoryBreakdown) return defaultList;
-    const fromData = data.categoryBreakdown.map((c) => c.category);
-    return Array.from(new Set([...defaultList, ...fromData]));
-  }, [data]);
+
 
   const summary = data?.summary || {
     totalRevenue: 0,
@@ -203,11 +193,10 @@ export default function Reports() {
               <button
                 key={p.key}
                 onClick={() => applyPreset(p.key)}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                  datePreset === p.key
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${datePreset === p.key
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {p.label}
               </button>
@@ -278,54 +267,49 @@ export default function Reports() {
           <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium border border-slate-200/60 dark:border-slate-700/60">
             <button
               onClick={() => setSelectedCategory('ALL')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                selectedCategory === 'ALL'
+              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'ALL'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               All Categories
             </button>
             <button
               onClick={() => setSelectedCategory('BOOK')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                selectedCategory === 'BOOK'
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'BOOK'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               <BookOpen className="w-3 h-3" />
               Books
             </button>
             <button
               onClick={() => setSelectedCategory('SERVICE')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                selectedCategory === 'SERVICE'
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'SERVICE'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               <Wrench className="w-3 h-3" />
               Services
             </button>
             <button
               onClick={() => setSelectedCategory('STATIONERY')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                selectedCategory === 'STATIONERY'
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'STATIONERY'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               <Layers className="w-3 h-3" />
               Stationery
             </button>
             <button
               onClick={() => setSelectedCategory('OTHER')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                selectedCategory === 'OTHER'
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${selectedCategory === 'OTHER'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               <Package className="w-3 h-3" />
               Other
@@ -493,11 +477,10 @@ export default function Reports() {
                     onClick={() =>
                       setSelectedCategory(isSelected ? 'ALL' : cat.category)
                     }
-                    className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                      isSelected
+                    className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected
                         ? 'ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 shadow-md'
                         : `${color.bg} hover:shadow-md hover:scale-[1.01]`
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
@@ -506,10 +489,10 @@ export default function Reports() {
                           {cat.category === 'BOOK'
                             ? 'Books'
                             : cat.category === 'SERVICE'
-                            ? 'Services'
-                            : cat.category === 'STATIONERY'
-                            ? 'Stationery'
-                            : cat.category}
+                              ? 'Services'
+                              : cat.category === 'STATIONERY'
+                                ? 'Stationery'
+                                : cat.category}
                         </span>
                       </div>
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-white/80 dark:bg-gray-900/80">

@@ -84,7 +84,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
       if (res.success) {
         setStatusMessage({
           type: 'success',
-          text: `Backup saved successfully!\nFile: ${res.fileName}\nPath: ${res.destination}`
+          text: `Backup saved successfully!\nPath: ${res.filePath || 'Saved'}`
         });
         toast.success('Backup created in cloud folder!');
         loadSettings();
@@ -107,10 +107,10 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
     setStatusMessage(null);
     try {
       const res = await db.backup();
-      if (res.success && res.destination) {
+      if (res.success && res.filePath) {
         setStatusMessage({
           type: 'success',
-          text: `Standalone database snapshot saved to:\n${res.destination}`
+          text: `Standalone database snapshot saved to:\n${res.filePath}`
         });
         toast.success('Manual backup saved successfully!');
       } else if (!res.cancelled) {

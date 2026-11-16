@@ -4,7 +4,7 @@ import type { CreditCustomer } from '../db';
 import {
   Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard,
   X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy,
-  RotateCcw, Undo2, AlertCircle, AlertTriangle, Calculator, Volume2, VolumeX,
+  RotateCcw, AlertCircle, AlertTriangle, Calculator, Volume2, VolumeX,
   FileText, Sparkles
 } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
@@ -59,6 +59,7 @@ export default function POS() {
   // Sound Feedback & Shortcuts
   const [soundEnabled, setSoundEnabled] = useState(() => soundFX.isEnabled());
   const discountInputRef = useRef<HTMLInputElement>(null);
+  const cashInputRef = useRef<HTMLInputElement>(null);
 
   // Communication Services Quick Calculator State
   const [showServicesModal, setShowServicesModal] = useState(false);
@@ -220,7 +221,7 @@ export default function POS() {
       }
 
       const [itemsRes, prevReturnsRes] = await Promise.all([
-        db.saleItems.getBySale(exact.id),
+        db.saleItems.getBySale(exact.id!),
         db.returns.getByReceipt(exact.receipt_no),
       ]);
 
@@ -753,7 +754,7 @@ export default function POS() {
     }));
   };
 
-  const { totalAmount: subtotal, totalCost, grossProfit: baseProfit } = calculateCartTotals(cart);
+  const { totalAmount: subtotal, totalCost } = calculateCartTotals(cart);
 
   const originalSubtotal = cart.reduce((sum, item) => sum + ((item.original_price ?? item.selling_price) * item.quantity), 0);
   const totalItemDiscounts = Math.max(0, Math.round((originalSubtotal - subtotal) * 100) / 100);
@@ -996,8 +997,8 @@ export default function POS() {
         setChangeBanner({
           receiptNo,
           total: adjustedNetTotal,
-          tendered: actualTendered,
-          change: actualChange,
+          tendered: actualTendered ?? adjustedNetTotal,
+          change: actualChange ?? 0,
           customerName: activeCustomer?.name,
           customerPhone: activeCustomer?.phone,
           receiptData: receiptPayload,
@@ -1014,7 +1015,7 @@ export default function POS() {
         );
       } else {
         toast.success(
-          `Receipt ${receiptNo} • ${method} • Rs.${adjustedNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
+          `Receipt ${receiptNo} • ${method} • Rs.${adjustedNetTotal.toFixed(2)}${(actualChange ?? 0) > 0 ? ` (Change: Rs.${(actualChange ?? 0).toFixed(2)})` : ''}`,
           'Sale completed'
         );
       }
@@ -1446,9 +1447,7 @@ export default function POS() {
               <ul className="space-y-3">
                 {cart.map(item => {
                   const catalogPrice = item.catalog_price ?? item.original_price ?? item.selling_price;
-                  const origPrice = item.original_price ?? item.selling_price;
                   const isPriceReduced = catalogPrice > 0 && item.selling_price < catalogPrice;
-                  const hasDiscount = (item.discount_percent ?? 0) > 0 || isPriceReduced || item.is_special_discount;
                   const discountMode = getItemDiscountMode(item);
                   const discountVal = getItemDiscountValue(item);
                   const itemDiscountTotal = ((catalogPrice - item.selling_price) * item.quantity);
