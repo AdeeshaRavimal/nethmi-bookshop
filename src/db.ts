@@ -185,6 +185,7 @@ export interface CreditCustomer {
   address: string;
   credit_limit: number;
   total_outstanding: number;
+  loyalty_points?: number;
   notes: string;
   created_at: string;
 }
@@ -436,7 +437,8 @@ export const db = {
     items: any[];
     billDiscount?: number;
     customerId?: number;
-  }): Promise<{ success: boolean; saleId?: number; receiptNo?: string; error?: string }> => {
+    pointsToRedeem?: number;
+  }): Promise<{ success: boolean; saleId?: number; receiptNo?: string; pointsEarned?: number; pointsRedeemed?: number; error?: string }> => {
     if (!window.ipcRenderer) return Promise.resolve({ success: true, saleId: Date.now(), receiptNo: `REC-${Date.now()}` });
     return window.ipcRenderer.invoke('execute-checkout', params);
   },
@@ -494,6 +496,15 @@ export const db = {
 
     recordPayment: (customerId: number, amount: number, notes?: string): Promise<{ success: boolean; error?: string }> =>
       ipc('db:credit:recordPayment', { customerId, amount, notes }),
+  },
+
+  // ── WhatsApp & E-Bill ─────────────────────────────────────────────────────────
+  whatsapp: {
+    openChat: (phone: string, message: string): Promise<{ success: boolean; error?: string }> =>
+      ipc('whatsapp:openChat', { phone, message }),
+
+    saveBillImage: (base64Data: string, receiptNo: string): Promise<{ success: boolean; filePath?: string; error?: string }> =>
+      ipc('whatsapp:saveBillImage', { base64Data, receiptNo }),
   },
 
   // ── Auto Updater ──────────────────────────────────────────────────────────────

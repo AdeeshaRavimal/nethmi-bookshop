@@ -16,6 +16,10 @@ export interface ReceiptData {
   bill_discount?: number;
   cash_tendered?: number;
   change_amount?: number;
+  customer_name?: string;
+  customer_phone?: string;
+  points_earned?: number;
+  points_balance?: number;
 }
 
 const SHOP_NAME = 'Hiru Bookshop & Communication';
@@ -176,4 +180,225 @@ export function printReceipt(data: ReceiptData): void {
   setTimeout(() => {
     if (iframe.parentNode) document.body.removeChild(iframe);
   }, 60000);
+}
+
+/**
+ * Builds clean, professionally-formatted WhatsApp receipt text.
+ */
+export function buildWhatsAppReceiptText(data: ReceiptData): string {
+  const date = new Date(data.created_at).toLocaleString();
+  const itemsList = (data.items || [])
+    .map(i => `• ${i.title}  x${i.quantity}  =  Rs. ${(i.unit_price * i.quantity).toFixed(2)}`)
+    .join('\n');
+
+  let text = `*${SHOP_NAME}*\n${SHOP_ADDRESS} (Tel: ${SHOP_PHONE})\n----------------------------------------\n*INVOICE / RECEIPT: ${data.receipt_no}*\nDate: ${date}\nPayment: ${data.payment_type}\n`;
+
+  if (data.customer_name) {
+    text += `Customer: ${data.customer_name}${data.customer_phone ? ` (${data.customer_phone})` : ''}\n`;
+  }
+
+  text += `----------------------------------------\n*Items Purchased:*\n${itemsList}\n----------------------------------------\n*TOTAL: Rs. ${data.total_amount.toFixed(2)}*`;
+
+  if (data.bill_discount && data.bill_discount > 0) {
+    text += `\n(Discount Saved: Rs. ${data.bill_discount.toFixed(2)})`;
+  }
+
+  if (data.cash_tendered && data.cash_tendered > data.total_amount) {
+    text += `\nCash Received: Rs. ${data.cash_tendered.toFixed(2)}`;
+    text += `\nChange Returned: Rs. ${(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount)).toFixed(2)}`;
+  }
+
+  if (data.points_earned && data.points_earned > 0) {
+    text += `\n\n✨ Points Earned: +${data.points_earned} pts`;
+  }
+  if (data.points_balance !== undefined && data.points_balance !== null) {
+    text += `\n⭐ Loyalty Balance: ${data.points_balance} pts`;
+  }
+
+  text += `\n\nThank you for shopping with us! Have a great day! 🙏`;
+
+  return text;
+}
+
+/**
+ * Generates an HTML5 Canvas of the invoice bill and returns its base64 PNG data URL.
+ * Can be saved as a high-resolution PNG image or sent to customers via WhatsApp.
+ */
+export function generateBillImage(data: ReceiptData): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const width = 600;
+      const rowHeight = 32;
+      const baseHeight = 560;
+      const height = baseHeight + (data.items.length * rowHeight);
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas context not available'));
+
+      // ── Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // ── Header Box
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(0, 0, width, 120);
+
+      // Header Texts
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px "Segoe UI", sans-serif';
+      ctx.fillText(SHOP_NAME, 24, 42);
+
+      ctx.font = '13px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#bfdbfe';
+      ctx.fillText(`${SHOP_ADDRESS}  •  Tel: ${SHOP_PHONE}`, 24, 68);
+
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = 'bold 12px "Segoe UI", sans-serif';
+      ctx.fillText('INVOICE / RECEIPT', 24, 98);
+
+      // Invoice info (Right aligned in header)
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px "Segoe UI", sans-serif';
+      ctx.fillText(data.receipt_no, width - 24, 45);
+
+      ctx.font = '12px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText(new Date(data.created_at).toLocaleString(), width - 24, 70);
+
+      ctx.font = 'bold 12px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#93c5fd';
+      ctx.fillText(`PAYMENT: ${data.payment_type}`, width - 24, 98);
+      ctx.textAlign = 'left';
+
+      // ── Customer & Loyalty Info (if available)
+      let y = 145;
+      if (data.customer_name) {
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(20, y - 18, width - 40, 48);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.strokeRect(20, y - 18, width - 40, 48);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 13px "Segoe UI", sans-serif';
+        ctx.fillText(`Customer: ${data.customer_name} ${data.customer_phone ? `(${data.customer_phone})` : ''}`, 32, y + 2);
+
+        if (data.points_balance !== undefined) {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#7c3aed';
+          ctx.font = 'bold 12px "Segoe UI", sans-serif';
+          ctx.fillText(`Loyalty Points: ${data.points_balance} pts (+${data.points_earned || 0} earned)`, width - 32, y + 2);
+          ctx.textAlign = 'left';
+        }
+        y += 50;
+      }
+
+      // ── Table Header
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(20, y, width - 40, 32);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 12px "Segoe UI", sans-serif';
+      ctx.fillText('ITEM DESCRIPTION', 32, y + 21);
+      ctx.textAlign = 'center';
+      ctx.fillText('QTY', 360, y + 21);
+      ctx.textAlign = 'right';
+      ctx.fillText('PRICE', 460, y + 21);
+      ctx.fillText('AMOUNT', width - 32, y + 21);
+      ctx.textAlign = 'left';
+
+      y += 35;
+
+      // ── Table Rows
+      data.items.forEach((item, idx) => {
+        ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#fafafa';
+        ctx.fillRect(20, y - 4, width - 40, rowHeight);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '13px "Segoe UI", sans-serif';
+        const displayTitle = item.title.length > 34 ? item.title.slice(0, 32) + '...' : item.title;
+        ctx.fillText(displayTitle, 32, y + 16);
+
+        ctx.textAlign = 'center';
+        ctx.fillText(String(item.quantity), 360, y + 16);
+
+        ctx.textAlign = 'right';
+        ctx.fillText(`Rs.${item.unit_price.toFixed(2)}`, 460, y + 16);
+        ctx.font = 'bold 13px "Segoe UI", sans-serif';
+        ctx.fillText(`Rs.${(item.unit_price * item.quantity).toFixed(2)}`, width - 32, y + 16);
+        ctx.textAlign = 'left';
+
+        y += rowHeight;
+      });
+
+      // ── Summary Box
+      y += 15;
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.moveTo(20, y);
+      ctx.lineTo(width - 20, y);
+      ctx.stroke();
+
+      y += 20;
+      if (data.subtotal && data.bill_discount && data.bill_discount > 0) {
+        ctx.font = '13px "Segoe UI", sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('Subtotal:', 340, y);
+        ctx.textAlign = 'right';
+        ctx.fillText(`Rs. ${data.subtotal.toFixed(2)}`, width - 32, y);
+        ctx.textAlign = 'left';
+        y += 22;
+
+        ctx.fillStyle = '#dc2626';
+        ctx.fillText('Bill Discount:', 340, y);
+        ctx.textAlign = 'right';
+        ctx.fillText(`- Rs. ${data.bill_discount.toFixed(2)}`, width - 32, y);
+        ctx.textAlign = 'left';
+        y += 22;
+      }
+
+      // Net Total
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 18px "Segoe UI", sans-serif';
+      ctx.fillText('TOTAL AMOUNT:', 300, y + 8);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 22px "Segoe UI", sans-serif';
+      ctx.fillText(`Rs. ${data.total_amount.toFixed(2)}`, width - 32, y + 8);
+      ctx.textAlign = 'left';
+
+      y += 35;
+      if (data.cash_tendered && data.cash_tendered > data.total_amount) {
+        ctx.font = '12px "Segoe UI", sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText(`Cash Tendered: Rs. ${data.cash_tendered.toFixed(2)}`, 340, y);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#16a34a';
+        ctx.fillText(`Change: Rs. ${(data.change_amount || 0).toFixed(2)}`, width - 32, y);
+        ctx.textAlign = 'left';
+        y += 25;
+      }
+
+      // ── Footer
+      y = height - 60;
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, y, width, 60);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 12px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(FOOTER, width / 2, y + 25);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px "Segoe UI", sans-serif';
+      ctx.fillText('System by Inkoart.online • Tel: 0724207000', width / 2, y + 44);
+
+      resolve(canvas.toDataURL('image/png'));
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

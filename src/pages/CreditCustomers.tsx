@@ -16,7 +16,8 @@ import {
   Trash2,
   Edit,
   Receipt,
-  UserCheck
+  UserCheck,
+  Award,
 } from 'lucide-react';
 import { db } from '../db';
 import type { CreditCustomer, CreditLedgerEntry } from '../db';
@@ -213,10 +214,10 @@ export default function CreditCustomers() {
             <div>
               <h1 className="text-xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-2.5">
                 <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                Credit Customer Book
+                Customer Book & Loyalty
               </h1>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Manage credit accounts, outstanding debts & bill collections
+                Manage credit accounts, loyalty reward points & bill collections
               </p>
             </div>
 
@@ -307,6 +308,10 @@ export default function CreditCustomers() {
                       {cust.credit_limit > 0 && (
                         <span>Limit: Rs. {cust.credit_limit.toFixed(0)}</span>
                       )}
+                      <span className="flex items-center gap-1 font-bold text-purple-600 dark:text-purple-400">
+                        <Award className="w-3.5 h-3.5" />
+                        {cust.loyalty_points || 0} pts
+                      </span>
                     </div>
                   </div>
 
@@ -384,11 +389,17 @@ export default function CreditCustomers() {
                 <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
                   Rs. {(selectedCustomer.total_outstanding || 0).toFixed(2)}
                 </span>
-                {selectedCustomer.credit_limit > 0 && (
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 block mt-0.5">
-                    Limit: Rs. {selectedCustomer.credit_limit.toFixed(2)}
+                <div className="flex items-center gap-3 mt-1">
+                  {selectedCustomer.credit_limit > 0 && (
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 block">
+                      Limit: Rs. {selectedCustomer.credit_limit.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5" />
+                    {selectedCustomer.loyalty_points || 0} Points Available
                   </span>
-                )}
+                </div>
               </div>
 
               <button

@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -208,6 +208,26 @@ export function runMigrations(instance: Database.Database) {
     currentVersion = 11;
   }
 
+  // ── Migration v11 → v12: Add loyalty points to customers + points earned on sales ──
+  if (currentVersion < 12) {
+    try {
+      instance.exec('ALTER TABLE credit_customers ADD COLUMN loyalty_points INTEGER DEFAULT 0;');
+    } catch {
+      // column already exists
+    }
+    try {
+      instance.exec('ALTER TABLE sales ADD COLUMN points_earned INTEGER DEFAULT 0;');
+    } catch {
+      // column already exists
+    }
+    try {
+      instance.exec('ALTER TABLE sales ADD COLUMN points_redeemed INTEGER DEFAULT 0;');
+    } catch {
+      // column already exists
+    }
+    currentVersion = 12;
+  }
+
   // Persist the version so we don't re-run migrations next time.
   if (row === undefined) {
     instance.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
@@ -366,6 +386,7 @@ export function initPragmasAndSchema(instance: Database.Database) {
       address TEXT DEFAULT '',
       credit_limit REAL DEFAULT 0,
       total_outstanding REAL DEFAULT 0,
+      loyalty_points INTEGER DEFAULT 0,
       notes TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

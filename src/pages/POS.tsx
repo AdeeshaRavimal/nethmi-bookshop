@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
 import type { CreditCustomer } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
-import { printReceipt } from '../utils/receipt';
+import { printReceipt, buildWhatsAppReceiptText } from '../utils/receipt';
+import type { ReceiptData } from '../utils/receipt';
 
 import { addCartItem, type CartItem } from '../utils/cart';
 
@@ -56,6 +57,17 @@ export default function POS() {
   const [newCustomerLimit, setNewCustomerLimit] = useState('');
   const [isSubmittingCredit, setIsSubmittingCredit] = useState(false);
   const creditSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Attached Customer for Loyalty & WhatsApp E-Bill
+  const [attachedCustomer, setAttachedCustomer] = useState<CreditCustomer | null>(null);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+  const [customerPickerSearch, setCustomerPickerSearch] = useState('');
+  const [redeemPoints, setRedeemPoints] = useState(false);
+
+  // E-Bill WhatsApp Modal state
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppPhone, setWhatsAppPhone] = useState('');
+  const [whatsAppReceiptData, setWhatsAppReceiptData] = useState<ReceiptData | null>(null);
 
   // Live Clock state
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -475,17 +487,22 @@ export default function POS() {
     const finalTotalCost = totalCost;
     const finalNetProfit = netProfit;
 
+    const activeCustomer = creditCustomer || attachedCustomer;
+    const pointsToRedeem = redeemPoints && activeCustomer ? Math.min(activeCustomer.loyalty_points || 0, Math.floor(finalNetTotal)) : 0;
+    const adjustedNetTotal = Math.max(0, finalNetTotal - pointsToRedeem);
+
     try {
       const res = await db.executeCheckout({
         requestId: checkoutRequestId.current,
-        totalAmount: finalNetTotal,
+        totalAmount: adjustedNetTotal,
         totalCost: finalTotalCost,
-        grossProfit: finalNetProfit,
+        grossProfit: finalNetProfit - pointsToRedeem,
         paymentType: method,
         createdAt: now,
         items: finalCart,
-        billDiscount: finalBillDiscount,
-        customerId: creditCustomer?.id,
+        billDiscount: finalBillDiscount + pointsToRedeem,
+        customerId: activeCustomer?.id,
+        pointsToRedeem,
       });
 
       if (!res.success) {
@@ -496,13 +513,13 @@ export default function POS() {
       const receiptNo = res.receiptNo || 'REC-?';
       const actualTendered = method === 'CASH' && tenderedAmount != null && tenderedAmount > 0
         ? tenderedAmount
-        : finalNetTotal;
-      const actualChange = Math.max(0, Math.round((actualTendered - finalNetTotal) * 100) / 100);
+        : adjustedNetTotal;
+      const actualChange = Math.max(0, Math.round((actualTendered - adjustedNetTotal) * 100) / 100);
 
       if (method === 'CASH') {
         setChangeBanner({
           receiptNo,
-          total: finalNetTotal,
+          total: adjustedNetTotal,
           tendered: actualTendered,
           change: actualChange,
         });
@@ -511,30 +528,47 @@ export default function POS() {
       }
 
       if (method === 'CREDIT' && creditCustomer) {
-        const newBalance = (creditCustomer.total_outstanding || 0) + finalNetTotal;
+        const newBalance = (creditCustomer.total_outstanding || 0) + adjustedNetTotal;
         toast.success(
           `Credit Sale to ${creditCustomer.name} (Due: Rs.${newBalance.toFixed(2)}) • Receipt ${receiptNo}`,
           'Credit Bill Recorded'
         );
       } else {
         toast.success(
-          `Receipt ${receiptNo} • ${method} • Rs.${finalNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
+          `Receipt ${receiptNo} • ${method} • Rs.${adjustedNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
           'Sale completed'
         );
       }
 
+      const pointsEarned = res.pointsEarned ?? Math.floor(adjustedNetTotal / 100);
+      const pointsBalance = activeCustomer
+        ? (activeCustomer.loyalty_points || 0) - pointsToRedeem + pointsEarned
+        : undefined;
+
+      const receiptPayload: ReceiptData = {
+        receipt_no: receiptNo,
+        created_at: now,
+        payment_type: method,
+        total_amount: adjustedNetTotal,
+        items: finalCart,
+        bill_discount: finalBillDiscount + pointsToRedeem,
+        subtotal: finalSubtotal,
+        cash_tendered: actualTendered,
+        change_amount: actualChange,
+        customer_name: activeCustomer?.name,
+        customer_phone: activeCustomer?.phone,
+        points_earned: pointsEarned,
+        points_balance: pointsBalance,
+      };
+
       if (shouldPrint) {
-        printReceipt({
-          receipt_no: receiptNo,
-          created_at: now,
-          payment_type: method,
-          total_amount: finalNetTotal,
-          items: finalCart,
-          bill_discount: finalBillDiscount,
-          subtotal: finalSubtotal,
-          cash_tendered: actualTendered,
-          change_amount: actualChange,
-        });
+        printReceipt(receiptPayload);
+      }
+
+      // Automatically prepare for WhatsApp E-Bill if customer has phone
+      if (activeCustomer?.phone) {
+        setWhatsAppReceiptData(receiptPayload);
+        setWhatsAppPhone(activeCustomer.phone);
       }
 
       setCart([]);
@@ -543,6 +577,8 @@ export default function POS() {
       setShowCashModal(false);
       setShowCreditModal(false);
       setSelectedCreditCustomer(null);
+      setAttachedCustomer(null);
+      setRedeemPoints(false);
       setCashReceived('');
       fetchLastSale();
       setSearchTerm('');
@@ -553,6 +589,40 @@ export default function POS() {
       checkoutPending.current = false;
       setIsCheckingOut(false);
     }
+  };
+
+  const handleOpenWhatsAppFromLast = () => {
+    if (!lastSale) {
+      toast.info('No previous receipts found.');
+      return;
+    }
+    const receiptPayload: ReceiptData = {
+      receipt_no: lastSale.receipt_no,
+      created_at: lastSale.created_at,
+      payment_type: lastSale.payment_type,
+      total_amount: lastSale.total_amount,
+      items: lastSale.items || [],
+      bill_discount: lastSale.bill_discount ?? 0,
+      subtotal: lastSale.subtotal ?? ((lastSale.total_amount ?? 0) + (lastSale.bill_discount ?? 0)),
+      customer_name: lastSale.customer_name,
+      customer_phone: lastSale.customer_phone,
+    };
+    setWhatsAppReceiptData(receiptPayload);
+    setWhatsAppPhone(lastSale.customer_phone || '');
+    setShowWhatsAppModal(true);
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!whatsAppPhone.trim()) {
+      toast.error('Please enter customer WhatsApp phone number');
+      return;
+    }
+    if (!whatsAppReceiptData) return;
+
+    const msg = buildWhatsAppReceiptText(whatsAppReceiptData);
+    await db.whatsapp.openChat(whatsAppPhone.trim(), msg);
+    toast.success('WhatsApp opened with receipt text!');
+    setShowWhatsAppModal(false);
   };
 
   const handlePrintLastReceipt = () => {
@@ -724,6 +794,52 @@ export default function POS() {
               className="ml-3 p-2.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <Keyboard className="w-5 h-5" />
+            </button>
+
+            {/* Customer & Loyalty Picker Button */}
+            <button
+              onClick={async () => {
+                setShowCustomerPicker(true);
+                try {
+                  const res = await db.credit.getCustomers();
+                  if (res.success && res.data) setCreditCustomers(res.data);
+                } catch (e) { console.error(e); }
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${attachedCustomer
+                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-xs'
+                : 'bg-white dark:bg-gray-700/80 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
+                }`}
+              title="Attach Customer for Loyalty Points & WhatsApp E-Bill"
+            >
+              <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <div className="text-left leading-tight">
+                {attachedCustomer ? (
+                  <>
+                    <span className="block font-black truncate max-w-[100px]">{attachedCustomer.name}</span>
+                    <span className="block text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                      {attachedCustomer.loyalty_points || 0} pts
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="block font-bold">Customer</span>
+                    <span className="block text-[10px] text-gray-400">Loyalty / E-Bill</span>
+                  </>
+                )}
+              </div>
+              {attachedCustomer && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAttachedCustomer(null);
+                    setRedeemPoints(false);
+                  }}
+                  className="p-0.5 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full"
+                  title="Detach Customer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </button>
 
             {/* Live POS Clock & Date */}
@@ -936,6 +1052,39 @@ export default function POS() {
               <span className="font-medium">Rs. 0.00</span>
             </div>
 
+            {/* Loyalty Points Redemption Option */}
+            {attachedCustomer && (attachedCustomer.loyalty_points || 0) > 0 && (
+              <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                    <Award className="w-4 h-4" />
+                    Redeem Loyalty Points
+                  </span>
+                  <p className="text-[11px] text-gray-500">
+                    Available: <strong>{attachedCustomer.loyalty_points} pts</strong> (Value: Rs. {attachedCustomer.loyalty_points})
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={redeemPoints}
+                    onChange={(e) => setRedeemPoints(e.target.checked)}
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                    {redeemPoints ? 'Applied' : 'Redeem'}
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {redeemPoints && attachedCustomer && (
+              <div className="flex justify-between items-center text-xs text-purple-600 dark:text-purple-400 font-bold">
+                <span>Points Discount:</span>
+                <span>- Rs. {Math.min(attachedCustomer.loyalty_points || 0, Math.floor(netTotal)).toFixed(2)}</span>
+              </div>
+            )}
+
             <div className="pt-4 border-t border-gray-100 dark:border-gray-700 mt-auto">
               <div className="flex justify-between items-end mb-1">
                 <span className="text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">Total Amount</span>
@@ -988,14 +1137,24 @@ export default function POS() {
             </button>
           </div>
 
-          <button
-            onClick={handlePrintLastReceipt}
-            disabled={!lastSale}
-            className="mt-3 flex items-center justify-center w-full p-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Printer className="w-5 h-5 mr-2" />
-            Print Last Receipt
-          </button>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button
+              onClick={handlePrintLastReceipt}
+              disabled={!lastSale}
+              className="flex items-center justify-center p-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <Printer className="w-4 h-4 mr-1.5" />
+              Print Receipt
+            </button>
+            <button
+              onClick={handleOpenWhatsAppFromLast}
+              disabled={!lastSale}
+              className="flex items-center justify-center p-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl font-bold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4 mr-1.5 text-emerald-600 dark:text-emerald-400" />
+              WhatsApp E-Bill
+            </button>
+          </div>
         </div>
 
       </div>
@@ -1224,6 +1383,91 @@ export default function POS() {
         </div>
       )}
 
+      {/* Customer Picker Modal (Loyalty & E-Bill) */}
+      {showCustomerPicker && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
+          onClick={() => setShowCustomerPicker(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">Attach Customer</h3>
+                  <p className="text-xs text-purple-200">Earn loyalty points & send WhatsApp bill</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCustomerPicker(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search customer by name or phone..."
+                  value={customerPickerSearch}
+                  onChange={(e) => setCustomerPickerSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
+                {creditCustomers.filter(c =>
+                  c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
+                  c.phone.includes(customerPickerSearch)
+                ).length === 0 ? (
+                  <div className="p-6 text-center text-xs text-gray-400">
+                    No customers found matching search.
+                  </div>
+                ) : (
+                  creditCustomers
+                    .filter(c =>
+                      c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
+                      c.phone.includes(customerPickerSearch)
+                    )
+                    .map(cust => (
+                      <div
+                        key={cust.id}
+                        onClick={() => {
+                          setAttachedCustomer(cust);
+                          setShowCustomerPicker(false);
+                          toast.success(`Customer "${cust.name}" attached to bill`);
+                        }}
+                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                      >
+                        <div>
+                          <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
+                          <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 justify-end">
+                            <Award className="w-3.5 h-3.5" />
+                            {cust.loyalty_points || 0} pts
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Credit Bill & Customer Selection Modal */}
       {showCreditModal && (
         <div
@@ -1437,7 +1681,184 @@ export default function POS() {
         </div>
       )}
 
+      {/* Customer Picker Modal (Loyalty & E-Bill) */}
+      {showCustomerPicker && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
+          onClick={() => setShowCustomerPicker(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">Attach Customer</h3>
+                  <p className="text-xs text-purple-200">Earn loyalty points & send WhatsApp bill</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCustomerPicker(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
+            <div className="p-5 space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search customer by name or phone..."
+                  value={customerPickerSearch}
+                  onChange={(e) => setCustomerPickerSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
+                {creditCustomers.filter(c =>
+                  c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
+                  c.phone.includes(customerPickerSearch)
+                ).length === 0 ? (
+                  <div className="p-6 text-center text-xs text-gray-400">
+                    No customers found matching search.
+                  </div>
+                ) : (
+                  creditCustomers
+                    .filter(c =>
+                      c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
+                      c.phone.includes(customerPickerSearch)
+                    )
+                    .map(cust => (
+                      <div
+                        key={cust.id}
+                        onClick={() => {
+                          setAttachedCustomer(cust);
+                          setShowCustomerPicker(false);
+                          toast.success(`Customer "${cust.name}" attached to bill`);
+                        }}
+                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                      >
+                        <div>
+                          <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
+                          <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 justify-end">
+                            <Award className="w-3.5 h-3.5" />
+                            {cust.loyalty_points || 0} pts
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp E-Bill Modal with Image Preview */}
+      {showWhatsAppModal && whatsAppReceiptData && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
+          onClick={() => setShowWhatsAppModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">WhatsApp E-Bill</h3>
+                  <p className="text-xs text-emerald-100">Send formatted text receipt via WhatsApp</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWhatsAppModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 block mb-1.5">
+                  Customer WhatsApp Phone Number *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 0771234567 or +94771234567"
+                  value={whatsAppPhone}
+                  onChange={(e) => setWhatsAppPhone(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base font-mono font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
+                />
+              </div>
+
+              {/* Message Text Preview */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    Receipt Message Preview (Text Only)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = buildWhatsAppReceiptText(whatsAppReceiptData);
+                      navigator.clipboard.writeText(text);
+                      toast.success('Receipt text copied to clipboard!');
+                    }}
+                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy Text
+                  </button>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-3.5 max-h-56 overflow-y-auto">
+                  <pre className="font-mono text-xs whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed select-all">
+                    {buildWhatsAppReceiptText(whatsAppReceiptData)}
+                  </pre>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="flex-1 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 text-sm cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendWhatsApp}
+                  disabled={!whatsAppPhone.trim()}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Send to WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Keyboard Shortcuts Help Overlay */}
       {showShortcuts && (

@@ -81,6 +81,10 @@ const ALLOWED_CHANNELS = new Set([
   'db:credit:deleteCustomer',
   'db:credit:getCustomerLedger',
   'db:credit:recordPayment',
+
+  // ── WhatsApp & E-Bill ─────────────────────────────────────────────────────
+  'whatsapp:openChat',
+  'whatsapp:saveBillImage',
 ]);
 
 /** Channels the main process is allowed to push to the renderer. */

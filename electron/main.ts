@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { executeCheckout, deleteSale, updateSale } from './checkout';
@@ -1233,7 +1233,7 @@ ipcMain.handle('db:credit:getCustomers', () => {
   try {
     const db = getDb();
     const data = db.prepare(`
-      SELECT id, name, phone, address, credit_limit, total_outstanding, notes, created_at
+      SELECT id, name, phone, address, credit_limit, total_outstanding, COALESCE(loyalty_points, 0) AS loyalty_points, notes, created_at
       FROM credit_customers
       ORDER BY name ASC
     `).all();
@@ -1248,7 +1248,7 @@ ipcMain.handle('db:credit:searchCustomers', (_e, { term }: { term: string }) => 
     const db = getDb();
     const like = `%${term}%`;
     const data = db.prepare(`
-      SELECT id, name, phone, address, credit_limit, total_outstanding, notes, created_at
+      SELECT id, name, phone, address, credit_limit, total_outstanding, COALESCE(loyalty_points, 0) AS loyalty_points, notes, created_at
       FROM credit_customers
       WHERE name LIKE ? OR phone LIKE ?
       ORDER BY name ASC
@@ -1332,6 +1332,40 @@ ipcMain.handle('db:credit:recordPayment', (_e, { customerId, amount, notes }: { 
       db.prepare('UPDATE credit_customers SET total_outstanding = ? WHERE id = ?').run(newOutstanding, customerId);
     })();
     return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// ─── WhatsApp & E-Bill IPC ───────────────────────────────────────────────────
+
+ipcMain.handle('whatsapp:openChat', async (_e, { phone, message }: { phone: string; message: string }) => {
+  try {
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '94' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('94') && cleanPhone.length === 9) {
+      cleanPhone = '94' + cleanPhone;
+    }
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('whatsapp:saveBillImage', async (_e, { base64Data, receiptNo }: { base64Data: string; receiptNo: string }) => {
+  try {
+    const fs = await import('fs');
+    const pathMod = await import('path');
+    const downloadsPath = app.getPath('downloads');
+    const fileName = `Bill_${receiptNo.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`;
+    const fullPath = pathMod.join(downloadsPath, fileName);
+    const data = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    fs.writeFileSync(fullPath, Buffer.from(data, 'base64'));
+    shell.showItemInFolder(fullPath);
+    return { success: true, filePath: fullPath };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

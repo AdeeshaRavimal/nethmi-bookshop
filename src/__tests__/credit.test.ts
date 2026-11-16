@@ -103,4 +103,39 @@ describe('Credit Customer & Billing System', () => {
     const customer = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
     expect(customer.total_outstanding).toBe(500);
   });
+
+  it('earns loyalty points on purchases and allows redeeming points', () => {
+    // 1. Create customer with 0 initial points
+    const custRes = db.prepare(`
+      INSERT INTO credit_customers (name, phone, loyalty_points)
+      VALUES (?, ?, 0)
+    `).run('Loyal Customer', '0779998877');
+    const customerId = Number(custRes.lastInsertRowid);
+
+    // 2. Buy Rs. 500 worth of items -> earns floor(500/100) = 5 points
+    const res1 = executeCheckout(db, {
+      requestId: 'req-loyalty-1',
+      paymentType: 'CASH',
+      customerId,
+      items: [{ id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 2, cost_price: 150, selling_price: 250 }],
+    });
+    expect(res1.totalAmount).toBe(500);
+
+    let customer = db.prepare('SELECT loyalty_points FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(customer.loyalty_points).toBe(5);
+
+    // 3. Buy 1 item (Rs. 250) and redeem 3 points -> Rs. 3 discount
+    const res2 = executeCheckout(db, {
+      requestId: 'req-loyalty-2',
+      paymentType: 'CASH',
+      customerId,
+      pointsToRedeem: 3,
+      items: [{ id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 1, cost_price: 150, selling_price: 250 }],
+    });
+    expect(res2.totalAmount).toBe(247); // 250 - 3 points discount
+
+    // Remaining points: 5 - 3 + floor(247/100) = 2 + 2 = 4 points
+    customer = db.prepare('SELECT loyalty_points FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(customer.loyalty_points).toBe(4);
+  });
 });

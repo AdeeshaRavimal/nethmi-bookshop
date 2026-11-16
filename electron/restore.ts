@@ -20,7 +20,7 @@ function validateBackup(candidate: Database.Database) {
   const hasVersion = candidate.prepare("SELECT name FROM sqlite_master WHERE name = 'schema_version'").get();
   if (hasVersion) {
     const row = candidate.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined;
-    if (row && row.version > 11) throw new Error('Backup requires a newer application version');
+    if (row && row.version > 12) throw new Error('Backup requires a newer application version');
   }
   if (candidate.pragma('foreign_key_check').length) throw new Error('Backup has invalid record references');
 }

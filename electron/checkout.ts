@@ -52,6 +52,7 @@ export function executeCheckout(db: Database.Database, params: {
   items: Array<{ id?: number; barcode: string; category?: string; title: string; quantity: number; cost_price: number; selling_price: number; discount_percent?: number; original_price?: number }>;
   billDiscount?: number;
   customerId?: number;
+  pointsToRedeem?: number;
 }) {
   if (typeof params.requestId !== 'string' || !params.requestId.trim() || params.requestId.length > 128) throw new Error('Missing checkout request ID');
   return db.transaction(() => {
@@ -66,9 +67,12 @@ export function executeCheckout(db: Database.Database, params: {
     }
     const totals = calculateCartTotals(params.items);
     const rawDiscount = Number(params.billDiscount);
-    const billDiscount = Number.isFinite(rawDiscount) && rawDiscount > 0
+    const rawRedeem = Number(params.pointsToRedeem);
+    const pointsRedeemed = Number.isInteger(rawRedeem) && rawRedeem > 0 ? rawRedeem : 0;
+    const initialBillDiscount = Number.isFinite(rawDiscount) && rawDiscount > 0
       ? Math.min(totals.totalAmount, Math.round(rawDiscount * 100) / 100)
       : 0;
+    const billDiscount = Math.min(totals.totalAmount, initialBillDiscount + pointsRedeemed);
 
     const now = new Date();
     const prefix = 'REC-' + localDateString(now).replaceAll('-', '') + '-';
@@ -121,8 +125,17 @@ export function executeCheckout(db: Database.Database, params: {
     const finalTotalAmount   = Math.max(0, Math.round((totalAmount - billDiscount) * 100) / 100);
     const finalGrossProfit   = Math.round((finalTotalAmount - totalCost) * 100) / 100;
 
-    const sale = db.prepare('INSERT INTO sales (receipt_no, total_amount, total_cost, gross_profit, payment_type, created_at, checkout_request_id, bill_discount, customer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(receiptNo, finalTotalAmount, totalCost, finalGrossProfit, params.paymentType, now.toISOString(), params.requestId, billDiscount, params.customerId ?? null);
+    let pointsEarned = 0;
+
+    if (params.customerId != null) {
+      // 1 point per Rs. 100 spent
+      pointsEarned = Math.floor(finalTotalAmount / 100);
+      db.prepare('UPDATE credit_customers SET loyalty_points = MAX(0, COALESCE(loyalty_points, 0) - ? + ?) WHERE id = ?')
+        .run(pointsRedeemed, pointsEarned, params.customerId);
+    }
+
+    const sale = db.prepare('INSERT INTO sales (receipt_no, total_amount, total_cost, gross_profit, payment_type, created_at, checkout_request_id, bill_discount, customer_id, points_earned, points_redeemed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(receiptNo, finalTotalAmount, totalCost, finalGrossProfit, params.paymentType, now.toISOString(), params.requestId, billDiscount, params.customerId ?? null, pointsEarned, pointsRedeemed);
     const saleId = Number(sale.lastInsertRowid);
 
     for (const { product, item, actualCost } of resolvedItems) {
