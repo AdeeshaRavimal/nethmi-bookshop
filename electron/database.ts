@@ -322,6 +322,15 @@ export function runMigrations(instance: Database.Database) {
   // ── Migration v15 → v16: Performance composite indexes ───────────────────────
   if (currentVersion < 16) {
     try {
+      const hasCreditPayments = instance.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='credit_payments'").get();
+      if (hasCreditPayments) {
+        const cols = (instance.prepare("PRAGMA table_info('credit_payments')").all() as Array<{ name: string }>).map(c => c.name);
+        if (!cols.includes('payment_date')) {
+          instance.exec('ALTER TABLE credit_payments ADD COLUMN payment_date TEXT;');
+          instance.exec("UPDATE credit_payments SET payment_date = SUBSTR(created_at, 1, 10) WHERE payment_date IS NULL;");
+        }
+      }
+
       instance.exec(`
         CREATE INDEX IF NOT EXISTS idx_sales_pay_created ON sales(payment_type, created_at);
         CREATE INDEX IF NOT EXISTS idx_sales_receipt ON sales(receipt_no);
@@ -348,6 +357,18 @@ export function runMigrations(instance: Database.Database) {
 export function initPragmasAndSchema(instance: Database.Database) {
   instance.pragma('journal_mode = WAL');
   instance.pragma('foreign_keys = ON');
+
+  // Guard: If credit_payments already exists from an earlier schema, ensure payment_date column exists
+  try {
+    const hasCreditPayments = instance.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='credit_payments'").get();
+    if (hasCreditPayments) {
+      const cols = (instance.prepare("PRAGMA table_info('credit_payments')").all() as Array<{ name: string }>).map(c => c.name);
+      if (!cols.includes('payment_date')) {
+        instance.exec('ALTER TABLE credit_payments ADD COLUMN payment_date TEXT;');
+        instance.exec("UPDATE credit_payments SET payment_date = SUBSTR(created_at, 1, 10) WHERE payment_date IS NULL;");
+      }
+    }
+  } catch {}
 
   // Base schema — every table uses IF NOT EXISTS so this is always safe.
   instance.exec(`
@@ -535,7 +556,6 @@ export function initPragmasAndSchema(instance: Database.Database) {
 
     CREATE INDEX IF NOT EXISTS idx_credit_payments_customer ON credit_payments(customer_id);
     CREATE INDEX IF NOT EXISTS idx_credit_payments_sale ON credit_payments(sale_id);
-    CREATE INDEX IF NOT EXISTS idx_credit_payments_date ON credit_payments(payment_date);
 
     CREATE TABLE IF NOT EXISTS cheques (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

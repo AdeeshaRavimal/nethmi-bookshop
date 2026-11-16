@@ -93,4 +93,40 @@ describe('Database Schema & Migration Engine', () => {
       memDb.prepare('INSERT INTO inventory (barcode, title, reorder_level) VALUES (?, ?, ?)').run('99999', 'Notebook', 10);
     }).not.toThrow();
   });
+
+  it('safely migrates a legacy v14 database with credit_payments missing payment_date during initPragmasAndSchema', () => {
+    // Simulate legacy v14 database: credit_payments has NO payment_date column
+    memDb.exec(`
+      CREATE TABLE schema_version (version INTEGER NOT NULL);
+      INSERT INTO schema_version (version) VALUES (14);
+
+      CREATE TABLE credit_customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        total_outstanding REAL DEFAULT 0,
+        credit_limit REAL DEFAULT 0,
+        notes TEXT DEFAULT ''
+      );
+
+      CREATE TABLE credit_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL REFERENCES credit_customers(id),
+        sale_id INTEGER,
+        amount REAL NOT NULL,
+        payment_type TEXT DEFAULT 'PAYMENT',
+        notes TEXT DEFAULT '',
+        created_at DATETIME DEFAULT '2026-11-15 10:30:00'
+      );
+    `);
+
+    // Must not throw "SqliteError: no such column: payment_date"
+    expect(() => initPragmasAndSchema(memDb)).not.toThrow();
+
+    const cols = (memDb.prepare("PRAGMA table_info('credit_payments')").all() as Array<{ name: string }>).map(c => c.name);
+    expect(cols).toContain('payment_date');
+
+    const versionRow = memDb.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number };
+    expect(versionRow.version).toBe(CURRENT_SCHEMA_VERSION);
+  });
 });
