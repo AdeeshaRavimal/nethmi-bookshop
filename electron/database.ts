@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 13;
+export const CURRENT_SCHEMA_VERSION = 14;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -263,6 +263,52 @@ export function runMigrations(instance: Database.Database) {
     currentVersion = 13;
   }
 
+  // ── Migration v13 → v14: Cheque Management & Sales Returns ───────────────────
+  if (currentVersion < 14) {
+    instance.exec(`
+      CREATE TABLE IF NOT EXISTS cheques (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cheque_number TEXT NOT NULL,
+        bank_name TEXT NOT NULL,
+        branch TEXT DEFAULT '',
+        amount REAL NOT NULL,
+        cheque_type TEXT NOT NULL DEFAULT 'ISSUED_TO_SUPPLIER',
+        payee_or_drawer TEXT NOT NULL,
+        supplier_id INTEGER REFERENCES suppliers(id),
+        customer_id INTEGER REFERENCES credit_customers(id),
+        issue_date DATE NOT NULL,
+        due_date DATE NOT NULL,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        cleared_date DATE,
+        notes TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_cheques_due_date ON cheques(due_date);
+      CREATE INDEX IF NOT EXISTS idx_cheques_status ON cheques(status);
+      CREATE INDEX IF NOT EXISTS idx_cheques_type ON cheques(cheque_type);
+
+      CREATE TABLE IF NOT EXISTS sales_returns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        return_no TEXT UNIQUE NOT NULL,
+        sale_id INTEGER REFERENCES sales(id),
+        receipt_no TEXT NOT NULL,
+        product_id INTEGER REFERENCES inventory(id),
+        barcode TEXT NOT NULL,
+        title TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        unit_price REAL NOT NULL,
+        refund_amount REAL NOT NULL,
+        refund_method TEXT NOT NULL DEFAULT 'CASH',
+        reason TEXT NOT NULL,
+        return_date DATE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_sales_returns_sale ON sales_returns(sale_id);
+      CREATE INDEX IF NOT EXISTS idx_sales_returns_date ON sales_returns(return_date);
+    `);
+    currentVersion = 14;
+  }
+
   // Persist the version so we don't re-run migrations next time.
   if (row === undefined) {
     instance.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
@@ -456,6 +502,46 @@ export function initPragmasAndSchema(instance: Database.Database) {
 
     CREATE INDEX IF NOT EXISTS idx_credit_payments_customer ON credit_payments(customer_id);
     CREATE INDEX IF NOT EXISTS idx_credit_payments_sale ON credit_payments(sale_id);
+
+    CREATE TABLE IF NOT EXISTS cheques (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cheque_number TEXT NOT NULL,
+      bank_name TEXT NOT NULL,
+      branch TEXT DEFAULT '',
+      amount REAL NOT NULL,
+      cheque_type TEXT NOT NULL DEFAULT 'ISSUED_TO_SUPPLIER',
+      payee_or_drawer TEXT NOT NULL,
+      supplier_id INTEGER REFERENCES suppliers(id),
+      customer_id INTEGER REFERENCES credit_customers(id),
+      issue_date DATE NOT NULL,
+      due_date DATE NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      cleared_date DATE,
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_cheques_due_date ON cheques(due_date);
+    CREATE INDEX IF NOT EXISTS idx_cheques_status ON cheques(status);
+    CREATE INDEX IF NOT EXISTS idx_cheques_type ON cheques(cheque_type);
+
+    CREATE TABLE IF NOT EXISTS sales_returns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_no TEXT UNIQUE NOT NULL,
+      sale_id INTEGER REFERENCES sales(id),
+      receipt_no TEXT NOT NULL,
+      product_id INTEGER REFERENCES inventory(id),
+      barcode TEXT NOT NULL,
+      title TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_price REAL NOT NULL,
+      refund_amount REAL NOT NULL,
+      refund_method TEXT NOT NULL DEFAULT 'CASH',
+      reason TEXT NOT NULL,
+      return_date DATE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_sales_returns_sale ON sales_returns(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_sales_returns_date ON sales_returns(return_date);
   `);
 
   // Run incremental migrations after the base schema is in place.
@@ -489,7 +575,7 @@ export function setSetting(key: string, value: string): void {
   }
 }
 
-export function cleanupOldBackups(folderPath: string, maxDays = 30) {
+export function cleanupOldBackups(folderPath: string, maxDays = 7) {
   try {
     if (!fs.existsSync(folderPath)) return;
     const now = Date.now();
@@ -530,7 +616,7 @@ export async function backupToFolder(folderPath: string): Promise<string> {
   const targetPath = path.join(folderPath, fileName);
 
   await backupDatabase(targetPath);
-  cleanupOldBackups(folderPath, 30);
+  cleanupOldBackups(folderPath, 7);
   setSetting('last_backup_time', d.toISOString());
   setSetting('last_backup_file', fileName);
   return targetPath;

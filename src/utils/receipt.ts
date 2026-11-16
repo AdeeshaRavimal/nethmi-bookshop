@@ -727,3 +727,155 @@ export function printGRNVoucher(data: { header: GRNHeader; items: GRNItem[] }): 
     if (iframe.parentNode) document.body.removeChild(iframe);
   }, 60000);
 }
+
+export interface ReturnReceiptData {
+  return_no: string;
+  receipt_no: string;
+  created_at: string;
+  refund_method: string;
+  reason: string;
+  total_refund: number;
+  items: Array<{
+    title: string;
+    quantity: number;
+    unit_price: number;
+    refund_amount: number;
+  }>;
+}
+
+/**
+ * Prints a 58mm Sales Return & Refund Voucher on thermal printer.
+ */
+export function printReturnReceipt(data: ReturnReceiptData): void {
+  const date = new Date(data.created_at).toLocaleString();
+
+  const rows = data.items.map(item => `
+    <tr>
+      <td colspan="2" class="desc">${escapeHtml(item.title)}</td>
+    </tr>
+    <tr>
+      <td class="qty">${item.quantity} x ${money(item.unit_price)}</td>
+      <td class="amount">${money(item.refund_amount)}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Return Voucher - ${escapeHtml(data.return_no)}</title>
+  <style>
+    @page { size: 58mm auto; margin: 0; }
+    body {
+      width: 58mm;
+      margin: 0;
+      padding: 6px 8px 16px 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.3;
+      color: #000;
+      box-sizing: border-box;
+    }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .shop-name { font-size: 14px; font-weight: bold; }
+    .header-tag {
+      display: inline-block;
+      margin: 4px 0;
+      padding: 2px 6px;
+      border: 1px dashed #000;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .divider {
+      border-top: 1px dashed #000;
+      margin: 6px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    .desc { padding-top: 3px; font-weight: 500; }
+    .qty { font-size: 11px; }
+    .amount { text-align: right; font-size: 12px; }
+    .total-row {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .footer {
+      text-align: center;
+      font-size: 10px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div class="shop-name">${escapeHtml(SHOP_NAME)}</div>
+    <div>${escapeHtml(SHOP_ADDRESS)}</div>
+    <div>Tel: ${escapeHtml(SHOP_PHONE)}</div>
+    <div class="divider"></div>
+    <div class="header-tag">SALES RETURN / VOUCHER</div>
+    <div><strong>Voucher:</strong> ${escapeHtml(data.return_no)}</div>
+    <div><strong>Original Bill:</strong> ${escapeHtml(data.receipt_no)}</div>
+    <div>${escapeHtml(date)}</div>
+    <div>Refund: <strong>${escapeHtml(data.refund_method)}</strong></div>
+    ${data.reason ? `<div>Reason: ${escapeHtml(data.reason)}</div>` : ''}
+  </div>
+
+  <div class="divider"></div>
+
+  <table>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <table>
+    <tr class="total-row">
+      <td>TOTAL REFUND:</td>
+      <td class="amount">${money(data.total_refund)}</td>
+    </tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="footer">
+    Items returned and restocked.<br>
+    Please keep this slip for reference.<br>
+    Thank you!
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 150);
+    };
+  </script>
+</body>
+</html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.contentWindow?.addEventListener('afterprint', () => {
+    document.body.removeChild(iframe);
+  });
+  setTimeout(() => {
+    if (iframe.parentNode) document.body.removeChild(iframe);
+  }, 60000);
+}

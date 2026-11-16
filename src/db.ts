@@ -224,6 +224,44 @@ export interface CreditLedgerEntry {
   sale_total?: number;
 }
 
+export interface Cheque {
+  id?: number;
+  cheque_number: string;
+  bank_name: string;
+  branch?: string;
+  amount: number;
+  cheque_type: 'ISSUED_TO_SUPPLIER' | 'RECEIVED_FROM_CUSTOMER';
+  payee_or_drawer: string;
+  supplier_id?: number | null;
+  supplier_name?: string;
+  customer_id?: number | null;
+  customer_name?: string;
+  issue_date: string;
+  due_date: string;
+  status: 'PENDING' | 'CLEARED' | 'BOUNCED' | 'CANCELLED';
+  cleared_date?: string | null;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface SalesReturn {
+  id?: number;
+  return_no: string;
+  sale_id?: number | null;
+  receipt_no: string;
+  product_id?: number | null;
+  barcode: string;
+  title: string;
+  quantity: number;
+  unit_price: number;
+  refund_amount: number;
+  refund_method: 'CASH' | 'CREDIT' | 'EXCHANGE';
+  reason: string;
+  return_date: string;
+  created_at?: string;
+  original_payment_type?: string;
+}
+
 // ─── IPC bridge type ───────────────────────────────────────────────────────────
 
 declare global {
@@ -570,5 +608,48 @@ export const db = {
       if (!window.ipcRenderer) return () => {};
       return window.ipcRenderer.on('updater:status', (_event, payload) => cb(payload));
     },
+  },
+
+  // ── Cheques & Due Alerts ──────────────────────────────────────────────────────
+  cheques: {
+    getAll: (filter?: { status?: string; cheque_type?: string }): Promise<{ success: boolean; data?: Cheque[]; error?: string }> =>
+      ipc('db:cheques:getAll', filter),
+
+    getDueAlerts: (): Promise<{ success: boolean; data?: Cheque[]; error?: string }> =>
+      ipc('db:cheques:getDueAlerts'),
+
+    create: (data: Omit<Cheque, 'id' | 'created_at'>): Promise<{ success: boolean; id?: number; error?: string }> =>
+      ipc('db:cheques:create', data),
+
+    updateStatus: (id: number, status: string, cleared_date?: string): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:cheques:updateStatus', { id, status, cleared_date }),
+
+    delete: (id: number): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:cheques:delete', { id }),
+  },
+
+  // ── Sales Returns & Refunds ───────────────────────────────────────────────────
+  returns: {
+    create: (payload: {
+      sale_id?: number;
+      receipt_no: string;
+      refund_method: 'CASH' | 'CREDIT' | 'EXCHANGE';
+      reason: string;
+      items: Array<{
+        product_id?: number;
+        barcode: string;
+        title: string;
+        quantity: number;
+        unit_price: number;
+        refund_amount?: number;
+      }>;
+    }): Promise<{ success: boolean; returnNo?: string; totalRefund?: number; error?: string }> =>
+      ipc('db:returns:create', payload),
+
+    getAll: (limit?: number): Promise<{ success: boolean; data?: SalesReturn[]; error?: string }> =>
+      ipc('db:returns:getAll', { limit }),
+
+    getByReceipt: (receiptNo: string): Promise<{ success: boolean; data?: SalesReturn[]; error?: string }> =>
+      ipc('db:returns:getByReceipt', { receiptNo }),
   },
 };

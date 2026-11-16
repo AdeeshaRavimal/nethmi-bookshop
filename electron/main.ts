@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import path from 'path';
+import os from 'os';
 import { executeCheckout, deleteSale, updateSale } from './checkout';
 import { reconcileStock } from './stock';
 import { localDayRange, localMonthRange, localDateString } from '../src/utils/dates';
@@ -63,8 +64,14 @@ app.on('window-all-closed', () => {
 app.on('before-quit', (event) => {
   if (isQuitting) return;
   if (backupPending || restorePending) { event.preventDefault(); return; }
-  const folderPath = getSetting('cloud_backup_folder', '');
-  if (!folderPath || getSetting('auto_backup_on_close', '1') !== '1') return;
+  if (getSetting('auto_backup_on_close', '1') !== '1') return;
+
+  const localDefaultFolder = path.join(
+    typeof app.getPath === 'function' ? app.getPath('userData') : os.tmpdir(),
+    'backups'
+  );
+  const folderPath = getSetting('cloud_backup_folder', '') || localDefaultFolder;
+
   event.preventDefault();
   backupPending = true;
   void backupToFolder(folderPath).then(() => {
@@ -922,7 +929,69 @@ ipcMain.handle('db:cashbook:getDayTransactions', (_e, { date }: { date?: string 
       };
     });
 
-    const combined = [...manualRows, ...posRows];
+    // 3. Automated supplier cash payments for this day
+    const supplierCashPayments = db.prepare(`
+      SELECT sp.id, sp.amount, sp.payment_date, sp.reference_no, sp.created_at, sp.notes, s.name AS supplier_name
+      FROM supplier_payments sp
+      LEFT JOIN suppliers s ON s.id = sp.supplier_id
+      WHERE sp.payment_method = 'CASH' AND sp.payment_date = ?
+      ORDER BY sp.created_at ASC
+    `).all(targetDate) as any[];
+
+    const supRows = supplierCashPayments.map(sp => {
+      let time = '';
+      try {
+        const d = new Date(sp.created_at);
+        time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch {
+        time = sp.created_at?.split('T')[1]?.substring(0, 8) || '';
+      }
+      return {
+        id: `sup-${sp.id}`,
+        entry_date: targetDate,
+        entry_time: time,
+        type: 'OUT',
+        category: 'SUPPLIER_PAYMENT',
+        amount: sp.amount,
+        description: `Supplier Cash Payment (${sp.supplier_name || 'Supplier'})`,
+        reference_no: sp.reference_no || sp.notes || '',
+        created_at: sp.created_at,
+        is_auto: 1,
+      };
+    });
+
+    // 4. Automated customer credit debt collections for this day
+    const custDebtCollections = db.prepare(`
+      SELECT cp.id, cp.amount, cp.notes, cp.created_at, c.name AS customer_name
+      FROM credit_payments cp
+      LEFT JOIN credit_customers c ON c.id = cp.customer_id
+      WHERE cp.payment_type = 'PAYMENT' AND cp.created_at >= ? AND cp.created_at < ?
+      ORDER BY cp.created_at ASC
+    `).all(startDay, endDay) as any[];
+
+    const custRows = custDebtCollections.map(cp => {
+      let time = '';
+      try {
+        const d = new Date(cp.created_at);
+        time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch {
+        time = cp.created_at?.split('T')[1]?.substring(0, 8) || '';
+      }
+      return {
+        id: `cust-${cp.id}`,
+        entry_date: targetDate,
+        entry_time: time,
+        type: 'IN',
+        category: 'CUSTOMER_PAYMENT',
+        amount: cp.amount,
+        description: `Customer Debt Collection (${cp.customer_name || 'Customer'})`,
+        reference_no: cp.notes || '',
+        created_at: cp.created_at,
+        is_auto: 1,
+      };
+    });
+
+    const combined = [...manualRows, ...posRows, ...supRows, ...custRows];
     combined.sort((a, b) => {
       const timeA = a.entry_time || '';
       const timeB = b.entry_time || '';
@@ -948,7 +1017,21 @@ ipcMain.handle('db:cashbook:getSummary', (_e, { date }: { date?: string } = {}) 
       WHERE payment_type = 'CASH' AND created_at >= ? AND created_at < ?
     `).get(startDay, endDay) as any;
 
-    // 2. Manual cash entries for this day
+    // 2. Supplier Cash Payments for this day
+    const supCashRow = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) AS total_supplier_cash
+      FROM supplier_payments
+      WHERE payment_method = 'CASH' AND payment_date = ?
+    `).get(targetDate) as any;
+
+    // 3. Customer Debt Collections for this day
+    const custCashRow = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) AS total_customer_cash
+      FROM credit_payments
+      WHERE payment_type = 'PAYMENT' AND created_at >= ? AND created_at < ?
+    `).get(startDay, endDay) as any;
+
+    // 4. Manual cash entries for this day
     const cashbookAgg = db.prepare(`
       SELECT
         COALESCE(SUM(CASE WHEN type = 'IN' THEN amount ELSE 0 END), 0) AS manual_cash_in,
@@ -957,11 +1040,23 @@ ipcMain.handle('db:cashbook:getSummary', (_e, { date }: { date?: string } = {}) 
       WHERE entry_date = ?
     `).get(targetDate) as any;
 
-    // 3. Opening balance (all cash before this day)
+    // 5. Opening balance (all cash before this day)
     const priorSales = db.prepare(`
       SELECT COALESCE(SUM(total_amount), 0) AS total
       FROM sales
       WHERE payment_type = 'CASH' AND created_at < ?
+    `).get(startDay) as any;
+
+    const priorSupplierCash = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM supplier_payments
+      WHERE payment_method = 'CASH' AND payment_date < ?
+    `).get(targetDate) as any;
+
+    const priorCustCash = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM credit_payments
+      WHERE payment_type = 'PAYMENT' AND created_at < ?
     `).get(startDay) as any;
 
     const priorCashbook = db.prepare(`
@@ -972,12 +1067,21 @@ ipcMain.handle('db:cashbook:getSummary', (_e, { date }: { date?: string } = {}) 
       WHERE entry_date < ?
     `).get(targetDate) as any;
 
-    const openingBalance = Math.round(((priorSales?.total || 0) + (priorCashbook?.net || 0)) * 100) / 100;
+    const openingBalance = Math.round((
+      (priorSales?.total || 0) +
+      (priorCustCash?.total || 0) +
+      (priorCashbook?.net || 0) -
+      (priorSupplierCash?.total || 0)
+    ) * 100) / 100;
+
     const posCashSales = Math.round((posSalesRow?.total_cash_sales || 0) * 100) / 100;
+    const customerCashIn = Math.round((custCashRow?.total_customer_cash || 0) * 100) / 100;
+    const supplierCashOut = Math.round((supCashRow?.total_supplier_cash || 0) * 100) / 100;
     const manualCashIn = Math.round((cashbookAgg?.manual_cash_in || 0) * 100) / 100;
     const manualCashOut = Math.round((cashbookAgg?.manual_cash_out || 0) * 100) / 100;
-    const totalCashIn = Math.round((posCashSales + manualCashIn) * 100) / 100;
-    const totalCashOut = manualCashOut;
+
+    const totalCashIn = Math.round((posCashSales + customerCashIn + manualCashIn) * 100) / 100;
+    const totalCashOut = Math.round((supplierCashOut + manualCashOut) * 100) / 100;
     const netCashFlow = Math.round((totalCashIn - totalCashOut) * 100) / 100;
     const closingBalance = Math.round((openingBalance + netCashFlow) * 100) / 100;
 
@@ -1626,3 +1730,257 @@ ipcMain.handle('execute-cloud-backup', async () => {
     return { success: false, error: err.message };
   }
 });
+
+// ── Cheque Management & Post-Dated Alerts ─────────────────────────────────────
+
+ipcMain.handle('db:cheques:getAll', (_e, filter?: { status?: string; cheque_type?: string }) => {
+  try {
+    const db = getDb();
+    let query = `
+      SELECT c.*,
+             s.name AS supplier_name,
+             cust.name AS customer_name
+      FROM cheques c
+      LEFT JOIN suppliers s ON s.id = c.supplier_id
+      LEFT JOIN credit_customers cust ON cust.id = c.customer_id
+    `;
+    const clauses: string[] = [];
+    const params: any[] = [];
+
+    if (filter?.status && filter.status !== 'ALL') {
+      clauses.push('c.status = ?');
+      params.push(filter.status);
+    }
+    if (filter?.cheque_type && filter.cheque_type !== 'ALL') {
+      clauses.push('c.cheque_type = ?');
+      params.push(filter.cheque_type);
+    }
+    if (clauses.length > 0) {
+      query += ` WHERE ${clauses.join(' AND ')}`;
+    }
+    query += ` ORDER BY c.due_date ASC, c.id DESC`;
+
+    const rows = db.prepare(query).all(...params);
+    return { success: true, data: rows };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:cheques:getDueAlerts', () => {
+  try {
+    const db = getDb();
+    const rows = db.prepare(`
+      SELECT c.*,
+             s.name AS supplier_name,
+             cust.name AS customer_name
+      FROM cheques c
+      LEFT JOIN suppliers s ON s.id = c.supplier_id
+      LEFT JOIN credit_customers cust ON cust.id = c.customer_id
+      WHERE c.status = 'PENDING' AND c.due_date <= date('now', '+7 days', 'localtime')
+      ORDER BY c.due_date ASC
+    `).all();
+    return { success: true, data: rows };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:cheques:create', (_e, data: any) => {
+  try {
+    const db = getDb();
+    if (!data.cheque_number?.trim()) throw new Error('Cheque number is required');
+    if (!data.bank_name?.trim()) throw new Error('Bank name is required');
+    const amount = parseFloat(data.amount);
+    if (isNaN(amount) || amount <= 0) throw new Error('Valid amount is required');
+    if (!data.due_date) throw new Error('Due date is required');
+
+    const info = db.prepare(`
+      INSERT INTO cheques (
+        cheque_number, bank_name, branch, amount, cheque_type,
+        payee_or_drawer, supplier_id, customer_id, issue_date,
+        due_date, status, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.cheque_number.trim(),
+      data.bank_name.trim(),
+      data.branch?.trim() || '',
+      amount,
+      data.cheque_type || 'ISSUED_TO_SUPPLIER',
+      data.payee_or_drawer?.trim() || '',
+      data.supplier_id || null,
+      data.customer_id || null,
+      data.issue_date || localDateString(),
+      data.due_date,
+      data.status || 'PENDING',
+      data.notes?.trim() || ''
+    );
+    return { success: true, id: Number(info.lastInsertRowid) };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:cheques:updateStatus', (_e, { id, status, cleared_date }: { id: number; status: string; cleared_date?: string }) => {
+  try {
+    const db = getDb();
+    if (!['PENDING', 'CLEARED', 'BOUNCED', 'CANCELLED'].includes(status)) {
+      throw new Error('Invalid status');
+    }
+    const finalClearedDate = status === 'CLEARED' ? (cleared_date || localDateString()) : null;
+    db.prepare('UPDATE cheques SET status = ?, cleared_date = ? WHERE id = ?').run(status, finalClearedDate, id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:cheques:delete', (_e, { id }: { id: number }) => {
+  try {
+    getDb().prepare('DELETE FROM cheques WHERE id = ?').run(id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// ── Sales Returns & Exchange System ───────────────────────────────────────────
+
+ipcMain.handle('db:returns:create', (_e, payload: {
+  sale_id?: number;
+  receipt_no: string;
+  refund_method: 'CASH' | 'CREDIT' | 'EXCHANGE';
+  reason: string;
+  items: Array<{
+    product_id?: number;
+    barcode: string;
+    title: string;
+    quantity: number;
+    unit_price: number;
+    refund_amount: number;
+  }>;
+}) => {
+  try {
+    const db = getDb();
+    if (!payload.receipt_no?.trim()) throw new Error('Receipt number is required');
+    if (!Array.isArray(payload.items) || payload.items.length === 0) {
+      throw new Error('At least one item must be returned');
+    }
+
+    const tx = db.transaction(() => {
+      let sale = payload.sale_id ? db.prepare('SELECT * FROM sales WHERE id = ?').get(payload.sale_id) as any : null;
+      if (!sale) {
+        sale = db.prepare('SELECT * FROM sales WHERE receipt_no = ?').get(payload.receipt_no.trim()) as any;
+      }
+      const saleId = sale?.id || null;
+      const today = localDateString();
+      const returnNo = `RET-${Date.now().toString().slice(-6)}`;
+      let totalRefund = 0;
+
+      for (const item of payload.items) {
+        if (!item.quantity || item.quantity <= 0) continue;
+        const refundAmt = Math.round((item.refund_amount ?? (item.unit_price * item.quantity)) * 100) / 100;
+        totalRefund += refundAmt;
+
+        db.prepare(`
+          INSERT INTO sales_returns (
+            return_no, sale_id, receipt_no, product_id, barcode,
+            title, quantity, unit_price, refund_amount, refund_method,
+            reason, return_date
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          returnNo,
+          saleId,
+          payload.receipt_no.trim(),
+          item.product_id || null,
+          item.barcode || '',
+          item.title,
+          item.quantity,
+          item.unit_price,
+          refundAmt,
+          payload.refund_method,
+          payload.reason?.trim() || 'Customer Return',
+          today
+        );
+
+        if (item.product_id) {
+          const prod = db.prepare('SELECT id, category, barcode, cost_price, selling_price FROM inventory WHERE id = ?').get(item.product_id) as any;
+          const isService = prod && (prod.category === 'SERVICE' || prod.barcode?.startsWith('SRV-'));
+          if (prod && !isService) {
+            db.prepare('UPDATE inventory SET quantity = quantity + ? WHERE id = ?').run(item.quantity, prod.id);
+            const batch = db.prepare('SELECT id FROM stock_batches WHERE product_id = ? AND selling_price = ? ORDER BY id DESC LIMIT 1')
+              .get(prod.id, item.unit_price) as { id: number } | undefined;
+            if (batch) {
+              db.prepare('UPDATE stock_batches SET remaining_qty = remaining_qty + ? WHERE id = ?').run(item.quantity, batch.id);
+            } else {
+              db.prepare("INSERT INTO stock_batches (product_id, received_date, initial_qty, remaining_qty, unit_cost, selling_price) VALUES (?, '0001-01-01', ?, ?, ?, ?)")
+                .run(prod.id, item.quantity, item.quantity, prod.cost_price, item.unit_price);
+            }
+            reconcileStock(db, prod.id);
+          }
+        }
+      }
+
+      if (payload.refund_method === 'CASH' && totalRefund > 0) {
+        const now = new Date();
+        const time = now.toTimeString().split(' ')[0];
+        db.prepare(`
+          INSERT INTO cashbook_entries (entry_date, entry_time, type, category, amount, description, reference_no)
+          VALUES (?, ?, 'OUT', 'SALES_RETURN', ?, ?, ?)
+        `).run(
+          today,
+          time,
+          totalRefund,
+          `POS Item Return (${payload.receipt_no})`,
+          returnNo
+        );
+      }
+
+      if (payload.refund_method === 'CREDIT' && saleId) {
+        const creditSale = db.prepare('SELECT customer_id FROM credit_payments WHERE sale_id = ? LIMIT 1').get(saleId) as any;
+        if (creditSale?.customer_id) {
+          db.prepare(`
+            INSERT INTO credit_payments (customer_id, sale_id, amount, payment_type, notes)
+            VALUES (?, ?, ?, 'ADJUSTMENT', ?)
+          `).run(creditSale.customer_id, saleId, totalRefund, `Return Voucher: ${returnNo}`);
+          db.prepare('UPDATE credit_customers SET total_outstanding = MAX(0, total_outstanding - ?) WHERE id = ?')
+            .run(totalRefund, creditSale.customer_id);
+        }
+      }
+
+      return { returnNo, totalRefund };
+    });
+
+    const result = tx();
+    return { success: true, ...result };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:returns:getAll', (_e, { limit = 100 }: { limit?: number } = {}) => {
+  try {
+    const rows = getDb().prepare(`
+      SELECT r.*, s.payment_type AS original_payment_type
+      FROM sales_returns r
+      LEFT JOIN sales s ON s.id = r.sale_id
+      ORDER BY r.created_at DESC, r.id DESC
+      LIMIT ?
+    `).all(limit);
+    return { success: true, data: rows };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:returns:getByReceipt', (_e, { receiptNo }: { receiptNo: string }) => {
+  try {
+    const rows = getDb().prepare(`
+      SELECT * FROM sales_returns WHERE receipt_no = ? ORDER BY id DESC
+    `).all(receiptNo);
+    return { success: true, data: rows };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+

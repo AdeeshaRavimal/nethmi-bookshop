@@ -88,6 +88,18 @@ const ALLOWED_CHANNELS = new Set([
   // ── WhatsApp & E-Bill ─────────────────────────────────────────────────────
   'whatsapp:openChat',
   'whatsapp:saveBillImage',
+
+  // ── Cheque Management & Alerts ───────────────────────────────────────────
+  'db:cheques:getAll',
+  'db:cheques:getDueAlerts',
+  'db:cheques:create',
+  'db:cheques:updateStatus',
+  'db:cheques:delete',
+
+  // ── Sales Returns & Refunds ──────────────────────────────────────────────
+  'db:returns:create',
+  'db:returns:getAll',
+  'db:returns:getByReceipt',
 ]);
 
 /** Channels the main process is allowed to push to the renderer. */

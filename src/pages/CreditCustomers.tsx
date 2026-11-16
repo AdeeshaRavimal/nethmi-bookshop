@@ -18,6 +18,7 @@ import {
   Receipt,
   UserCheck,
   Award,
+  MessageSquare,
 } from 'lucide-react';
 import { db } from '../db';
 import type { CreditCustomer, CreditLedgerEntry } from '../db';
@@ -83,6 +84,32 @@ export default function CreditCustomers() {
       toast.error(err.message || 'Failed to fetch customer transactions');
     } finally {
       setIsLoadingLedger(false);
+    }
+  };
+
+  const sendWhatsAppReminder = async (customer: CreditCustomer, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const cleanPhone = customer.phone?.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 9) {
+      toast.warning(`Please add a valid phone number for ${customer.name} first.`);
+      return;
+    }
+    if ((customer.total_outstanding || 0) <= 0) {
+      toast.info(`${customer.name} has no outstanding balance due.`);
+      return;
+    }
+
+    const today = new Date().toLocaleDateString('en-GB');
+    const dueAmt = Number(customer.total_outstanding || 0).toFixed(2);
+    const points = customer.loyalty_points || 0;
+
+    const msg = `*Hiru Bookshop & Communication*\nManiyangama, Avissawella (Tel: 070200042)\n----------------------------------------\n*STATEMENT OF OUTSTANDING BALANCE*\nDate: ${today}\nCustomer: ${customer.name}\n\nDear Customer,\nThis is a friendly reminder regarding your credit account balance with us:\n\n*TOTAL OUTSTANDING DUE: Rs. ${dueAmt}*\n${points > 0 ? `Loyalty Points: ${points} pts\n` : ''}----------------------------------------\nPlease arrange settlement at your earliest convenience.\n\nThank you for shopping with us!\nHiru Bookshop & Communication`;
+
+    try {
+      await db.whatsapp.openChat(cleanPhone, msg);
+      toast.success(`WhatsApp reminder opened for ${customer.name}!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to open WhatsApp');
     }
   };
 
@@ -315,13 +342,24 @@ export default function CreditCustomers() {
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block">Balance Due</span>
-                    <span className={`text-base font-black ${
-                      hasDue ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                    }`}>
-                      Rs. {(cust.total_outstanding || 0).toFixed(2)}
-                    </span>
+                  <div className="text-right shrink-0 flex items-center gap-2.5">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Balance Due</span>
+                      <span className={`text-base font-black ${
+                        hasDue ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        Rs. {(cust.total_outstanding || 0).toFixed(2)}
+                      </span>
+                    </div>
+                    {hasDue && cust.phone && (
+                      <button
+                        onClick={(e) => sendWhatsAppReminder(cust, e)}
+                        className="p-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
+                        title="Send 1-Click WhatsApp Debt Reminder"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -402,14 +440,26 @@ export default function CreditCustomers() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                disabled={(selectedCustomer.total_outstanding || 0) <= 0}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-sm font-bold shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
-              >
-                <DollarSign className="w-4 h-4" />
-                Settle / Pay
-              </button>
+              <div className="flex items-center gap-2">
+                {(selectedCustomer.total_outstanding || 0) > 0 && selectedCustomer.phone && (
+                  <button
+                    onClick={() => sendWhatsAppReminder(selectedCustomer)}
+                    className="flex items-center gap-1.5 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    title="Send WhatsApp Debt Reminder"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    WhatsApp
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  disabled={(selectedCustomer.total_outstanding || 0) <= 0}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-sm font-bold shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Settle / Pay
+                </button>
+              </div>
             </div>
           </div>
 

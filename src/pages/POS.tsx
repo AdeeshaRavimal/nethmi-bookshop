@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
 import type { CreditCustomer } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy, RotateCcw, Undo2 } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
-import { printReceipt, buildWhatsAppReceiptText } from '../utils/receipt';
+import { printReceipt, buildWhatsAppReceiptText, printReturnReceipt, type ReturnReceiptData } from '../utils/receipt';
 import type { ReceiptData } from '../utils/receipt';
 
 import { addCartItem, type CartItem } from '../utils/cart';
@@ -76,6 +76,161 @@ export default function POS() {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppPhone, setWhatsAppPhone] = useState('');
   const [whatsAppReceiptData, setWhatsAppReceiptData] = useState<ReceiptData | null>(null);
+
+  // Item Return & Exchange Modal state
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnReceiptSearch, setReturnReceiptSearch] = useState('');
+  const [searchingReturnSale, setSearchingReturnSale] = useState(false);
+  const [returnSale, setReturnSale] = useState<any | null>(null);
+  const [returnItems, setReturnItems] = useState<Array<{
+    sale_item_id: number;
+    product_id?: number;
+    barcode: string;
+    title: string;
+    sold_qty: number;
+    already_returned_qty: number;
+    max_return_qty: number;
+    return_qty: number;
+    unit_price: number;
+    refund_amount: number;
+  }>>([]);
+  const [returnRefundMethod, setReturnRefundMethod] = useState<'CASH' | 'EXCHANGE' | 'CREDIT'>('CASH');
+  const [returnReason, setReturnReason] = useState('Customer Return');
+  const [isProcessingReturn, setIsProcessingReturn] = useState(false);
+  const [lastProcessedReturn, setLastProcessedReturn] = useState<ReturnReceiptData | null>(null);
+
+  const handleSearchReturnReceipt = async (explicitTerm?: string) => {
+    const term = (explicitTerm ?? returnReceiptSearch).trim();
+    if (!term) {
+      toast.error('Please enter a receipt number');
+      return;
+    }
+    setSearchingReturnSale(true);
+    try {
+      const salesRes = await db.sales.search(term, 10, 0);
+      const matches = salesRes.data ?? [];
+      const exact = matches.find((s: any) => s.receipt_no.toLowerCase() === term.toLowerCase()) || matches[0];
+      if (!exact) {
+        toast.error(`No sale found matching "${term}"`);
+        setReturnSale(null);
+        setReturnItems([]);
+        return;
+      }
+
+      const [itemsRes, prevReturnsRes] = await Promise.all([
+        db.saleItems.getBySale(exact.id),
+        db.returns.getByReceipt(exact.receipt_no),
+      ]);
+
+      const prevReturns = prevReturnsRes.data ?? [];
+      const returnedCounts: Record<string, number> = {};
+      prevReturns.forEach((r: any) => {
+        const key = `${r.product_id || 0}_${r.barcode}`;
+        returnedCounts[key] = (returnedCounts[key] || 0) + (r.quantity || 0);
+      });
+
+      const loadedItems = (itemsRes.data ?? []).map((item: any) => {
+        const key = `${item.product_id || 0}_${item.barcode || ''}`;
+        const prevReturned = returnedCounts[key] || 0;
+        const maxReturn = Math.max(0, item.quantity - prevReturned);
+        return {
+          sale_item_id: item.id,
+          product_id: item.product_id,
+          barcode: item.barcode || '',
+          title: item.title || 'Item',
+          sold_qty: item.quantity,
+          already_returned_qty: prevReturned,
+          max_return_qty: maxReturn,
+          return_qty: 0,
+          unit_price: item.unit_price,
+          refund_amount: 0,
+        };
+      });
+
+      setReturnSale(exact);
+      setReturnItems(loadedItems);
+      if (exact.payment_type === 'CREDIT') {
+        setReturnRefundMethod('CREDIT');
+      } else {
+        setReturnRefundMethod('CASH');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to search receipt');
+    } finally {
+      setSearchingReturnSale(false);
+    }
+  };
+
+  const handleReturnQtyChange = (idx: number, qtyStr: string) => {
+    setReturnItems(prev => {
+      const next = [...prev];
+      const target = { ...next[idx] };
+      const parsed = parseInt(qtyStr, 10);
+      const val = isNaN(parsed) ? 0 : Math.max(0, Math.min(target.max_return_qty, parsed));
+      target.return_qty = val;
+      target.refund_amount = Math.round((val * target.unit_price) * 100) / 100;
+      next[idx] = target;
+      return next;
+    });
+  };
+
+  const handleExecuteReturn = async () => {
+    if (!returnSale) return;
+    const itemsToReturn = returnItems.filter(i => i.return_qty > 0);
+    if (itemsToReturn.length === 0) {
+      toast.error('Please specify return quantity for at least one item.');
+      return;
+    }
+
+    setIsProcessingReturn(true);
+    try {
+      const res = await db.returns.create({
+        sale_id: returnSale.id,
+        receipt_no: returnSale.receipt_no,
+        refund_method: returnRefundMethod,
+        reason: returnReason.trim() || 'Customer Return',
+        items: itemsToReturn.map(i => ({
+          product_id: i.product_id,
+          barcode: i.barcode,
+          title: i.title,
+          quantity: i.return_qty,
+          unit_price: i.unit_price,
+          refund_amount: i.refund_amount,
+        })),
+      });
+
+      if (!res.success) throw new Error(res.error || 'Failed to process return');
+
+      const totalRefund = itemsToReturn.reduce((sum, i) => sum + i.refund_amount, 0);
+      const voucherData: ReturnReceiptData = {
+        return_no: res.returnNo || `RET-${Date.now().toString().slice(-6)}`,
+        receipt_no: returnSale.receipt_no,
+        created_at: new Date().toISOString(),
+        refund_method: returnRefundMethod,
+        reason: returnReason.trim() || 'Customer Return',
+        total_refund: totalRefund,
+        items: itemsToReturn.map(i => ({
+          title: i.title,
+          quantity: i.return_qty,
+          unit_price: i.unit_price,
+          refund_amount: i.refund_amount,
+        })),
+      };
+
+      setLastProcessedReturn(voucherData);
+      toast.success(`Return voucher ${voucherData.return_no} processed! Restocked items to shelves.`, 'Return Completed');
+
+      if (returnRefundMethod === 'EXCHANGE') {
+        toast.info(`Rs. ${totalRefund.toFixed(2)} exchange credit recorded for customer.`);
+      }
+
+      await handleSearchReturnReceipt();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to process return');
+    } finally {
+      setIsProcessingReturn(false);
+    }
+  };
 
   // Live Clock state
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -1068,6 +1223,22 @@ export default function POS() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
+            </button>
+
+            {/* POS Item Return & Exchange Button */}
+            <button
+              onClick={() => {
+                setShowReturnModal(true);
+                setLastProcessedReturn(null);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all cursor-pointer shadow-xs"
+              title="Return or Exchange Items by Receipt"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <div className="text-left leading-tight">
+                <span className="block font-bold">Return</span>
+                <span className="block text-[10px] text-rose-500/80">Exchange</span>
+              </div>
             </button>
 
             {/* Live POS Clock & Date */}
@@ -2213,6 +2384,267 @@ export default function POS() {
                   <span>Send to WhatsApp</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Item Return & Exchange System Modal */}
+      {showReturnModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setShowReturnModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-rose-600 to-rose-700 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <RotateCcw className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">POS Item Return & Exchange</h3>
+                  <p className="text-xs text-rose-100">Restock returned goods, issue cash refunds, or exchange items</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowReturnModal(false)}
+                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Receipt Search Bar */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  Lookup by Receipt / Invoice Number *
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="e.g. REC-20261116-001 or scan receipt barcode..."
+                      value={returnReceiptSearch}
+                      onChange={(e) => setReturnReceiptSearch(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSearchReturnReceipt();
+                        }
+                      }}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSearchReturnReceipt()}
+                    disabled={searchingReturnSale}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    {searchingReturnSale ? 'Searching...' : 'Find Sale'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Receipt Details & Items */}
+              {returnSale && (
+                <div className="space-y-4">
+                  {/* Sale Summary Banner */}
+                  <div className="bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div>
+                      <span className="font-mono font-bold text-sm text-gray-900 dark:text-gray-100 block">
+                        Receipt: {returnSale.receipt_no}
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Date: {new Date(returnSale.created_at).toLocaleString()} • Original Payment: <strong>{returnSale.payment_type}</strong>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Original Sale Total</span>
+                      <span className="text-base font-black text-gray-900 dark:text-gray-100">
+                        Rs. {Number(returnSale.total_amount).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Return Items Selection Table */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+                      Select Items to Return & Quantity
+                    </h4>
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-gray-50 dark:bg-gray-750 text-gray-500 dark:text-gray-400 uppercase font-bold border-b border-gray-200 dark:border-gray-700">
+                          <tr>
+                            <th className="py-2.5 px-3">Item</th>
+                            <th className="py-2.5 px-2 text-center">Sold Qty</th>
+                            <th className="py-2.5 px-2 text-center">Prev. Returned</th>
+                            <th className="py-2.5 px-3 text-center">Return Qty</th>
+                            <th className="py-2.5 px-3 text-right">Refund Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-750">
+                          {returnItems.map((item, idx) => {
+                            const isFullyReturned = item.max_return_qty <= 0;
+                            return (
+                              <tr key={idx} className={isFullyReturned ? 'bg-gray-50/50 dark:bg-gray-800/50 opacity-60' : 'hover:bg-rose-50/30'}>
+                                <td className="py-2.5 px-3">
+                                  <span className="font-bold text-gray-900 dark:text-gray-100 block">
+                                    {item.title}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {item.barcode || 'N/A'} • Rs. {Number(item.unit_price).toFixed(2)}/ea
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-2 text-center font-bold text-gray-700 dark:text-gray-300">
+                                  {item.sold_qty}
+                                </td>
+                                <td className="py-2.5 px-2 text-center font-bold text-amber-600 dark:text-amber-400">
+                                  {item.already_returned_qty}
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  {isFullyReturned ? (
+                                    <span className="text-[10px] font-bold text-gray-400">Returned</span>
+                                  ) : (
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={item.max_return_qty}
+                                      value={item.return_qty}
+                                      onChange={(e) => handleReturnQtyChange(idx, e.target.value)}
+                                      className="w-16 px-2 py-1 text-center font-bold text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    />
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-black text-rose-600 dark:text-rose-400 text-sm">
+                                  Rs. {item.refund_amount.toFixed(2)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Return Reason & Method */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                        Return Reason *
+                      </label>
+                      <input
+                        type="text"
+                        value={returnReason}
+                        onChange={(e) => setReturnReason(e.target.value)}
+                        placeholder="e.g. Defective, Wrong Book, Customer Exchange"
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      />
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {['Defective', 'Wrong Item', 'Exchange', 'Changed Mind'].map(r => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => setReturnReason(r)}
+                            className="px-2 py-0.5 rounded text-[10px] bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-600 dark:text-gray-300 cursor-pointer"
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                        Refund / Settlement Method *
+                      </label>
+                      <select
+                        value={returnRefundMethod}
+                        onChange={(e) => setReturnRefundMethod(e.target.value as any)}
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      >
+                        <option value="CASH">Cash Refund (Drawer Outflow)</option>
+                        <option value="EXCHANGE">POS Exchange (Restock & Issue Credit)</option>
+                        <option value="CREDIT">Customer Debt Reduction (Credit)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Refund Summary Banner */}
+                  <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 block">
+                        Total Items Returning: <strong>{returnItems.reduce((sum, i) => sum + i.return_qty, 0)} units</strong>
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        Items will immediately be restored to stock batches.
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Total Refund Due</span>
+                      <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                        Rs. {returnItems.reduce((sum, i) => sum + i.refund_amount, 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Last Processed Return Voucher Banner */}
+              {lastProcessedReturn && (
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 rounded-2xl p-4 flex items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-600 text-white rounded-xl">
+                      <Check className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-emerald-900 dark:text-emerald-200 text-sm block">
+                        Return {lastProcessedReturn.return_no} Processed Successfully!
+                      </span>
+                      <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                        Refund: <strong>Rs. {lastProcessedReturn.total_refund.toFixed(2)}</strong> ({lastProcessedReturn.refund_method})
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => printReturnReceipt(lastProcessedReturn)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    Print Voucher
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowReturnModal(false)}
+                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              {returnSale && (
+                <button
+                  type="button"
+                  onClick={handleExecuteReturn}
+                  disabled={isProcessingReturn || returnItems.reduce((sum, i) => sum + i.return_qty, 0) === 0}
+                  className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>{isProcessingReturn ? 'Processing...' : 'Confirm Return & Restock'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
