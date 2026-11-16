@@ -161,7 +161,7 @@ export default function Reports() {
   const paymentBreakdown = data?.paymentBreakdown || [];
 
   return (
-    <div className="p-6 lg:p-8 h-full flex flex-col overflow-y-auto space-y-4">
+    <div className="p-6 lg:p-8 h-full flex flex-col overflow-y-auto space-y-4 print:p-0 print:space-y-3 print:h-auto print:overflow-visible print:bg-white">
       {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap justify-between items-center gap-4 print:hidden">
         <div>
@@ -247,14 +247,47 @@ export default function Reports() {
       </div>
 
       {/* ── Printable Header ────────────────────────────────────────────────────── */}
-      <div className="hidden print:block mb-6 p-4 border-b border-slate-300 bg-white text-black">
-        <h1 className="text-xl font-bold">HIRU BOOKSHOP & COMMUNICATION</h1>
-        <p className="text-xs text-slate-600">Sales & Revenue Breakdown by Category & Product</p>
-        <div className="flex justify-between items-center text-[10px] text-slate-500 mt-2">
-          <span>Date Range: {startDate} to {endDate}</span>
-          <span>Category Filter: {selectedCategory}</span>
-          <span>Printed: {new Date().toLocaleString('en-LK')}</span>
+      <div className="hidden print:block mb-4 p-4 border-b-2 border-slate-800 bg-white text-slate-900">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">HIRU BOOKSHOP & COMMUNICATION</h1>
+            <p className="text-xs text-slate-600 font-medium">Sales Revenue & Product Performance Audit Statement</p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Date Period: <strong className="text-slate-900">{startDate} to {endDate}</strong> &bull; Category: <strong className="text-slate-900">{selectedCategory}</strong> &bull; Payment Mode: <strong className="text-slate-900">{selectedPaymentType}</strong> &bull; Items Ranked: {items.length}
+            </p>
+          </div>
+          <div className="text-right text-xs text-slate-600">
+            <p className="font-mono font-bold text-slate-900">SALES AUDIT</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Printed: {new Date().toLocaleString('en-LK')}</p>
+          </div>
         </div>
+      </div>
+
+      {/* ── Compact Executive Print Summary Strip (Replaces bulky cards in print) ── */}
+      <div className="hidden print:block mb-4 border border-slate-300 rounded overflow-hidden">
+        <div className="grid grid-cols-4 divide-x divide-slate-300 bg-slate-100 text-[10px] font-bold text-slate-700 py-1.5 px-3 uppercase tracking-wider text-center">
+          <div>Gross Sales Revenue</div>
+          <div>Wholesale COGS</div>
+          <div>Net Gross Profit</div>
+          <div>Sales Volume</div>
+        </div>
+        <div className="grid grid-cols-4 divide-x divide-slate-300 font-mono font-bold py-1.5 px-3 text-xs bg-white text-center">
+          <div className="text-slate-900 font-extrabold">{fmtRs(summary.totalRevenue)}</div>
+          <div className="text-slate-700">{fmtRs(summary.totalCost)}</div>
+          <div className="text-emerald-700">+{fmtRs(summary.grossProfit)} ({summary.profitMargin.toFixed(1)}%)</div>
+          <div className="text-slate-800">{summary.totalItemsSold} pcs ({summary.transactionCount} bills)</div>
+        </div>
+
+        {categoryBreakdown.length > 0 && (
+          <div className="bg-slate-50 border-t border-slate-300 px-3 py-1 flex items-center justify-between text-[10px] text-slate-700">
+            <span className="font-bold uppercase tracking-wider text-slate-500">Revenue Contribution:</span>
+            {categoryBreakdown.map((cat) => (
+              <span key={cat.category} className="font-mono">
+                <strong className="font-sans font-medium text-slate-900">{cat.category}:</strong> {cat.percentage.toFixed(1)}% ({fmtRs(cat.revenue)})
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Filter Options Bar ──────────────────────────────────────────────────── */}
@@ -344,8 +377,8 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* ── 4 Primary Metric Cards ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* ── 4 Primary Metric Cards (Screen Only - Hidden in Print) ─────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">
         {/* Card 1: Gross Sales Revenue */}
         <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs relative overflow-hidden">
           <div className="flex justify-between items-start">
@@ -420,8 +453,8 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* ── Category Breakdown Section ─────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+      {/* ── Category Breakdown Section (Screen Only - Hidden in Print) ──────────── */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6 print:hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <PieChart className="w-5 h-5 text-slate-700 dark:text-slate-300" />
@@ -527,15 +560,15 @@ export default function Reports() {
       </div>
 
       {/* ── Item-Wise Revenue & Performance Table ─────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col flex-1">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col flex-1 print:border-slate-300 print:shadow-none print:overflow-visible">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2 print:py-2 print:px-3 print:bg-slate-50">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+            <Layers className="w-4 h-4 text-slate-700 dark:text-slate-300 print:hidden" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white print:text-xs print:font-extrabold print:text-slate-900">
               Item & Service Sales Performance Ranking
             </h3>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold">
-              {items.length} items
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold print:text-[10px] print:bg-transparent print:p-0">
+              ({items.length} items ranked by revenue)
             </span>
           </div>
 
@@ -544,21 +577,21 @@ export default function Reports() {
           </div>
         </div>
 
-        <div className="overflow-x-auto flex-1">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-900/60 sticky top-0 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <div className="overflow-x-auto flex-1 print:overflow-visible">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm print:text-xs">
+            <thead className="bg-gray-50 dark:bg-gray-900/60 sticky top-0 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider print:bg-slate-100 print:text-slate-900 print:table-header-group">
               <tr>
-                <th className="py-3 px-4 text-center w-12">#</th>
-                <th className="py-3 px-4 text-left">Product / Service</th>
-                <th className="py-3 px-4 text-left">Category</th>
-                <th className="py-3 px-4 text-right">Quantity Sold</th>
-                <th className="py-3 px-4 text-right">Avg Price</th>
-                <th className="py-3 px-4 text-right">Total Revenue</th>
-                <th className="py-3 px-4 text-right">Wholesale Cost</th>
-                <th className="py-3 px-4 text-right">Gross Profit</th>
+                <th className="py-3 px-4 text-center w-12 print:py-1.5 print:px-1 print:text-[10px]">#</th>
+                <th className="py-3 px-4 text-left print:py-1.5 print:px-2 print:text-[10px]">Product / Service</th>
+                <th className="py-3 px-4 text-left print:py-1.5 print:px-2 print:text-[10px]">Category</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Quantity</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Avg Price</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Total Revenue</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">COGS Cost</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Gross Profit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60 print:divide-slate-200">
               {loading ? (
                 [0, 1, 2, 3, 4].map((r) => (
                   <tr key={r}>
@@ -590,41 +623,41 @@ export default function Reports() {
                   return (
                     <tr
                       key={`${item.productId}-${item.barcode}-${index}`}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors print:break-inside-avoid print:hover:bg-transparent"
                     >
-                      <td className="py-3 px-4 text-center font-bold text-xs text-gray-400">
+                      <td className="py-3 px-4 text-center font-bold text-xs text-gray-400 print:py-1.5 print:px-1 print:text-[10px] print:text-slate-500">
                         {index + 1}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-gray-900 dark:text-gray-100">
+                      <td className="py-3 px-4 print:py-1.5 print:px-2">
+                        <div className="font-bold text-gray-900 dark:text-gray-100 print:text-xs print:text-slate-900">
                           {item.title}
                         </div>
                         {item.barcode && (
-                          <div className="text-xs font-mono text-gray-400">
+                          <div className="text-xs font-mono text-gray-400 print:text-[10px] print:text-slate-500">
                             {item.barcode}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-bold ${color.badge}`}>
+                      <td className="py-3 px-4 whitespace-nowrap print:py-1.5 print:px-2">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-bold print:p-0 print:border-0 print:bg-transparent print:text-slate-800 print:font-semibold ${color.badge}`}>
                           {item.category}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-gray-100">
+                      <td className="py-3 px-4 text-right font-bold font-mono text-gray-900 dark:text-gray-100 print:py-1.5 print:px-2 print:text-slate-900">
                         {item.quantitySold}
                       </td>
-                      <td className="py-3 px-4 text-right text-xs text-gray-600 dark:text-gray-300">
+                      <td className="py-3 px-4 text-right text-xs font-mono text-gray-600 dark:text-gray-300 print:py-1.5 print:px-2 print:text-slate-700">
                         Rs. {item.avgPrice.toFixed(2)}
                       </td>
-                      <td className="py-3 px-4 text-right font-extrabold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-extrabold font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
                         {fmtRs(item.totalRevenue)}
                       </td>
-                      <td className="py-3 px-4 text-right text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600">
                         {fmtRs(item.totalCost)}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-emerald-800 font-mono">
                         <div>+{fmtRs(item.profit)}</div>
-                        <div className="text-[10px] text-emerald-700 dark:text-emerald-500 font-semibold">
+                        <div className="text-[10px] text-emerald-700 dark:text-emerald-500 font-semibold print:text-[9px]">
                           ({marginPct}% margin)
                         </div>
                       </td>
@@ -634,28 +667,44 @@ export default function Reports() {
               )}
             </tbody>
             {items.length > 0 && (
-              <tfoot className="bg-gray-50 dark:bg-gray-900/80 font-bold border-t-2 border-gray-200 dark:border-gray-700 text-sm">
+              <tfoot className="bg-gray-50 dark:bg-gray-900/80 font-bold border-t-2 border-gray-200 dark:border-gray-700 text-sm print:bg-slate-100 print:text-slate-900 print:table-footer-group">
                 <tr>
-                  <td colSpan={3} className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                  <td colSpan={3} className="py-3 px-4 text-right text-gray-700 dark:text-gray-300 print:py-2 print:px-2 print:text-slate-800">
                     Grand Total:
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-900 dark:text-white">
+                  <td className="py-3 px-4 text-right text-gray-900 dark:text-white print:text-slate-900 font-mono print:py-2 print:px-2">
                     {summary.totalItemsSold}
                   </td>
                   <td></td>
-                  <td className="py-3 px-4 text-right text-slate-900 dark:text-slate-100 font-mono font-bold">
+                  <td className="py-3 px-4 text-right text-slate-900 dark:text-slate-100 font-mono font-bold print:py-2 print:px-2">
                     {fmtRs(summary.totalRevenue)}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">
+                  <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400 font-mono print:text-slate-700 print:py-2 print:px-2">
                     {fmtRs(summary.totalCost)}
                   </td>
-                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-black">
+                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-black font-mono print:text-emerald-800 print:py-2 print:px-2">
                     +{fmtRs(summary.grossProfit)}
                   </td>
                 </tr>
               </tfoot>
             )}
           </table>
+        </div>
+      </div>
+
+      {/* ── Official Management Sign-off Slip (Print Only - Page break safe) ─────── */}
+      <div className="hidden print:grid grid-cols-3 gap-8 pt-8 text-xs text-slate-800 print-avoid-break">
+        <div className="border-t border-slate-400 pt-2 text-center">
+          <p className="font-bold text-slate-900">Prepared By (Cashier / Staff)</p>
+          <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
+        </div>
+        <div className="border-t border-slate-400 pt-2 text-center">
+          <p className="font-bold text-slate-900">Sales & Inventory Reconciled</p>
+          <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
+        </div>
+        <div className="border-t border-slate-400 pt-2 text-center">
+          <p className="font-bold text-slate-900">Approved By (Store Owner)</p>
+          <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
         </div>
       </div>
     </div>

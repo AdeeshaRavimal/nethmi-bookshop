@@ -223,8 +223,24 @@ export default function Bills() {
     });
   }, [grnList, statusFilter, supplierFilter, search, next7DaysStr]);
 
+  const selectedSupplierName = supplierFilter === 'ALL'
+    ? 'All Suppliers & Distributors'
+    : (suppliers.find(s => String(s.id) === supplierFilter)?.name || 'Selected Supplier');
+
+  const selectedStatusName = statusFilter === 'ALL'
+    ? 'All Invoices'
+    : statusFilter === 'PENDING'
+      ? 'Pending (Unpaid) Only'
+      : statusFilter === 'OVERDUE'
+        ? 'Overdue Invoices Only'
+        : statusFilter === 'DUE_SOON'
+          ? 'Due in Next 7 Days'
+          : 'Settled (Paid) Only';
+
+  const filteredTotal = filteredGrns.reduce((s, g) => s + g.total_amount, 0);
+
   return (
-    <div className="p-6 lg:p-8 h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950 space-y-4">
+    <div className="p-6 lg:p-8 h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950 space-y-4 print:p-0 print:space-y-3 print:overflow-visible print:bg-white">
       {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap justify-between items-center gap-4 print:hidden">
         <div>
@@ -268,13 +284,39 @@ export default function Bills() {
       </div>
 
       {/* ── Printable Header ────────────────────────────────────────────────────── */}
-      <div className="hidden print:block mb-4 p-4 border-b border-slate-300">
-        <h1 className="text-xl font-bold">HIRU BOOKSHOP & COMMUNICATION</h1>
-        <p className="text-xs text-slate-600">Distributor Credit GRN Invoices & Payables Statement</p>
-        <p className="text-[10px] text-slate-500 mt-1">Generated: {new Date().toLocaleString('en-LK')}</p>
+      <div className="hidden print:block mb-4 p-4 border-b-2 border-slate-800 bg-white text-slate-900">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">HIRU BOOKSHOP & COMMUNICATION</h1>
+            <p className="text-xs text-slate-600 font-medium">Distributor Credit GRN Invoices & Supplier Payables Statement</p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Supplier: <strong className="text-slate-900">{selectedSupplierName}</strong> &bull; Status Filter: <strong className="text-slate-900">{selectedStatusName}</strong> &bull; Showing {filteredGrns.length} invoice(s)
+            </p>
+          </div>
+          <div className="text-right text-xs text-slate-600">
+            <p className="font-mono font-bold text-slate-900">ACCOUNTS PAYABLE</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Printed: {new Date().toLocaleString('en-LK')}</p>
+          </div>
+        </div>
       </div>
 
-      {/* ── 4 Metric Overview Cards ─────────────────────────────────────────────── */}
+      {/* ── Compact Executive Print Summary Strip (Replaces bulky boxes in print) ── */}
+      <div className="hidden print:block mb-4 border border-slate-300 rounded overflow-hidden">
+        <div className="grid grid-cols-4 divide-x divide-slate-300 bg-slate-100 text-[10px] font-bold text-slate-700 py-1.5 px-3 uppercase tracking-wider text-center">
+          <div>Total Outstanding Credit</div>
+          <div>Overdue Amount</div>
+          <div>Due in Next 7 Days</div>
+          <div>Filtered Statement Total</div>
+        </div>
+        <div className="grid grid-cols-4 divide-x divide-slate-300 font-mono font-bold py-1.5 px-3 text-xs bg-white text-center">
+          <div className="text-rose-700">{fmtRs(totalOutstandingCredit)}</div>
+          <div className="text-rose-600">{overdueTotal > 0 ? fmtRs(overdueTotal) : 'Rs. 0.00'}</div>
+          <div className="text-amber-700">{dueSoonTotal > 0 ? fmtRs(dueSoonTotal) : 'Rs. 0.00'}</div>
+          <div className="text-slate-900 font-extrabold">{fmtRs(filteredTotal)}</div>
+        </div>
+      </div>
+
+      {/* ── 4 Metric Overview Cards (Screen Only) ────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">
         {/* Card 1: Outstanding Credit */}
         <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xs">
@@ -415,21 +457,21 @@ export default function Bills() {
       </div>
 
       {/* ── Invoices Table ──────────────────────────────────────────────────────── */}
-      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
-        <div className="overflow-x-auto flex-1 overflow-y-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col print:border-slate-300 print:shadow-none print:overflow-visible">
+        <div className="overflow-x-auto flex-1 overflow-y-auto print:overflow-visible">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm print:text-xs">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider print:bg-slate-100 print:text-slate-900 print:table-header-group">
               <tr>
-                <th className="px-6 py-3 text-left">GRN Invoice #</th>
-                <th className="px-6 py-3 text-left">Supplier / Distributor</th>
-                <th className="px-6 py-3 text-left">Received Date</th>
-                <th className="px-6 py-3 text-left">Due Date</th>
-                <th className="px-6 py-3 text-left">Payment Status</th>
-                <th className="px-6 py-3 text-right">Invoice Amount</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">GRN Invoice #</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Supplier / Distributor</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Received Date</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Due Date</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Payment Status</th>
+                <th className="px-6 py-3 text-right print:py-1.5 print:px-2 print:text-[10px]">Invoice Amount</th>
                 <th className="px-6 py-3 text-center print:hidden">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 print:divide-slate-200">
               {loading ? (
                 [0, 1, 2, 3].map((r) => (
                   <tr key={r}>
@@ -457,26 +499,26 @@ export default function Bills() {
                   return (
                     <tr
                       key={grn.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                        overdue ? 'bg-red-50/50 dark:bg-red-950/20' : ''
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:break-inside-avoid ${
+                        overdue ? 'bg-red-50/50 dark:bg-red-950/20 print:bg-transparent' : ''
                       }`}
                     >
-                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
                         {grn.grn_number}
                       </td>
-                      <td className="px-6 py-4 text-gray-800 dark:text-gray-200 font-medium">
+                      <td className="px-6 py-4 text-gray-800 dark:text-gray-200 font-medium print:py-1.5 print:px-2 print:text-slate-900">
                         <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                          <Building2 className="w-3.5 h-3.5 text-gray-400 print:hidden" />
                           <span>{grn.supplier_name || 'Walk-in / Direct'}</span>
                         </div>
                         {grn.notes && (
-                          <p className="text-xs text-gray-400 italic mt-0.5">{grn.notes}</p>
+                          <p className="text-xs text-gray-400 italic mt-0.5 print:text-[10px] print:text-slate-500">{grn.notes}</p>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-700">
                         {fmtDate(grn.received_date)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap print:py-1.5 print:px-2">
                         <div
                           className={`flex items-center gap-1 font-medium ${
                             overdue
@@ -484,35 +526,35 @@ export default function Bills() {
                               : 'text-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {overdue && <AlertTriangle className="w-3.5 h-3.5" />}
+                          {overdue && <AlertTriangle className="w-3.5 h-3.5 print:hidden" />}
                           <span>{fmtDate(grn.due_date)}</span>
                           {overdue && (
-                            <span className="text-[10px] uppercase px-1.5 py-0.2 rounded bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300">
+                            <span className="text-[10px] uppercase px-1.5 py-0.2 rounded bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300 print:border print:border-rose-400 print:bg-transparent">
                               Overdue
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap print:py-1.5 print:px-2">
                         {grn.status === 'PAID' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 print:p-0 print:bg-transparent print:text-emerald-800">
+                            <CheckCircle2 className="w-3.5 h-3.5 print:hidden" />
                             PAID {grn.paid_date ? `(${fmtDate(grn.paid_date)})` : ''}
                           </span>
                         ) : (
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               overdue
-                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                            }`}
+                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 print:text-rose-800'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 print:text-amber-800'
+                            } print:p-0 print:bg-transparent`}
                           >
-                            <Clock className="w-3.5 h-3.5" />
+                            <Clock className="w-3.5 h-3.5 print:hidden" />
                             Pending Payment
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                      <td className="px-6 py-4 text-right font-bold font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
                         {fmtRs(grn.total_amount)}
                       </td>
                       <td className="px-6 py-4 text-center whitespace-nowrap print:hidden">
@@ -543,19 +585,35 @@ export default function Bills() {
               )}
             </tbody>
             {filteredGrns.length > 0 && (
-              <tfoot className="bg-gray-50 dark:bg-gray-900/60 font-bold border-t border-gray-200 dark:border-gray-700">
+              <tfoot className="bg-gray-50 dark:bg-gray-900/60 font-bold border-t border-gray-200 dark:border-gray-700 print:bg-slate-100 print:text-slate-900 print:table-footer-group">
                 <tr>
-                  <td colSpan={5} className="px-6 py-3 text-right text-gray-700 dark:text-gray-300">
-                    Filtered Total:
+                  <td colSpan={5} className="px-6 py-3 text-right text-gray-700 dark:text-gray-300 print:py-2 print:px-2 print:text-slate-800">
+                    Filtered Statement Grand Total:
                   </td>
-                  <td className="px-6 py-3 text-right text-rose-600 dark:text-rose-400">
-                    {fmtRs(filteredGrns.reduce((s, g) => s + g.total_amount, 0))}
+                  <td className="px-6 py-3 text-right text-rose-600 dark:text-rose-400 print:text-slate-900 font-mono font-extrabold print:py-2 print:px-2">
+                    {fmtRs(filteredTotal)}
                   </td>
                   <td className="print:hidden"></td>
                 </tr>
               </tfoot>
             )}
           </table>
+        </div>
+      </div>
+
+      {/* ── Official Accounts Payable Signature Slip (Print Only - Page break safe) ── */}
+      <div className="hidden print:grid grid-cols-3 gap-8 pt-8 text-xs text-slate-800 print-avoid-break">
+        <div className="border-t border-slate-400 pt-2 text-center">
+          <p className="font-bold text-slate-900">Prepared By (Purchasing)</p>
+          <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
+        </div>
+        <div className="border-t border-slate-400 pt-2 text-center">
+          <p className="font-bold text-slate-900">Accounts Verified By</p>
+          <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
+        </div>
+        <div className="border-t border-slate-400 pt-2 text-center">
+          <p className="font-bold text-slate-900">Approved for Payment (Manager)</p>
+          <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
         </div>
       </div>
 

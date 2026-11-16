@@ -383,7 +383,7 @@ export default function Cashbook() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-950 print:h-auto print:overflow-visible print:bg-white">
       {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
@@ -481,23 +481,42 @@ export default function Cashbook() {
       </div>
 
       {/* ── Printable Header (Only visible when printing) ────────────────────────── */}
-      <div className="hidden print:block p-6 border-b border-gray-300 bg-white text-black">
+      <div className="hidden print:block mb-4 p-4 border-b-2 border-slate-800 bg-white text-slate-900">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-black tracking-tight">HIRU BOOKSHOP & COMMUNICATION</h1>
-            <p className="text-sm text-gray-600">Daily Cashbook & Closing Balance Sheet</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">HIRU BOOKSHOP & COMMUNICATION</h1>
+            <p className="text-xs text-slate-600 font-medium">Daily Cashbook & Drawer Reconciliation Statement</p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Ledger Date: <strong className="text-slate-900">{selectedDate}</strong> &bull; Filter: {typeFilter === 'ALL' ? 'All Transactions' : typeFilter === 'IN' ? 'Cash Inflows Only' : 'Cash Outflows Only'} &bull; Category: {categoryFilter === 'ALL' ? 'All Categories' : categoryFilter} ({filteredTransactions.length} entries)
+            </p>
           </div>
-          <div className="text-right text-sm">
-            <p className="font-bold">Date: {selectedDate}</p>
-            <p className="text-xs text-gray-500">Printed: {new Date().toLocaleString()}</p>
+          <div className="text-right text-xs text-slate-600">
+            <p className="font-mono font-bold text-slate-900">Date: {selectedDate}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Printed: {new Date().toLocaleString('en-LK')}</p>
           </div>
         </div>
       </div>
 
+      {/* ── Compact Executive Print Summary Strip (Replaces bulky cards in print) ── */}
+      <div className="hidden print:block mb-4 border border-slate-300 rounded overflow-hidden">
+        <div className="grid grid-cols-4 divide-x divide-slate-300 bg-slate-100 text-[10px] font-bold text-slate-700 py-1.5 px-3 uppercase tracking-wider text-center">
+          <div>Opening Cash (B/F)</div>
+          <div>Total Cash In (+)</div>
+          <div>Total Cash Out (-)</div>
+          <div>Closing Till Balance</div>
+        </div>
+        <div className="grid grid-cols-4 divide-x divide-slate-300 font-mono font-bold py-1.5 px-3 text-xs bg-white text-center">
+          <div className="text-slate-800">{fmtRs(summary.openingBalance)}</div>
+          <div className="text-emerald-700">+{fmtRs(summary.totalCashIn)}</div>
+          <div className="text-rose-700">-{fmtRs(summary.totalCashOut)}</div>
+          <div className="text-slate-900 font-extrabold">{fmtRs(summary.closingBalance)}</div>
+        </div>
+      </div>
+
       {/* ── Scrollable Body Area ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* ── Summary Metric Cards ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 print:p-0 print:space-y-3 print:overflow-visible">
+        {/* ── Summary Metric Cards (Hidden in Print to save pages and avoid awkward cuts) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
           {/* Card 1: Opening Balance */}
           <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
             <div className="flex justify-between items-start">
@@ -693,21 +712,21 @@ export default function Cashbook() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold border-b border-gray-200 dark:border-gray-800">
+            <div className="overflow-x-auto print:overflow-visible">
+              <table className="w-full text-left text-sm print:text-xs">
+                <thead className="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold border-b border-gray-200 dark:border-gray-800 print:bg-slate-100 print:text-slate-900 print:table-header-group">
                   <tr>
-                    <th className="py-3 px-4">Time</th>
-                    <th className="py-3 px-4">Type</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Description</th>
-                    <th className="py-3 px-4">Ref #</th>
-                    <th className="py-3 px-4 text-right">Cash In (Rs.)</th>
-                    <th className="py-3 px-4 text-right">Cash Out (Rs.)</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2">Time</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2">Type</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2">Category</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2">Description</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2">Ref #</th>
+                    <th className="py-3 px-4 text-right print:py-1.5 print:px-2">Cash In (Rs.)</th>
+                    <th className="py-3 px-4 text-right print:py-1.5 print:px-2">Cash Out (Rs.)</th>
                     <th className="py-3 px-4 text-center print:hidden">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80 print:divide-slate-200">
                   {filteredTransactions.map((tx) => {
                     const badge = getCategoryBadge(tx.category, tx.type);
                     const isPos = Boolean(tx.is_auto);
@@ -715,46 +734,46 @@ export default function Cashbook() {
                     return (
                       <tr
                         key={tx.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors print:break-inside-avoid print:hover:bg-transparent"
                       >
-                        <td className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <td className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600">
                           {tx.entry_time || '—'}
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
+                        <td className="py-3 px-4 whitespace-nowrap print:py-1.5 print:px-2">
                           {tx.type === 'IN' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
-                              <ArrowDownLeft className="w-3 h-3" />
-                              IN
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 print:bg-transparent print:text-emerald-800 print:p-0">
+                              <ArrowDownLeft className="w-3 h-3 print:hidden" />
+                              + IN
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300">
-                              <ArrowUpRight className="w-3 h-3" />
-                              OUT
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 print:bg-transparent print:text-rose-800 print:p-0">
+                              <ArrowUpRight className="w-3 h-3 print:hidden" />
+                              - OUT
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-medium ${badge.bg}`}>
+                        <td className="py-3 px-4 whitespace-nowrap print:py-1.5 print:px-2">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-medium print:p-0 print:border-0 print:font-semibold print:text-slate-800 ${badge.bg}`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium">
+                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium print:py-1.5 print:px-2 print:text-slate-900">
                           {tx.description}
                           {isPos && (
-                            <span className="ml-2 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                            <span className="ml-2 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 print:hidden">
                               Auto
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <td className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600">
                           {tx.reference_no || '—'}
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                        <td className="py-3 px-4 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
                           {tx.type === 'IN'
                             ? `+ ${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                             : '—'}
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                        <td className="py-3 px-4 text-right font-bold font-mono text-rose-600 dark:text-rose-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
                           {tx.type === 'OUT'
                             ? `- ${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                             : '—'}
@@ -785,15 +804,15 @@ export default function Cashbook() {
                     );
                   })}
                 </tbody>
-                <tfoot className="bg-gray-50 dark:bg-gray-800/80 font-bold text-sm border-t-2 border-gray-300 dark:border-gray-700">
+                <tfoot className="bg-gray-50 dark:bg-gray-800/80 font-bold text-sm border-t-2 border-gray-300 dark:border-gray-700 print:bg-slate-100 print:text-slate-900 print:table-footer-group">
                   <tr>
-                    <td colSpan={5} className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                    <td colSpan={5} className="py-3 px-4 text-right text-gray-700 dark:text-gray-300 print:py-2 print:px-2 print:text-slate-800">
                       Day's Total Movement:
                     </td>
-                    <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-extrabold whitespace-nowrap">
+                    <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-extrabold whitespace-nowrap print:py-2 print:px-2 print:text-emerald-800 font-mono">
                       + Rs. {summary.totalCashIn.toFixed(2)}
                     </td>
-                    <td className="py-3 px-4 text-right text-rose-600 dark:text-rose-400 font-extrabold whitespace-nowrap">
+                    <td className="py-3 px-4 text-right text-rose-600 dark:text-rose-400 font-extrabold whitespace-nowrap print:py-2 print:px-2 print:text-rose-800 font-mono">
                       - Rs. {summary.totalCashOut.toFixed(2)}
                     </td>
                     <td className="print:hidden"></td>
@@ -804,19 +823,19 @@ export default function Cashbook() {
           )}
         </div>
 
-        {/* ── Daily Closing Signature Slip (Print Only) ────────────────────────── */}
-        <div className="hidden print:grid grid-cols-3 gap-8 pt-12 text-sm text-gray-800">
-          <div className="border-t border-gray-400 pt-2 text-center">
-            <p className="font-semibold">Prepared By (Cashier)</p>
-            <p className="text-xs text-gray-500 mt-6">Signature & Date</p>
+        {/* ── Daily Closing Signature Slip (Print Only - Page break safe) ───────── */}
+        <div className="hidden print:grid grid-cols-3 gap-8 pt-8 text-xs text-slate-800 print-avoid-break">
+          <div className="border-t border-slate-400 pt-2 text-center">
+            <p className="font-bold text-slate-900">Prepared By (Cashier)</p>
+            <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
           </div>
-          <div className="border-t border-gray-400 pt-2 text-center">
-            <p className="font-semibold">Physical Cash Count</p>
-            <p className="text-xs text-gray-500 mt-6">Rs. ___________________</p>
+          <div className="border-t border-slate-400 pt-2 text-center">
+            <p className="font-bold text-slate-900">Physical Cash Verified</p>
+            <p className="text-[10px] text-slate-500 mt-6">Rs. ___________________</p>
           </div>
-          <div className="border-t border-gray-400 pt-2 text-center">
-            <p className="font-semibold">Approved By (Manager)</p>
-            <p className="text-xs text-gray-500 mt-6">Signature & Date</p>
+          <div className="border-t border-slate-400 pt-2 text-center">
+            <p className="font-bold text-slate-900">Approved By (Store Manager)</p>
+            <p className="text-[10px] text-slate-500 mt-6">Signature & Date</p>
           </div>
         </div>
       </div>

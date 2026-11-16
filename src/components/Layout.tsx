@@ -123,7 +123,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
+    <div className="flex h-screen print:h-auto print:block print:bg-white bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 select-none print:hidden z-20">
         {/* Brand Header */}
@@ -331,7 +331,7 @@ export default function Layout() {
       </aside>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 min-w-0">
+      <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 min-w-0 print:overflow-visible print:h-auto print:bg-white">
         <Outlet />
       </main>
 
