@@ -50,12 +50,14 @@
   "author": "Inkoart (info@inkoart.online)",
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/qrcode": "^1.5.6",
     "better-sqlite3": "^13.0.3",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
     "electron-updater": "^6.8.9",
     "hono": "^4.13.9",
     "lucide-react": "^1.48.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4"

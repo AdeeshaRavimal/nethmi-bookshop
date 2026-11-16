@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Lock, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { Lock, ArrowLeft, Check, AlertCircle, Smartphone } from 'lucide-react';
 import { useSecurity, type SecurityConfig } from '../context/SecurityContext';
 
 interface ProtectedRouteProps {
@@ -16,7 +16,7 @@ export default function ProtectedRoute({
   description,
   children,
 }: ProtectedRouteProps) {
-  const { isUnlocked, config, unlock, hasCustomPin } = useSecurity();
+  const { isUnlocked, config, unlock, unlockWithTotp, verifyPinOrOtp, hasCustomPin, isTotpConfigured } = useSecurity();
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,9 +51,15 @@ export default function ProtectedRoute({
     setError(null);
 
     try {
-      const success = await unlock(pin);
-      if (!success) {
-        setError('Incorrect PIN. Please try again.');
+      const isValid = await verifyPinOrOtp(pin);
+      if (isValid) {
+        if (pin.length === 6 && isTotpConfigured) {
+          await unlockWithTotp(pin);
+        } else {
+          await unlock(pin);
+        }
+      } else {
+        setError(isTotpConfigured ? 'Incorrect PIN or Google Authenticator code.' : 'Incorrect PIN. Please try again.');
         setPin('');
         inputRef.current?.focus();
       }
@@ -90,9 +96,17 @@ export default function ProtectedRoute({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-                Enter Manager Security PIN
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Manager Security PIN or Authenticator OTP
+                </label>
+                {isTotpConfigured && (
+                  <span className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                    <Smartphone className="w-3 h-3" />
+                    Google Auth Ready
+                  </span>
+                )}
+              </div>
 
               <div className="relative">
                 <input
@@ -143,8 +157,14 @@ export default function ProtectedRoute({
 
           {!hasCustomPin && (
             <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 rounded-xl text-[11px] text-amber-800 dark:text-amber-300">
-              Default Manager PIN is <strong className="font-mono">1234</strong>. You can change this anytime from Security Settings in the sidebar.
+              Default Manager PIN is <strong className="font-mono">1234</strong>. You can change this or activate Google Authenticator in Security Settings.
             </div>
+          )}
+
+          {isTotpConfigured && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center">
+              💡 <strong>Remote Manager Emergency:</strong> Ask the manager for the 6-digit code currently visible on their Google Authenticator app.
+            </p>
           )}
         </div>
       </div>

@@ -1,5 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import QRCode from 'qrcode';
 import { db } from '../db';
+import {
+  generateTotpSecret,
+  generateOtpAuthUri,
+  verifyTotpCode,
+} from '../utils/totp';
 
 export interface SecurityConfig {
   requireForInventory: boolean;
@@ -35,11 +41,18 @@ interface SecurityContextType {
   isUnlocked: boolean;
   config: SecurityConfig;
   hasCustomPin: boolean;
+  isTotpConfigured: boolean;
   verifyPin: (pin: string) => Promise<boolean>;
+  verifyTotp: (code: string) => Promise<boolean>;
+  verifyPinOrOtp: (code: string) => Promise<boolean>;
   unlock: (pin: string) => Promise<boolean>;
+  unlockWithTotp: (code: string) => Promise<boolean>;
   lock: () => void;
   updatePin: (oldPin: string, newPin: string) => Promise<{ success: boolean; error?: string }>;
   updateConfig: (newConfig: Partial<SecurityConfig>) => Promise<void>;
+  setupTotpSecret: () => Promise<{ secret: string; uri: string; qrDataUrl: string }>;
+  confirmAndSaveTotp: (secret: string, verificationCode: string) => Promise<{ success: boolean; error?: string }>;
+  disableTotp: () => Promise<{ success: boolean; error?: string }>;
   requestAuth: (reason: string) => Promise<boolean>;
   // For modal handling
   authModalState: {
@@ -56,6 +69,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [config, setConfig] = useState<SecurityConfig>(DEFAULT_CONFIG);
   const [hasCustomPin, setHasCustomPin] = useState(false);
+  const [isTotpConfigured, setIsTotpConfigured] = useState(false);
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
   const [authModalState, setAuthModalState] = useState<{
     isOpen: boolean;
@@ -66,20 +80,25 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     reason: '',
   });
 
-  // Load configuration and PIN status from db settings
+  // Load configuration, PIN, and TOTP status from db settings
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        const [pinRes, configRes] = await Promise.all([
+        const [pinRes, configRes, totpRes] = await Promise.all([
           db.settings.get('manager_security_pin', DEFAULT_PIN),
           db.settings.get('manager_security_config', ''),
+          db.settings.get('manager_totp_secret', ''),
         ]);
 
         if (!isMounted) return;
 
         if (pinRes.success && pinRes.value && pinRes.value !== DEFAULT_PIN) {
           setHasCustomPin(true);
+        }
+
+        if (totpRes.success && totpRes.value && totpRes.value.trim().length >= 16) {
+          setIsTotpConfigured(true);
         }
 
         if (configRes.success && configRes.value) {
@@ -134,12 +153,47 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const getStoredTotpSecret = useCallback(async (): Promise<string> => {
+    try {
+      const res = await db.settings.get('manager_totp_secret', '');
+      return res.success && res.value ? res.value : '';
+    } catch {
+      return '';
+    }
+  }, []);
+
   const verifyPin = useCallback(
     async (inputPin: string): Promise<boolean> => {
       const stored = await getStoredPin();
       return inputPin.trim() === stored.trim();
     },
     [getStoredPin]
+  );
+
+  const verifyTotp = useCallback(
+    async (code: string): Promise<boolean> => {
+      const secret = await getStoredTotpSecret();
+      if (!secret) return false;
+      return verifyTotpCode(secret, code.trim());
+    },
+    [getStoredTotpSecret]
+  );
+
+  const verifyPinOrOtp = useCallback(
+    async (code: string): Promise<boolean> => {
+      // 1. Try checking as Master PIN
+      const isPinValid = await verifyPin(code);
+      if (isPinValid) return true;
+
+      // 2. Try checking as Google Authenticator 6-digit OTP
+      if (code.trim().length === 6) {
+        const isTotpValid = await verifyTotp(code);
+        if (isTotpValid) return true;
+      }
+
+      return false;
+    },
+    [verifyPin, verifyTotp]
   );
 
   const unlock = useCallback(
@@ -153,6 +207,19 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       return false;
     },
     [verifyPin]
+  );
+
+  const unlockWithTotp = useCallback(
+    async (code: string): Promise<boolean> => {
+      const isValid = await verifyTotp(code);
+      if (isValid) {
+        setIsUnlocked(true);
+        setLastActivity(Date.now());
+        return true;
+      }
+      return false;
+    },
+    [verifyTotp]
   );
 
   const lock = useCallback(() => {
@@ -189,6 +256,54 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       db.settings.set('manager_security_config', JSON.stringify(updated)).catch(console.error);
       return updated;
     });
+  }, []);
+
+  const setupTotpSecret = useCallback(async () => {
+    const secret = generateTotpSecret();
+    const uri = generateOtpAuthUri(secret, 'Manager', 'Hiru Bookshop');
+    const qrDataUrl = await QRCode.toDataURL(uri, {
+      width: 220,
+      margin: 2,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff',
+      },
+    });
+    return { secret, uri, qrDataUrl };
+  }, []);
+
+  const confirmAndSaveTotp = useCallback(
+    async (secret: string, verificationCode: string): Promise<{ success: boolean; error?: string }> => {
+      const isValid = await verifyTotpCode(secret, verificationCode.trim());
+      if (!isValid) {
+        return { success: false, error: 'Invalid Google Authenticator code. Please check your phone time and try again.' };
+      }
+
+      try {
+        const res = await db.settings.set('manager_totp_secret', secret.trim());
+        if (res.success) {
+          setIsTotpConfigured(true);
+          return { success: true };
+        }
+        return { success: false, error: 'Failed to save Authenticator secret.' };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Error activating Authenticator.' };
+      }
+    },
+    []
+  );
+
+  const disableTotp = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await db.settings.set('manager_totp_secret', '');
+      if (res.success) {
+        setIsTotpConfigured(false);
+        return { success: true };
+      }
+      return { success: false, error: 'Failed to disable Authenticator.' };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Error disabling Authenticator.' };
+    }
   }, []);
 
   const requestAuth = useCallback(
@@ -228,11 +343,18 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
         isUnlocked,
         config,
         hasCustomPin,
+        isTotpConfigured,
         verifyPin,
+        verifyTotp,
+        verifyPinOrOtp,
         unlock,
+        unlockWithTotp,
         lock,
         updatePin,
         updateConfig,
+        setupTotpSecret,
+        confirmAndSaveTotp,
+        disableTotp,
         requestAuth,
         authModalState,
         closeAuthModal,

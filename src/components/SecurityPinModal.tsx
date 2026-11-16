@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, X, Delete, Check, AlertCircle, KeyRound } from 'lucide-react';
+import { Lock, X, Delete, Check, AlertCircle, KeyRound, Smartphone } from 'lucide-react';
 import { useSecurity } from '../context/SecurityContext';
 
 export default function SecurityPinModal() {
-  const { authModalState, closeAuthModal, verifyPin, hasCustomPin } = useSecurity();
+  const { authModalState, closeAuthModal, verifyPinOrOtp, hasCustomPin, isTotpConfigured } = useSecurity();
   const [pin, setPin] = useState('');
+  const [mode, setMode] = useState<'PIN' | 'TOTP'>('PIN');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shake, setShake] = useState(false);
@@ -16,6 +17,7 @@ export default function SecurityPinModal() {
       setError(null);
       setIsSubmitting(false);
       setShake(false);
+      setMode('PIN');
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [authModalState.isOpen]);
@@ -23,7 +25,8 @@ export default function SecurityPinModal() {
   if (!authModalState.isOpen) return null;
 
   const handleDigit = (digit: string) => {
-    if (pin.length < 8) {
+    const maxLen = mode === 'TOTP' ? 6 : 8;
+    if (pin.length < maxLen) {
       setPin((prev) => prev + digit);
       setError(null);
     }
@@ -47,12 +50,12 @@ export default function SecurityPinModal() {
     setError(null);
 
     try {
-      const isValid = await verifyPin(pin);
+      const isValid = await verifyPinOrOtp(pin);
       if (isValid) {
         closeAuthModal(true);
       } else {
         setShake(true);
-        setError('Incorrect PIN. Please try again.');
+        setError(mode === 'TOTP' ? 'Invalid Google Authenticator code.' : 'Incorrect PIN or OTP code.');
         setTimeout(() => setShake(false), 500);
         setPin('');
         inputRef.current?.focus();
@@ -115,11 +118,54 @@ export default function SecurityPinModal() {
           </div>
         )}
 
+        {/* Auth Method Selector (If TOTP is configured) */}
+        {isTotpConfigured && (
+          <div className="px-5 pt-3 flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800/80 pb-2 bg-slate-50/30 dark:bg-slate-900/30">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('PIN');
+                setPin('');
+                setError(null);
+                inputRef.current?.focus();
+              }}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mode === 'PIN'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 shadow-2xs'
+                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Master PIN</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMode('TOTP');
+                setPin('');
+                setError(null);
+                inputRef.current?.focus();
+              }}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mode === 'TOTP'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 shadow-2xs'
+                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Google Authenticator</span>
+            </button>
+          </div>
+        )}
+
         {/* PIN Input Display */}
         <div className="p-5 flex flex-col items-center">
           <div className="text-center mb-4">
             <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-              Enter Manager Security PIN
+              {mode === 'TOTP'
+                ? 'Enter 6-Digit Google Authenticator OTP'
+                : 'Enter Manager Security PIN'}
             </label>
 
             {/* Hidden native input for physical keyboard entry */}
@@ -130,19 +176,21 @@ export default function SecurityPinModal() {
               pattern="[0-9]*"
               value={pin}
               onChange={(e) => {
+                const maxLen = mode === 'TOTP' ? 6 : 8;
                 const val = e.target.value.replace(/\D/g, '');
-                if (val.length <= 8) setPin(val);
+                if (val.length <= maxLen) setPin(val);
+                setError(null);
               }}
               className="sr-only"
               autoFocus
             />
 
-            {/* Visual PIN circles */}
+            {/* Visual PIN circles or digits */}
             <div
               onClick={() => inputRef.current?.focus()}
-              className="flex items-center justify-center gap-3 py-2 cursor-pointer"
+              className="flex items-center justify-center gap-2.5 py-2 cursor-pointer"
             >
-              {[0, 1, 2, 3].map((idx) => {
+              {(mode === 'TOTP' ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3]).map((idx) => {
                 const hasValue = pin.length > idx;
                 return (
                   <div
@@ -155,7 +203,7 @@ export default function SecurityPinModal() {
                   />
                 );
               })}
-              {pin.length > 4 && (
+              {mode === 'PIN' && pin.length > 4 && (
                 <span className="text-xs font-mono font-bold text-blue-600 ml-1">
                   +{pin.length - 4}
                 </span>
@@ -218,7 +266,7 @@ export default function SecurityPinModal() {
             <button
               type="button"
               onClick={() => handleSubmit()}
-              disabled={isSubmitting || pin.length < 4}
+              disabled={isSubmitting || (mode === 'TOTP' ? pin.length !== 6 : pin.length < 4)}
               className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -226,9 +274,15 @@ export default function SecurityPinModal() {
             </button>
           </div>
 
-          {!hasCustomPin && (
+          {!hasCustomPin && mode === 'PIN' && (
             <p className="mt-3 text-[10px] text-slate-400 dark:text-slate-500 text-center">
               Default Manager PIN is <strong className="font-mono text-slate-600 dark:text-slate-300">1234</strong>
+            </p>
+          )}
+
+          {isTotpConfigured && mode === 'TOTP' && (
+            <p className="mt-3 text-[10px] text-slate-500 dark:text-slate-400 text-center">
+              Ask manager for the current 6-digit code showing in their phone's Authenticator app.
             </p>
           )}
         </div>
