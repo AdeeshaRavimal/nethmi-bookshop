@@ -1,3 +1,5 @@
+import type { GRNHeader, GRNItem } from '../db';
+
 export interface ReceiptLineItem {
   title: string;
   quantity: number;
@@ -399,4 +401,318 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
       reject(err);
     }
   });
+}
+
+/**
+ * Prints a clean, professional Goods Received Note (GRN) / Delivery Voucher
+ * via a hidden iframe formatted for A4 / A5 printing.
+ */
+export function printGRNVoucher(data: { header: GRNHeader; items: GRNItem[] }): void {
+  const { header, items } = data;
+  const dateStr = header.received_date ? header.received_date.split('-').reverse().join('/') : '—';
+  const dueDateStr = header.due_date ? header.due_date.split('-').reverse().join('/') : '—';
+  const totalQty = items.reduce((sum, item) => sum + (item.received_qty || 0), 0);
+  const totalRetail = items.reduce((sum, item) => sum + (item.received_qty * (item.selling_price || 0)), 0);
+
+  const itemRows = items.map((item, idx) => `
+    <tr>
+      <td style="text-align: center; color: #64748b;">${idx + 1}</td>
+      <td style="font-family: monospace; font-size: 11px;">${escapeHtml(item.barcode)}</td>
+      <td style="font-weight: 600;">${escapeHtml(item.title)}</td>
+      <td style="text-align: center; font-weight: bold;">${item.received_qty}</td>
+      <td style="text-align: right;">${money(item.unit_cost)}</td>
+      <td style="text-align: right; font-weight: bold;">${money(item.total_cost)}</td>
+      <td style="text-align: right; color: #1e40af;">${item.selling_price > 0 ? money(item.selling_price) : '—'}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GRN ${escapeHtml(header.grn_number)}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: #0f172a;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .company h1 {
+    font-size: 20px;
+    margin: 0 0 4px 0;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #1e3a8a;
+  }
+  .company p {
+    margin: 0;
+    color: #475569;
+    font-size: 12px;
+  }
+  .doc-title {
+    text-align: right;
+  }
+  .doc-title h2 {
+    font-size: 18px;
+    margin: 0 0 2px 0;
+    color: #0f172a;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .doc-title p {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .meta-item .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .meta-item .value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  table.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+  }
+  table.items-table th {
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    text-align: left;
+  }
+  table.items-table td {
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 12px;
+  }
+  table.items-table tr:nth-child(even) {
+    background: #f8fafc;
+  }
+  .summary-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+  }
+  .notes-box {
+    width: 55%;
+    font-size: 11px;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    background: #fafafa;
+  }
+  .totals-table {
+    width: 38%;
+    border-collapse: collapse;
+  }
+  .totals-table td {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .totals-table tr.grand-row td {
+    border-top: 2px solid #0f172a;
+    font-weight: 800;
+    font-size: 14px;
+    color: #1e3a8a;
+  }
+  .signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding-top: 10px;
+  }
+  .sig-block {
+    width: 28%;
+    text-align: center;
+  }
+  .sig-line {
+    border-top: 1px dashed #64748b;
+    margin-bottom: 6px;
+    height: 1px;
+  }
+  .sig-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #334155;
+  }
+  .sig-sub {
+    font-size: 9px;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+  <div class="header-container">
+    <div class="company">
+      <h1>${SHOP_NAME}</h1>
+      <p>${SHOP_ADDRESS} • Tel: ${SHOP_PHONE}</p>
+    </div>
+    <div class="doc-title">
+      <h2>GOODS RECEIVED NOTE (GRN)</h2>
+      <p>Official Stock Inward & Delivery Voucher</p>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <div class="label">GRN Number</div>
+      <div class="value" style="font-family: monospace; font-weight: 800; color: #1e40af;">${escapeHtml(header.grn_number)}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Received Date</div>
+      <div class="value">${dateStr}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Supplier</div>
+      <div class="value">${escapeHtml(header.supplier_name || 'Walk-in / Direct')}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Supplier Invoice / DN #</div>
+      <div class="value" style="font-family: monospace; font-weight: 700;">${escapeHtml(header.supplier_invoice_no || '—')}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Payment Type</div>
+      <div class="value">${header.payment_type}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Payment Status</div>
+      <div class="value">${header.status}${header.payment_type === 'CREDIT' && header.due_date ? ` (Due: ${dueDateStr})` : ''}</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Total Units Received</div>
+      <div class="value">${totalQty} units (${items.length} items)</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Grand Total Cost</div>
+      <div class="value" style="color: #1e3a8a;">${money(header.total_amount)}</div>
+    </div>
+  </div>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th style="width: 32px; text-align: center;">#</th>
+        <th style="width: 120px;">Barcode</th>
+        <th>Item Description</th>
+        <th style="width: 70px; text-align: center;">Qty</th>
+        <th style="width: 100px; text-align: right;">Unit Cost</th>
+        <th style="width: 120px; text-align: right;">Total Cost</th>
+        <th style="width: 110px; text-align: right;">Retail Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemRows}
+    </tbody>
+  </table>
+
+  <div class="summary-container">
+    <div class="notes-box">
+      <strong>Notes / Remarks:</strong>
+      <p style="margin: 4px 0 0 0;">${header.notes ? escapeHtml(header.notes) : 'Stock received in good condition and added to inventory.'}</p>
+    </div>
+    <table class="totals-table">
+      <tr>
+        <td style="color: #64748b;">Total Received Quantity:</td>
+        <td style="text-align: right; font-weight: bold;">${totalQty}</td>
+      </tr>
+      <tr>
+        <td style="color: #64748b;">Total Retail Value:</td>
+        <td style="text-align: right; font-weight: 600; color: #1e40af;">${money(totalRetail)}</td>
+      </tr>
+      <tr class="grand-row">
+        <td>TOTAL COST VALUE:</td>
+        <td style="text-align: right;">${money(header.total_amount)}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="signatures">
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-label">Received By (Store Keeper)</div>
+      <div class="sig-sub">Date & Signature</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-label">Checked & Approved By</div>
+      <div class="sig-sub">Management Signature</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-label">Supplier / Delivery Rep</div>
+      <div class="sig-sub">Handover Confirmation</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 25px; text-align: center; font-size: 10px; color: #94a3b8;">
+    Generated on ${new Date().toLocaleString()} • Hiru Bookshop & Communication POS System
+  </div>
+
+  <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 200); };<` + `/script>
+</body>
+</html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.contentWindow?.addEventListener('afterprint', () => {
+    document.body.removeChild(iframe);
+  });
+  setTimeout(() => {
+    if (iframe.parentNode) document.body.removeChild(iframe);
+  }, 60000);
 }

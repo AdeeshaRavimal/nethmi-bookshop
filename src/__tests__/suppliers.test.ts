@@ -127,4 +127,65 @@ describe('Supplier Payables & Payments Ledger', () => {
     expect(check3.total_paid).toBe(25000);
     expect(check3.total_outstanding).toBe(0); // Fully clear!
   });
+
+  it('records supplier_invoice_no on GRN and calculates batch margins correctly', () => {
+    const sInfo = db.prepare(`
+      INSERT INTO suppliers (name, phone) VALUES (?, ?)
+    `).run('Richard Trading', '0771234567');
+    const supplierId = Number(sInfo.lastInsertRowid);
+
+    const grnInfo = db.prepare(`
+      INSERT INTO grn_headers (grn_number, supplier_id, supplier_invoice_no, received_date, payment_type, status, total_amount, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('GRN-20261116-001', supplierId, 'INV-88941', '2026-11-16', 'CASH', 'PAID', 6000, 'Batch of Atlas pens and books');
+    const grnId = Number(grnInfo.lastInsertRowid);
+
+    // Insert items
+    db.prepare(`
+      INSERT INTO grn_items (grn_id, barcode, title, received_qty, unit_cost, selling_price, total_cost)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(grnId, 'ITEM-PEN-01', 'Atlas Chooty Blue Pen', 50, 40, 60, 2000);
+
+    db.prepare(`
+      INSERT INTO grn_items (grn_id, barcode, title, received_qty, unit_cost, selling_price, total_cost)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(grnId, 'ITEM-CR-80', 'CR 80pg Single Rule Book', 20, 200, 280, 4000);
+
+    // Verify header retrieval with invoice no
+    const header = db.prepare(`
+      SELECT g.*, s.name AS supplier_name
+      FROM grn_headers g
+      LEFT JOIN suppliers s ON s.id = g.supplier_id
+      WHERE g.id = ?
+    `).get(grnId) as any;
+
+    expect(header.grn_number).toBe('GRN-20261116-001');
+    expect(header.supplier_invoice_no).toBe('INV-88941');
+    expect(header.supplier_name).toBe('Richard Trading');
+    expect(header.total_amount).toBe(6000);
+
+    // Verify items and profit margins
+    const items = db.prepare('SELECT * FROM grn_items WHERE grn_id = ? ORDER BY id ASC').all(grnId) as any[];
+    expect(items).toHaveLength(2);
+
+    // Item 1: cost 40, sell 60 -> profit 20, margin 33.33%
+    const item1 = items[0];
+    const profit1 = item1.selling_price - item1.unit_cost;
+    const marginPct1 = Math.round((profit1 / item1.selling_price) * 1000) / 10;
+    expect(profit1).toBe(20);
+    expect(marginPct1).toBe(33.3);
+
+    // Item 2: cost 200, sell 280 -> profit 80, margin 28.57%
+    const item2 = items[1];
+    const profit2 = item2.selling_price - item2.unit_cost;
+    const marginPct2 = Math.round((profit2 / item2.selling_price) * 1000) / 10;
+    expect(profit2).toBe(80);
+    expect(marginPct2).toBe(28.6);
+
+    // Total retail value: 50 * 60 + 20 * 280 = 3000 + 5600 = 8600
+    const totalRetail = items.reduce((sum, it) => sum + (it.received_qty * it.selling_price), 0);
+    expect(totalRetail).toBe(8600);
+    const overallProfit = totalRetail - header.total_amount;
+    expect(overallProfit).toBe(2600); // 8600 - 6000 = 2600
+  });
 });

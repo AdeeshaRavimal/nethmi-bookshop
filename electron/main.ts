@@ -1190,6 +1190,7 @@ ipcMain.handle('db:grn:getById', (_e, { id }: { id: number }) => {
 
 ipcMain.handle('db:grn:create', (_e, payload: {
   supplier_id?: number | null;
+  supplier_invoice_no?: string | null;
   received_date: string;
   payment_type: 'CASH' | 'CREDIT';
   due_date?: string | null;
@@ -1238,11 +1239,12 @@ ipcMain.handle('db:grn:create', (_e, payload: {
 
       const info = db.prepare(`
         INSERT INTO grn_headers
-          (grn_number, supplier_id, received_date, payment_type, due_date, status, total_amount, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          (grn_number, supplier_id, supplier_invoice_no, received_date, payment_type, due_date, status, total_amount, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         grn_number,
         payload.supplier_id ?? null,
+        payload.supplier_invoice_no?.trim() || null,
         payload.received_date,
         payload.payment_type,
         payload.payment_type === 'CREDIT' ? (payload.due_date ?? null) : null,

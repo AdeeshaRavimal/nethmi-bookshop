@@ -406,6 +406,7 @@ export const db = {
 
     create: (payload: {
       supplier_id?: number | null;
+      supplier_invoice_no?: string | null;
       received_date: string;
       payment_type: 'CASH' | 'CREDIT';
       due_date?: string | null;
