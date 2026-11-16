@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import React, { isValidElement, type ReactNode } from 'react';
 
 /**
  * Animated shimmer placeholder for loading states.
@@ -38,18 +38,28 @@ export function EmptyState({
   icon,
   title,
   subtitle,
+  description,
   action,
 }: {
-  icon: ReactNode;
+  icon?: any;
   title: string;
   subtitle?: string;
+  description?: string;
   action?: ReactNode;
 }) {
+  const renderedIcon = isValidElement(icon)
+    ? icon
+    : icon && (typeof icon === 'function' || typeof icon === 'object')
+    ? React.createElement(icon, { className: 'w-12 h-12' })
+    : icon;
+
+  const subText = subtitle || description;
+
   return (
     <div className="h-full flex flex-col items-center justify-center text-center py-16 px-6">
-      <div className="mb-4 opacity-40">{icon}</div>
+      {renderedIcon && <div className="mb-4 opacity-40">{renderedIcon}</div>}
       <h3 className="text-lg font-bold text-gray-700 dark:text-gray-200">{title}</h3>
-      {subtitle && <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 max-w-xs">{subtitle}</p>}
+      {subText && <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 max-w-xs">{subText}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );

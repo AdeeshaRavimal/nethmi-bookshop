@@ -1037,9 +1037,9 @@ export default function Suppliers() {
         </div>
       ) : filteredCheques.length === 0 ? (
         <EmptyState
-          icon={Calendar}
+          icon={<Calendar className="w-12 h-12 text-gray-400" />}
           title="No Cheques Found"
-          description={chequeSearch ? 'No cheques match your search criteria.' : 'No post-dated cheques registered yet.'}
+          subtitle={chequeSearch ? 'No cheques match your search criteria.' : 'No post-dated cheques registered yet.'}
           action={
             <button
               onClick={() => setShowAddChequeModal(true)}
