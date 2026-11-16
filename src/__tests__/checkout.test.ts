@@ -5,6 +5,7 @@ import {
   clampCartQuantity,
   generateReceiptNumber,
 } from '../utils/checkout';
+import { buildWhatsAppReceiptText } from '../utils/receipt';
 
 describe('Checkout & POS Calculations', () => {
   describe('calculateDiscountedPrice', () => {
@@ -109,6 +110,53 @@ describe('Checkout & POS Calculations', () => {
     it('generates unique timestamps when invoked at current time', () => {
       const r1 = generateReceiptNumber();
       expect(r1).toMatch(/^REC-\d+$/);
+    });
+  });
+
+  describe('Special Discount & Custom Price Bill Formatting', () => {
+    it('mentions Special Discount on WhatsApp bill when selling price is reduced below usual price', () => {
+      const receiptText = buildWhatsAppReceiptText({
+        receipt_no: 'REC-20261116-001',
+        created_at: '2026-11-16T10:00:00',
+        payment_type: 'CASH',
+        total_amount: 80,
+        items: [
+          {
+            title: 'Atlas 80pg CR Book',
+            quantity: 1,
+            unit_price: 80,
+            original_price: 100,
+            is_special_discount: true,
+            discount_percent: 20,
+          },
+        ],
+      });
+
+      expect(receiptText).toContain('Atlas 80pg CR Book  x1  =  Rs. 80.00');
+      expect(receiptText).toContain('(Special Discount: -Rs. 20.00)');
+    });
+
+    it('keeps new price with no discount mention when selling price is higher than usual price', () => {
+      const receiptText = buildWhatsAppReceiptText({
+        receipt_no: 'REC-20261116-002',
+        created_at: '2026-11-16T10:05:00',
+        payment_type: 'CASH',
+        total_amount: 240,
+        items: [
+          {
+            title: 'Special Parker Pen',
+            quantity: 2,
+            unit_price: 120, // Higher than regular price of 100
+            original_price: 120,
+            is_special_discount: false,
+            discount_percent: 0,
+          },
+        ],
+      });
+
+      expect(receiptText).toContain('Special Parker Pen  x2  =  Rs. 240.00');
+      expect(receiptText).not.toContain('Special Discount');
+      expect(receiptText).not.toContain('Discount');
     });
   });
 });

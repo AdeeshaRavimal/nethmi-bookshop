@@ -49,7 +49,7 @@ export function deductFifoBatches(
 
 export function executeCheckout(db: Database.Database, params: {
   requestId: string; paymentType: string;
-  items: Array<{ id?: number; barcode: string; category?: string; title: string; quantity: number; cost_price: number; selling_price: number; discount_percent?: number; original_price?: number }>;
+  items: Array<{ id?: number; barcode: string; category?: string; title: string; quantity: number; cost_price: number; selling_price: number; discount_percent?: number; original_price?: number; catalog_price?: number; is_special_discount?: boolean }>;
   billDiscount?: number;
   customerId?: number;
   pointsToRedeem?: number;
@@ -106,7 +106,7 @@ export function executeCheckout(db: Database.Database, params: {
         const updated = db.prepare('UPDATE inventory SET quantity = quantity - ? WHERE id = ? AND quantity >= ?').run(item.quantity, product.id, item.quantity);
         if (updated.changes !== 1) throw new Error('Insufficient stock: ' + item.title);
         // FIFO deduction — returns weighted avg cost consumed
-        actualCost = deductFifoBatches(db, product.id, item.quantity, item.original_price ?? item.selling_price);
+        actualCost = deductFifoBatches(db, product.id, item.quantity, item.catalog_price ?? item.original_price ?? item.selling_price);
       }
 
       resolvedItems.push({ product, item, actualCost });

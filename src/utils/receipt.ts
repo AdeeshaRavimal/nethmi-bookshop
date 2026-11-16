@@ -6,6 +6,7 @@ export interface ReceiptLineItem {
   unit_price: number;
   discount_percent?: number;
   original_price?: number;
+  is_special_discount?: boolean;
 }
 
 export interface ReceiptData {
@@ -49,12 +50,14 @@ export function printReceipt(data: ReceiptData): void {
 
   const rows = data.items.map(item => {
     const lineTotal = item.unit_price * item.quantity;
-    const hasDiscount = (item.discount_percent || 0) > 0 && item.original_price;
+    const origPrice = Number(item.original_price ?? 0);
+    const isReduced = origPrice > 0 && origPrice > item.unit_price;
+    const hasDiscount = isReduced && ((item.discount_percent || 0) > 0 || item.is_special_discount);
     const originalLine = hasDiscount
-      ? `<span class="strike">${money(item.original_price! * item.quantity)}</span>`
+      ? `<span class="strike">${money(origPrice * item.quantity)}</span>`
       : '';
     const discountNote = hasDiscount
-      ? `<br><span style="font-size:11px; color:#666;">(Discount: ${item.discount_percent}%)</span>`
+      ? `<br><span style="font-size:11px; color:#d97706; font-weight:600;">(Special Discount: ${item.discount_percent ? `${item.discount_percent}%` : money((origPrice - item.unit_price) * item.quantity)})</span>`
       : '';
       
     return `
@@ -194,6 +197,14 @@ export function buildWhatsAppReceiptText(data: ReceiptData): string {
       const unitPrice = Number(i.unit_price ?? (i as any).selling_price ?? 0);
       const qty = Number(i.quantity ?? 1);
       const lineTotal = unitPrice * qty;
+      const origPrice = Number(i.original_price ?? 0);
+      const isReduced = origPrice > 0 && origPrice > unitPrice;
+      const hasDiscount = isReduced && ((i.discount_percent || 0) > 0 || i.is_special_discount);
+
+      if (hasDiscount) {
+        const discountAmt = (origPrice - unitPrice) * qty;
+        return `• ${i.title}  x${qty}  =  Rs. ${lineTotal.toFixed(2)}\n   (Special Discount: -Rs. ${discountAmt.toFixed(2)})`;
+      }
       return `• ${i.title}  x${qty}  =  Rs. ${lineTotal.toFixed(2)}`;
     })
     .join('\n');

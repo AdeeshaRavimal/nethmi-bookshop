@@ -172,7 +172,9 @@ export default function POS() {
         quantity: 1,
         stock_limit: isService ? 999999 : item.quantity,
         discount_percent: discount,
-        original_price: item.selling_price
+        original_price: item.selling_price,
+        catalog_price: item.selling_price,
+        is_special_discount: discount > 0,
       });
     }
     setSearchTerm('');
@@ -277,11 +279,67 @@ export default function POS() {
     }));
   };
 
+  const [itemPriceInputs, setItemPriceInputs] = useState<Record<string, string>>({});
+
+  const handleSellingPriceChange = (lineId: string, rawVal: string) => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+    setItemPriceInputs(prev => ({ ...prev, [lineId]: rawVal }));
+
+    const val = parseFloat(rawVal);
+    if (isNaN(val) || val < 0) return;
+
+    setCart(prev => prev.map(item => {
+      if (item.lineId !== lineId) return item;
+      const catalogPrice = item.catalog_price ?? item.original_price ?? item.selling_price;
+      const newPrice = Math.round(val * 100) / 100;
+
+      if (newPrice < catalogPrice) {
+        // Price reduced below usual price -> Special Discount
+        const discountPercent = catalogPrice > 0
+          ? Math.round(((catalogPrice - newPrice) / catalogPrice) * 100 * 100) / 100
+          : 0;
+        return {
+          ...item,
+          catalog_price: catalogPrice,
+          original_price: catalogPrice,
+          selling_price: newPrice,
+          discount_percent: discountPercent,
+          is_special_discount: true,
+        };
+      } else {
+        // Price equal or higher than usual price -> Keep new price on bill, no discount
+        return {
+          ...item,
+          catalog_price: catalogPrice,
+          original_price: newPrice,
+          selling_price: newPrice,
+          discount_percent: 0,
+          is_special_discount: false,
+        };
+      }
+    }));
+  };
+
+  const handleSellingPriceBlur = (lineId: string) => {
+    const item = cart.find(i => i.lineId === lineId);
+    if (!item) return;
+    const raw = itemPriceInputs[lineId];
+    if (raw === undefined || raw.trim() === '' || isNaN(parseFloat(raw))) {
+      setItemPriceInputs(prev => ({ ...prev, [lineId]: String(item.selling_price) }));
+    }
+  };
+
   const removeItem = (id: string) => {
     if (checkoutPending.current) return;
     checkoutRequestId.current = null;
     setCart(prev => prev.filter(i => i.lineId !== id));
     setItemDiscountSettings(prev => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+    setItemPriceInputs(prev => {
       const copy = { ...prev };
       delete copy[id];
       return copy;
@@ -586,6 +644,7 @@ export default function POS() {
           unit_price: item.selling_price,
           discount_percent: item.discount_percent,
           original_price: item.original_price,
+          is_special_discount: item.is_special_discount,
         })),
         bill_discount: finalBillDiscount + pointsToRedeem,
         subtotal: finalSubtotal,
@@ -978,11 +1037,13 @@ export default function POS() {
             ) : (
               <ul className="space-y-3">
                 {cart.map(item => {
+                  const catalogPrice = item.catalog_price ?? item.original_price ?? item.selling_price;
                   const origPrice = item.original_price ?? item.selling_price;
-                  const hasDiscount = (item.discount_percent ?? 0) > 0;
+                  const isPriceReduced = catalogPrice > 0 && item.selling_price < catalogPrice;
+                  const hasDiscount = (item.discount_percent ?? 0) > 0 || isPriceReduced || item.is_special_discount;
                   const discountMode = getItemDiscountMode(item);
                   const discountVal = getItemDiscountValue(item);
-                  const itemDiscountTotal = ((origPrice - item.selling_price) * item.quantity);
+                  const itemDiscountTotal = ((catalogPrice - item.selling_price) * item.quantity);
 
                   return (
                     <li key={item.lineId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-lg hover:border-blue-100 dark:hover:border-blue-900/40 transition-colors">
@@ -995,63 +1056,82 @@ export default function POS() {
                             Cost: <strong className="text-gray-700 dark:text-gray-300">Rs. {item.cost_price.toFixed(2)}</strong>
                           </span>
                           <span>•</span>
-                          <span>
-                            Price: <strong className="text-gray-800 dark:text-gray-200">Rs. {item.selling_price.toFixed(2)}</strong>
-                            {hasDiscount && (
-                              <span className="ml-1 text-gray-400 line-through">Rs. {origPrice.toFixed(2)}</span>
-                            )}
-                          </span>
-                          <span>•</span>
                           <span className="text-green-600 dark:text-green-400 font-medium">
                             Margin: Rs. {(item.selling_price - item.cost_price).toFixed(2)}/ea
                           </span>
                         </div>
 
-                        {/* Item-wise Discount Controls */}
-                        <div className="flex items-center gap-2 mt-2.5">
-                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                            Item Disc:
-                          </span>
-                          <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 overflow-hidden shadow-2xs">
+                        {/* Editable Price & Special Discount / Item Disc Controls */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                          <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-900/30 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">Price: Rs.</span>
                             <input
                               type="number"
                               min="0"
                               step="any"
-                              placeholder="0"
-                              value={discountVal}
-                              onChange={(e) => handleItemDiscountChange(item.lineId, e.target.value)}
-                              className="w-16 px-2 py-1 text-xs font-bold text-gray-900 dark:text-gray-100 bg-transparent focus:outline-none text-right"
+                              value={itemPriceInputs[item.lineId] !== undefined ? itemPriceInputs[item.lineId] : item.selling_price}
+                              onChange={(e) => handleSellingPriceChange(item.lineId, e.target.value)}
+                              onBlur={() => handleSellingPriceBlur(item.lineId)}
+                              className="w-20 px-1.5 py-0.5 text-xs font-bold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded text-right focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                              title="Edit selling price directly (reductions are treated as Special Discount)"
                             />
-                            <div className="flex bg-gray-200 dark:bg-gray-600 p-0.5 text-[10px] font-bold">
-                              <button
-                                type="button"
-                                onClick={() => toggleItemDiscountMode(item.lineId, 'Rs')}
-                                title="Fixed Rupee discount on this item"
-                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${discountMode === 'Rs'
-                                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
-                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                  }`}
-                              >
-                                Rs
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => toggleItemDiscountMode(item.lineId, '%')}
-                                title="Percentage discount on this item"
-                                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${discountMode === '%'
-                                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
-                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                  }`}
-                              >
-                                %
-                              </button>
-                            </div>
                           </div>
 
-                          {hasDiscount && (
-                            <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-800 animate-in fade-in">
-                              -Rs. {itemDiscountTotal.toFixed(2)} ({item.discount_percent}%)
+                          {isPriceReduced ? (
+                            <div className="flex items-center gap-1.5 animate-in fade-in">
+                              <span className="text-xs text-gray-400 line-through">
+                                Rs. {catalogPrice.toFixed(2)}
+                              </span>
+                              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-700">
+                                ★ Special Discount: -Rs. {itemDiscountTotal.toFixed(2)} ({item.discount_percent}%)
+                              </span>
+                            </div>
+                          ) : (item.selling_price > catalogPrice) ? (
+                            <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                              Custom Rate
                             </span>
+                          ) : (
+                            /* Item-wise Discount Controls */
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                Disc:
+                              </span>
+                              <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 overflow-hidden shadow-2xs">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  placeholder="0"
+                                  value={discountVal}
+                                  onChange={(e) => handleItemDiscountChange(item.lineId, e.target.value)}
+                                  className="w-14 px-1.5 py-0.5 text-xs font-bold text-gray-900 dark:text-gray-100 bg-transparent focus:outline-none text-right"
+                                />
+                                <div className="flex bg-gray-200 dark:bg-gray-600 p-0.5 text-[10px] font-bold">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleItemDiscountMode(item.lineId, 'Rs')}
+                                    title="Fixed Rupee discount on this item"
+                                    className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${discountMode === 'Rs'
+                                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                      }`}
+                                  >
+                                    Rs
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleItemDiscountMode(item.lineId, '%')}
+                                    title="Percentage discount on this item"
+                                    className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${discountMode === '%'
+                                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                      }`}
+                                  >
+                                    %
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1064,8 +1144,8 @@ export default function POS() {
                         </div>
                         <div className="w-28 text-right">
                           <p className="font-bold text-lg text-gray-900 dark:text-gray-100">Rs. {(item.selling_price * item.quantity).toFixed(2)}</p>
-                          {hasDiscount && (
-                            <p className="text-xs text-gray-400 line-through">Rs. {(origPrice * item.quantity).toFixed(2)}</p>
+                          {isPriceReduced && (
+                            <p className="text-xs text-gray-400 line-through">Rs. {(catalogPrice * item.quantity).toFixed(2)}</p>
                           )}
                         </div>
                         <button onClick={() => removeItem(item.lineId)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer" title="Remove item">
