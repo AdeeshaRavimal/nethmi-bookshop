@@ -367,8 +367,9 @@ export default function Invoices() {
 
   const handlePrint = () => {
     if (!selectedSale) return;
+    const isCredit = selectedSale.payment_type === 'CREDIT';
     const totalDue = selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount;
-    const prevDue = totalDue != null ? Math.max(0, totalDue - (selectedSale.total_amount || 0)) : undefined;
+    const prevDue = isCredit && totalDue != null ? Math.max(0, totalDue - (selectedSale.total_amount || 0)) : undefined;
     printReceipt({
       ...selectedSale,
       customer_name: selectedSale.customer_name,
@@ -555,16 +556,20 @@ export default function Invoices() {
                 <p className="text-lg font-bold">Total: Rs. {selectedSale.total_amount.toFixed(2)}</p>
                 {(selectedSale.customer_total_outstanding != null || selectedSale.credit_due_amount != null) && (
                   <div className="pt-2 mt-2 border-t-2 border-dashed border-red-300 dark:border-red-700 text-sm space-y-1">
-                    <div className="flex justify-between text-gray-500 dark:text-gray-400">
-                      <span>Previous Due:</span>
-                      <span>Rs. {Math.max(0, (selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount) - (selectedSale.total_amount || 0)).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-500 dark:text-gray-400">
-                      <span>This Bill:</span>
-                      <span>Rs. {Number(selectedSale.total_amount).toFixed(2)}</span>
-                    </div>
+                    {selectedSale.payment_type === 'CREDIT' && (
+                      <>
+                        <div className="flex justify-between text-gray-500 dark:text-gray-400">
+                          <span>Previous Due:</span>
+                          <span>Rs. {Math.max(0, (selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount) - (selectedSale.total_amount || 0)).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-500 dark:text-gray-400">
+                          <span>This Bill:</span>
+                          <span>Rs. {Number(selectedSale.total_amount).toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex justify-between text-red-600 dark:text-red-400 font-bold text-base pt-1 border-t border-red-200 dark:border-red-800">
-                      <span>Total Credit Due:</span>
+                      <span>{selectedSale.payment_type === 'CREDIT' ? 'Total Credit Due:' : 'Remaining Credit Due:'}</span>
                       <span>Rs. {Number(selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount).toFixed(2)}</span>
                     </div>
                   </div>

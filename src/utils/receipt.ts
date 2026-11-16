@@ -150,7 +150,7 @@ export function printReceipt(data: ReceiptData): void {
       <span>Change Return</span>
       <span>${money(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount))}</span>
     </div>` : ''}
-    ${(data.previous_due != null && (data.previous_due > 0 || data.payment_type === 'CREDIT')) ? `
+    ${(data.payment_type === 'CREDIT' && data.previous_due != null) ? `
     <div class="total-row" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px; color: #475569;">
       <span>Previous Due</span>
       <span>${money(data.previous_due)}</span>
@@ -161,7 +161,7 @@ export function printReceipt(data: ReceiptData): void {
     </div>` : ''}
     ${(data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) ? `
     <div class="total-row" style="margin-top: 8px; border-top: 2px dashed #dc2626; padding-top: 6px; color: #dc2626; font-weight: 800; font-size: 15px;">
-      <span>TOTAL CREDIT DUE</span>
+      <span>${data.payment_type === 'CREDIT' ? 'TOTAL CREDIT DUE' : 'REMAINING CREDIT DUE'}</span>
       <span>${money(data.credit_due_amount)}</span>
     </div>` : ''}
   </div>
@@ -243,13 +243,14 @@ export function buildWhatsAppReceiptText(data: ReceiptData): string {
     text += `\nChange Returned: Rs. ${(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount)).toFixed(2)}`;
   }
 
-  if (data.previous_due != null && (data.previous_due > 0 || data.payment_type === 'CREDIT')) {
+  if (data.payment_type === 'CREDIT' && data.previous_due != null) {
     text += `\nPrevious Due: Rs. ${Number(data.previous_due).toFixed(2)}`;
     text += `\nThis Bill: Rs. ${Number(data.total_amount).toFixed(2)}`;
   }
 
   if (data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) {
-    text += `\n----------------------------------------\n*TOTAL CREDIT DUE: Rs. ${Number(data.credit_due_amount).toFixed(2)}*`;
+    const label = data.payment_type === 'CREDIT' ? 'TOTAL CREDIT DUE' : 'REMAINING CREDIT DUE';
+    text += `\n----------------------------------------\n*${label}: Rs. ${Number(data.credit_due_amount).toFixed(2)}*`;
   }
 
   text += `\n\nThank you for shopping with us! Have a great day!`;
@@ -268,7 +269,7 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
       const width = 600;
       const rowHeight = 32;
       const hasCreditDue = data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT');
-      const hasPrevDue = hasCreditDue && data.previous_due != null && (data.previous_due > 0 || data.payment_type === 'CREDIT');
+      const hasPrevDue = hasCreditDue && data.payment_type === 'CREDIT' && data.previous_due != null;
       const baseHeight = 560 + (hasCreditDue ? 50 : 0) + (hasPrevDue ? 30 : 0);
       const height = baseHeight + (data.items.length * rowHeight);
 
@@ -440,7 +441,8 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
 
         ctx.fillStyle = '#dc2626';
         ctx.font = 'bold 13px "Segoe UI", sans-serif';
-        ctx.fillText('TOTAL DUE CREDIT BALANCE:', 32, y + 23);
+        const label = data.payment_type === 'CREDIT' ? 'TOTAL DUE CREDIT BALANCE:' : 'REMAINING CREDIT BALANCE:';
+        ctx.fillText(label, 32, y + 23);
         ctx.textAlign = 'right';
         ctx.font = 'bold 16px "Segoe UI", sans-serif';
         ctx.fillText(`Rs. ${Number(data.credit_due_amount).toFixed(2)}`, width - 32, y + 23);

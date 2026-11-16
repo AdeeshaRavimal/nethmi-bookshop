@@ -193,5 +193,36 @@ describe('Checkout & POS Calculations', () => {
       expect(creditPos).toBeGreaterThan(-1);
       expect(thankYouPos).toBeGreaterThan(creditPos);
     });
+
+    it('shows REMAINING CREDIT DUE without "This Bill" or "Previous Due" when a debt customer pays by CASH', () => {
+      const receiptText = buildWhatsAppReceiptText({
+        receipt_no: 'REC-20261116-009',
+        created_at: '2026-11-16T16:35:42',
+        payment_type: 'CASH',
+        customer_name: 'Kannangara',
+        customer_phone: '0724207000',
+        total_amount: 300,
+        cash_tendered: 500,
+        change_amount: 200,
+        credit_due_amount: 780, // Customer has existing 780 debt
+        items: [
+          {
+            title: 'Ex 40 single rule',
+            quantity: 2,
+            unit_price: 150,
+          },
+        ],
+      });
+
+      expect(receiptText).toContain('Customer: Kannangara (0724207000)');
+      expect(receiptText).toContain('TOTAL: Rs. 300.00');
+      expect(receiptText).toContain('Cash Received: Rs. 500.00');
+      expect(receiptText).toContain('Change Returned: Rs. 200.00');
+      // For a CASH sale, it should NOT say "Previous Due" or "This Bill" in the credit section
+      expect(receiptText).not.toContain('Previous Due');
+      expect(receiptText).not.toContain('This Bill');
+      // It should display REMAINING CREDIT DUE: Rs. 780.00
+      expect(receiptText).toContain('REMAINING CREDIT DUE: Rs. 780.00');
+    });
   });
 });

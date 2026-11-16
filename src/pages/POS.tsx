@@ -881,7 +881,7 @@ export default function POS() {
         customer_phone: activeCustomer?.phone,
         points_earned: pointsEarned,
         points_balance: pointsBalance,
-        previous_due: (method === 'CREDIT' || previousDue > 0) ? previousDue : undefined,
+        previous_due: method === 'CREDIT' ? previousDue : undefined,
         credit_due_amount: creditDueAmount,
       };
 
@@ -951,8 +951,9 @@ export default function POS() {
       toast.info('No previous receipts found.');
       return;
     }
+    const isCredit = lastSale.payment_type === 'CREDIT';
     const totalDue = lastSale.customer_total_outstanding ?? lastSale.credit_due_amount;
-    const prevDue = totalDue != null ? Math.max(0, totalDue - (lastSale.total_amount || 0)) : undefined;
+    const prevDue = isCredit && totalDue != null ? Math.max(0, totalDue - (lastSale.total_amount || 0)) : undefined;
 
     const receiptPayload: ReceiptData = {
       receipt_no: lastSale.receipt_no,
@@ -1009,8 +1010,9 @@ export default function POS() {
       toast.info('No previous receipts found.');
       return;
     }
+    const isCredit = lastSale.payment_type === 'CREDIT';
     const totalDue = lastSale.customer_total_outstanding ?? lastSale.credit_due_amount;
-    const prevDue = totalDue != null ? Math.max(0, totalDue - (lastSale.total_amount || 0)) : undefined;
+    const prevDue = isCredit && totalDue != null ? Math.max(0, totalDue - (lastSale.total_amount || 0)) : undefined;
 
     printReceipt({
       receipt_no: lastSale.receipt_no,
