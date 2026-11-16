@@ -1097,16 +1097,25 @@ export interface ReturnReceiptData {
 /**
  * Prints a 58mm Sales Return & Refund Voucher on thermal printer.
  */
+/**
+ * Prints an A5 Portrait Sales Return & Refund Voucher.
+ */
 export function printReturnReceipt(data: ReturnReceiptData): void {
-  const date = new Date(data.created_at).toLocaleString();
+  const date = new Date(data.created_at).toLocaleString('en-LK', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-  const rows = data.items.map(item => `
+  const rows = data.items.map((item, index) => `
     <tr>
-      <td colspan="2" class="desc">${escapeHtml(item.title)}</td>
-    </tr>
-    <tr>
-      <td class="qty">${item.quantity} x ${money(item.unit_price)}</td>
-      <td class="amount">${money(item.refund_amount)}</td>
+      <td class="col-idx">${index + 1}</td>
+      <td class="col-desc"><div class="item-title">${escapeHtml(item.title)}</div></td>
+      <td class="col-qty">${item.quantity}</td>
+      <td class="col-price">${money(item.unit_price)}</td>
+      <td class="col-total">${money(item.refund_amount)}</td>
     </tr>
   `).join('');
 
@@ -1116,84 +1125,233 @@ export function printReturnReceipt(data: ReturnReceiptData): void {
   <meta charset="utf-8">
   <title>Return Voucher - ${escapeHtml(data.return_no)}</title>
   <style>
-    @page { size: 58mm auto; margin: 0; }
+    @page {
+      size: A5 portrait;
+      margin: 8mm 8mm 10mm 8mm;
+    }
+    * { box-sizing: border-box; }
     body {
-      width: 58mm;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+      width: 100%;
       margin: 0;
-      padding: 6px 8px 16px 8px;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 12px;
-      line-height: 1.3;
-      color: #000;
-      box-sizing: border-box;
+      padding: 0;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #0f172a;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    .center { text-align: center; }
-    .bold { font-weight: bold; }
-    .shop-name { font-size: 14px; font-weight: bold; }
-    .header-tag {
-      display: inline-block;
-      margin: 4px 0;
-      padding: 2px 6px;
-      border: 1px dashed #000;
-      font-weight: bold;
-      font-size: 13px;
+
+    .voucher-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
-    .divider {
-      border-top: 1px dashed #000;
-      margin: 6px 0;
+    .company h1 {
+      font-size: 17px;
+      font-weight: 800;
+      margin: 0 0 2px 0;
+      color: #0f172a;
+      text-transform: uppercase;
     }
-    table { width: 100%; border-collapse: collapse; }
-    .desc { padding-top: 3px; font-weight: 500; }
-    .qty { font-size: 11px; }
-    .amount { text-align: right; font-size: 12px; }
-    .total-row {
+    .company p {
+      margin: 1px 0;
+      color: #475569;
+      font-size: 10.5px;
+    }
+    .voucher-badge-block {
+      text-align: right;
+    }
+    .voucher-title {
       font-size: 14px;
-      font-weight: bold;
+      font-weight: 800;
+      color: #b91c1c;
+      text-transform: uppercase;
+      margin: 0 0 2px 0;
     }
-    .footer {
-      text-align: center;
+    .voucher-number {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .meta-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 10px;
+      margin-bottom: 12px;
+    }
+    .meta-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .meta-val {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    thead {
+      display: table-header-group;
+    }
+    th {
+      background: #f1f5f9;
+      color: #1e293b;
+      border-top: 1px solid #0f172a;
+      border-bottom: 1px solid #0f172a;
+      padding: 5px 6px;
       font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 5px 6px;
+      vertical-align: middle;
+      font-size: 11px;
+    }
+    tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .col-idx { width: 20px; text-align: center; color: #64748b; font-size: 10px; }
+    .col-desc { text-align: left; }
+    .item-title { font-weight: 600; color: #0f172a; }
+    .col-qty { width: 40px; text-align: center; font-weight: 700; font-family: monospace; }
+    .col-price { width: 70px; text-align: right; font-family: monospace; color: #334155; }
+    .col-total { width: 85px; text-align: right; font-family: monospace; font-weight: 700; color: #0f172a; }
+
+    .totals-box {
+      width: 240px;
+      margin-left: auto;
       margin-top: 8px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      font-size: 11px;
+    }
+    .total-line.grand {
+      font-size: 14px;
+      font-weight: 800;
+      color: #b91c1c;
+      border-top: 2px solid #0f172a;
+      border-bottom: 2px solid #0f172a;
+      padding: 5px 0;
+      margin-top: 4px;
+    }
+
+    .sign-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .sign-col {
+      text-align: center;
+      border-top: 1px dashed #94a3b8;
+      padding-top: 4px;
+      font-size: 9.5px;
+      color: #475569;
+    }
+
+    .footer {
+      margin-top: 16px;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+      font-size: 9.5px;
+      color: #64748b;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
   </style>
 </head>
 <body>
-  <div class="center">
-    <div class="shop-name">${escapeHtml(SHOP_NAME)}</div>
-    <div>${escapeHtml(SHOP_ADDRESS)}</div>
-    <div>Tel: ${escapeHtml(SHOP_PHONE)}</div>
-    <div class="divider"></div>
-    <div class="header-tag">SALES RETURN / VOUCHER</div>
-    <div><strong>Voucher:</strong> ${escapeHtml(data.return_no)}</div>
-    <div><strong>Original Bill:</strong> ${escapeHtml(data.receipt_no)}</div>
-    <div>${escapeHtml(date)}</div>
-    <div>Refund: <strong>${escapeHtml(data.refund_method)}</strong></div>
-    ${data.reason ? `<div>Reason: ${escapeHtml(data.reason)}</div>` : ''}
+  <div class="voucher-header">
+    <div class="company">
+      <h1>${SHOP_NAME}</h1>
+      <p>Books • Stationery • Office & School Supplies</p>
+      <p>${SHOP_ADDRESS} • Tel: <strong>${SHOP_PHONE}</strong></p>
+    </div>
+    <div class="voucher-badge-block">
+      <div class="voucher-title">Sales Return / Credit Note</div>
+      <p class="voucher-number">${escapeHtml(data.return_no)}</p>
+    </div>
   </div>
 
-  <div class="divider"></div>
+  <div class="meta-container">
+    <div>
+      <div class="meta-label">Original Sale Reference</div>
+      <div class="meta-val">Receipt No: <strong>${escapeHtml(data.receipt_no)}</strong></div>
+      <div style="font-size:10px; color:#475569; margin-top:2px;">Reason: ${data.reason ? escapeHtml(data.reason) : 'Customer Return'}</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="meta-label">Return Execution</div>
+      <div class="meta-val">Date: <strong>${date}</strong></div>
+      <div style="font-size:10px; color:#475569; margin-top:2px;">Refund Method: <strong style="text-transform:uppercase;">${escapeHtml(data.refund_method)}</strong></div>
+    </div>
+  </div>
 
   <table>
+    <thead>
+      <tr>
+        <th class="col-idx">#</th>
+        <th class="col-desc">Returned Item Description</th>
+        <th class="col-qty">Qty</th>
+        <th class="col-price">Unit Price</th>
+        <th class="col-total">Refund Amount</th>
+      </tr>
+    </thead>
     <tbody>
       ${rows}
     </tbody>
   </table>
 
-  <div class="divider"></div>
+  <div class="totals-box">
+    <div class="total-line grand">
+      <span>TOTAL REFUND PAID:</span>
+      <span style="font-family:monospace;">${money(data.total_refund)}</span>
+    </div>
+  </div>
 
-  <table>
-    <tr class="total-row">
-      <td>TOTAL REFUND:</td>
-      <td class="amount">${money(data.total_refund)}</td>
-    </tr>
-  </table>
-
-  <div class="divider"></div>
+  <div class="sign-block">
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Customer Signature (Acknowledging Refund)</span>
+    </div>
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Cashier / Authorized Signatory</span>
+    </div>
+  </div>
 
   <div class="footer">
-    Items returned and restocked.<br>
-    Please keep this slip for reference.<br>
-    Thank you!
+    Items returned to stock • Official Customer Refund Voucher<br>
+    Software by inkoart.online • 0724207000
   </div>
 
   <script>
@@ -1231,7 +1389,7 @@ export function printReturnReceipt(data: ReturnReceiptData): void {
   }, 60000);
 }
 
-// ── Daily Shift Close & Z-Report Thermal Printing ───────────────────────────
+// ── Daily Shift Close & Z-Report A5 Portrait Printing ───────────────────────
 
 export interface ZReportData {
   closing_date: string;
@@ -1257,9 +1415,17 @@ export interface ZReportData {
 export function printZReport(data: ZReportData): void {
   const isMatch = Math.abs(data.variance) < 0.01;
   const isSurplus = data.variance > 0.01;
-  const varianceStatus = isMatch ? 'EXACT MATCH' : isSurplus ? `SURPLUS (+${money(data.variance)})` : `SHORTAGE (-${money(Math.abs(data.variance))})`;
+  const varianceStatus = isMatch
+    ? 'EXACT MATCH (Balanced)'
+    : isSurplus
+      ? `SURPLUS (+${money(data.variance)})`
+      : `SHORTAGE (-${money(Math.abs(data.variance))})`;
 
-  let denomRows = '';
+  const varianceBg = isMatch ? '#f0fdf4' : isSurplus ? '#eff6ff' : '#fef2f2';
+  const varianceBorder = isMatch ? '#86efac' : isSurplus ? '#93c5fd' : '#fca5a5';
+  const varianceColor = isMatch ? '#166534' : isSurplus ? '#1e40af' : '#991b1b';
+
+  let denomGrid = '';
   if (data.denominations) {
     const dKeys = ['5000', '1000', '500', '100', '50', '20', 'coins'];
     const renderedDenoms = dKeys
@@ -1267,16 +1433,23 @@ export function printZReport(data: ZReportData): void {
         const count = data.denominations![k] || 0;
         if (count <= 0) return '';
         const val = k === 'coins' ? count : Number(k) * count;
-        const label = k === 'coins' ? 'Coins Total' : `Rs. ${k} x ${count}`;
-        return `<tr><td style="padding:1px 0;">${label}</td><td style="text-align:right;padding:1px 0;">${money(val)}</td></tr>`;
+        const label = k === 'coins' ? 'Coins & Change' : `Rs. ${Number(k).toLocaleString()} Note`;
+        return `
+          <div class="denom-cell">
+            <span class="denom-lbl">${label} ${k !== 'coins' ? `(× ${count})` : ''}</span>
+            <span class="denom-val">${money(val)}</span>
+          </div>
+        `;
       })
       .filter(Boolean)
       .join('');
+
     if (renderedDenoms) {
-      denomRows = `
-        <div class="divider"></div>
-        <div class="center bold" style="margin:4px 0;">CASH DRAWER BREAKDOWN</div>
-        <table><tbody>${renderedDenoms}</tbody></table>
+      denomGrid = `
+        <div class="section-title">Cash Drawer Denomination Count</div>
+        <div class="denom-grid">
+          ${renderedDenoms}
+        </div>
       `;
     }
   }
@@ -1287,101 +1460,388 @@ export function printZReport(data: ZReportData): void {
   <meta charset="utf-8">
   <title>Z-Report - ${escapeHtml(data.closing_date)}</title>
   <style>
-    @page { size: 58mm auto; margin: 0; }
-    @media print {
-      body { width: 48mm; margin: 2mm auto; }
-      .no-print { display: none !important; }
+    @page {
+      size: A5 portrait;
+      margin: 8mm 8mm 10mm 8mm;
     }
+    * { box-sizing: border-box; }
     body {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 10px;
-      line-height: 1.25;
-      color: #000;
-      background: #fff;
-      padding: 3mm 2mm;
-    }
-    .center { text-align: center; }
-    .right { text-align: right; }
-    .bold { font-weight: bold; }
-    .shop-name { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
-    .title-banner {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+      width: 100%;
+      margin: 0;
+      padding: 0;
       font-size: 11px;
-      font-weight: bold;
-      border-top: 1px dashed #000;
-      border-bottom: 1px dashed #000;
-      padding: 3px 0;
-      margin: 4px 0;
-      text-align: center;
+      line-height: 1.35;
+      color: #0f172a;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    .divider { border-top: 1px dashed #000; margin: 4px 0; }
-    .double-divider { border-top: 2px solid #000; margin: 4px 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    td { vertical-align: top; padding: 1.5px 0; }
-    .amount { text-align: right; font-family: monospace; }
-    .footer { text-align: center; font-size: 8px; margin-top: 6px; }
+
+    /* ── Header ── */
+    .z-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .company h1 {
+      font-size: 17px;
+      font-weight: 800;
+      margin: 0 0 2px 0;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: -0.2px;
+    }
+    .company p {
+      margin: 1px 0;
+      color: #475569;
+      font-size: 10.5px;
+    }
+    .z-badge-block {
+      text-align: right;
+    }
+    .z-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 2px 0;
+    }
+    .z-sub {
+      font-size: 10.5px;
+      color: #475569;
+      margin: 0;
+    }
+
+    /* ── Meta Strip ── */
+    .meta-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 10px;
+      margin-bottom: 10px;
+    }
+    .meta-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .meta-val {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    /* ── Section Titles ── */
+    .section-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0f172a;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 3px;
+      margin: 10px 0 6px 0;
+    }
+
+    /* ── 2-Column Reconciliation Comparison ── */
+    .recon-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .recon-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .card-head {
+      background: #f1f5f9;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #334155;
+      padding: 5px 8px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .card-body {
+      padding: 6px 8px;
+    }
+    .recon-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      padding: 2.5px 0;
+      color: #334155;
+    }
+    .recon-row.total-line {
+      font-weight: 800;
+      font-size: 12px;
+      color: #0f172a;
+      border-top: 1.5px solid #0f172a;
+      padding-top: 4px;
+      margin-top: 4px;
+    }
+
+    /* ── Variance Box ── */
+    .variance-card {
+      border: 1px solid ${varianceBorder};
+      background: ${varianceBg};
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .variance-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: ${varianceColor};
+      text-transform: uppercase;
+    }
+    .variance-badge {
+      font-size: 12.5px;
+      font-weight: 800;
+      font-family: monospace;
+      color: ${varianceColor};
+    }
+
+    /* ── Denomination Grid ── */
+    .denom-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .denom-cell {
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 4px 6px;
+      background: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+    }
+    .denom-lbl { color: #475569; font-weight: 600; }
+    .denom-val { font-family: monospace; font-weight: 700; color: #0f172a; }
+
+    /* ── Revenue Channels Table ── */
+    .rev-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    .rev-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 10.5px;
+    }
+    .rev-table .amount {
+      text-align: right;
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .rev-table tr.grand td {
+      font-size: 12.5px;
+      font-weight: 800;
+      border-top: 2px solid #0f172a;
+      border-bottom: 2px solid #0f172a;
+      background: #f8fafc;
+    }
+
+    /* ── Signatures ── */
+    .sign-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .sign-col {
+      text-align: center;
+      border-top: 1px dashed #94a3b8;
+      padding-top: 4px;
+      font-size: 9px;
+      color: #475569;
+    }
+
+    .notes-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 10px;
+      color: #475569;
+      background: #f8fafc;
+      margin-bottom: 10px;
+    }
+
+    .footer {
+      margin-top: 14px;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 6px;
+      font-size: 9px;
+      color: #64748b;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
   </style>
 </head>
 <body>
-  <div class="center">
-    <div class="shop-name">${SHOP_NAME}</div>
-    <div>${SHOP_ADDRESS}</div>
-    <div>Tel: ${SHOP_PHONE}</div>
+  <!-- Header -->
+  <div class="z-header">
+    <div class="company">
+      <h1>${SHOP_NAME}</h1>
+      <p>Books • Stationery • Office & School Supplies</p>
+      <p>${SHOP_ADDRESS} • Tel: <strong>${SHOP_PHONE}</strong></p>
+    </div>
+    <div class="z-badge-block">
+      <div class="z-title">Daily Shift Close & Z-Report</div>
+      <p class="z-sub">Till Cash Reconciliation Audit Slip</p>
+    </div>
   </div>
 
-  <div class="title-banner">DAILY Z-REPORT / SHIFT CLOSE</div>
+  <!-- Meta Info -->
+  <div class="meta-container">
+    <div>
+      <div class="meta-label">Audit Period</div>
+      <div class="meta-val">Closing Date: <strong>${escapeHtml(data.closing_date)}</strong></div>
+      <div style="font-size:10px; color:#475569; margin-top:2px;">POS Sales Count: <strong>${data.pos_sales_count} bills</strong></div>
+    </div>
+    <div style="text-align:right;">
+      <div class="meta-label">Execution Timestamp</div>
+      <div class="meta-val">Closed At: <strong>${escapeHtml(data.closed_at)}</strong></div>
+      <div style="font-size:10px; color:#475569; margin-top:2px;">Reconciliation Status: <strong>${isMatch ? 'BALANCED' : isSurplus ? 'SURPLUS' : 'SHORTAGE'}</strong></div>
+    </div>
+  </div>
 
-  <table>
-    <tr><td>Date:</td><td class="amount bold">${escapeHtml(data.closing_date)}</td></tr>
-    <tr><td>Closed At:</td><td class="amount">${escapeHtml(data.closed_at)}</td></tr>
-  </table>
+  <!-- 2-Column Cash Drawer Reconciliation -->
+  <div class="section-title">Till Cash Reconciliation</div>
+  <div class="recon-grid">
+    <div class="recon-card">
+      <div class="card-head">1. Expected Cash Flow (System Calculated)</div>
+      <div class="card-body">
+        <div class="recon-row">
+          <span>Opening Cash (Brought Forward):</span>
+          <span style="font-family:monospace;">${money(data.opening_balance)}</span>
+        </div>
+        <div class="recon-row">
+          <span>+ POS Cash Sales (${data.pos_sales_count}):</span>
+          <span style="font-family:monospace; color:#166534; font-weight:600;">+${money(data.pos_cash_sales)}</span>
+        </div>
+        <div class="recon-row">
+          <span>+ Customer Debt Collected:</span>
+          <span style="font-family:monospace; color:#166534; font-weight:600;">+${money(data.customer_debt_collected)}</span>
+        </div>
+        ${data.other_in > 0 ? `
+        <div class="recon-row">
+          <span>+ Other Manual Cash In:</span>
+          <span style="font-family:monospace; color:#166534; font-weight:600;">+${money(data.other_in)}</span>
+        </div>` : ''}
+        <div class="recon-row">
+          <span>- Supplier Cash Paid:</span>
+          <span style="font-family:monospace; color:#991b1b; font-weight:600;">-${money(data.supplier_cash_paid)}</span>
+        </div>
+        <div class="recon-row">
+          <span>- Expenses & Drawings:</span>
+          <span style="font-family:monospace; color:#991b1b; font-weight:600;">-${money(data.expenses + data.other_out)}</span>
+        </div>
+        <div class="recon-row total-line">
+          <span>EXPECTED DRAWER CASH:</span>
+          <span style="font-family:monospace;">${money(data.expected_cash)}</span>
+        </div>
+      </div>
+    </div>
 
-  <div class="divider"></div>
-  <div class="bold" style="margin-bottom:2px;">DRAWER CASH RECONCILIATION</div>
-  <table>
-    <tr><td>Opening Cash:</td><td class="amount">${money(data.opening_balance)}</td></tr>
-    <tr><td>+ POS Cash Sales (${data.pos_sales_count}):</td><td class="amount bold">${money(data.pos_cash_sales)}</td></tr>
-    <tr><td>+ Debt Collected:</td><td class="amount">${money(data.customer_debt_collected)}</td></tr>
-    ${data.other_in > 0 ? `<tr><td>+ Other Cash In:</td><td class="amount">${money(data.other_in)}</td></tr>` : ''}
-    <tr><td>- Supplier Cash Paid:</td><td class="amount">-${money(data.supplier_cash_paid)}</td></tr>
-    <tr><td>- Expenses / Drawings:</td><td class="amount">-${money(data.expenses + data.other_out)}</td></tr>
-    <tr class="bold" style="border-top:1px solid #000;">
-      <td>EXPECTED DRAWER CASH:</td>
-      <td class="amount">${money(data.expected_cash)}</td>
-    </tr>
-    <tr class="bold" style="font-size:11px;">
-      <td>ACTUAL COUNTED CASH:</td>
-      <td class="amount">${money(data.counted_cash)}</td>
-    </tr>
-    <tr class="bold" style="font-size:11px;border-top:1px dashed #000;">
-      <td>VARIANCE:</td>
-      <td class="amount">${varianceStatus}</td>
-    </tr>
-  </table>
+    <div class="recon-card">
+      <div class="card-head">2. Physical Drawer Count & Variance</div>
+      <div class="card-body">
+        <div class="recon-row" style="padding-top:4px;">
+          <span>Physical Counted Total:</span>
+          <span style="font-family:monospace; font-size:12px; font-weight:800; color:#0f172a;">${money(data.counted_cash)}</span>
+        </div>
+        <div class="recon-row" style="padding-top:6px; color:#64748b; font-size:9.5px;">
+          <span>Expected System Cash:</span>
+          <span style="font-family:monospace;">${money(data.expected_cash)}</span>
+        </div>
 
-  ${denomRows}
+        <div style="margin-top:14px; border-top:1.5px solid #0f172a; padding-top:6px;">
+          <div style="font-size:9.5px; font-weight:700; text-transform:uppercase; color:#64748b;">Till Audit Variance:</div>
+          <div style="font-size:13px; font-weight:800; font-family:monospace; color:${varianceColor}; margin-top:2px;">
+            ${varianceStatus}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <div class="double-divider"></div>
-  <div class="bold" style="margin-bottom:2px;">TOTAL REVENUE OVERVIEW</div>
-  <table>
-    <tr><td>Total Cash Sales:</td><td class="amount">${money(data.pos_cash_sales)}</td></tr>
-    ${data.card_sales !== undefined ? `<tr><td>Card Payments:</td><td class="amount">${money(data.card_sales)}</td></tr>` : ''}
-    ${data.credit_sales !== undefined ? `<tr><td>Credit Book Sales:</td><td class="amount">${money(data.credit_sales)}</td></tr>` : ''}
-    ${data.total_gross_sales !== undefined ? `
-    <tr class="bold" style="border-top:1px solid #000;">
-      <td>TOTAL GROSS SALES:</td>
-      <td class="amount">${money(data.total_gross_sales)}</td>
-    </tr>` : ''}
+  ${denomGrid}
+
+  <!-- Revenue Channels Table -->
+  <div class="section-title">Daily Sales Revenue Channels</div>
+  <table class="rev-table">
+    <tbody>
+      <tr>
+        <td>POS Cash Sales Revenue:</td>
+        <td class="amount">${money(data.pos_cash_sales)}</td>
+      </tr>
+      ${data.card_sales !== undefined ? `
+      <tr>
+        <td>Card / Electronic Payments:</td>
+        <td class="amount">${money(data.card_sales)}</td>
+      </tr>` : ''}
+      ${data.credit_sales !== undefined ? `
+      <tr>
+        <td>Credit Invoices Issued (Receivables):</td>
+        <td class="amount">${money(data.credit_sales)}</td>
+      </tr>` : ''}
+      ${data.total_gross_sales !== undefined ? `
+      <tr class="grand">
+        <td>TOTAL GROSS REVENUE (ALL CHANNELS):</td>
+        <td class="amount">${money(data.total_gross_sales)}</td>
+      </tr>` : ''}
+    </tbody>
   </table>
 
   ${data.notes ? `
-  <div class="divider"></div>
-  <div style="font-size:9px;"><strong>Notes:</strong> ${escapeHtml(data.notes)}</div>
-  ` : ''}
+  <div class="notes-box">
+    <strong>Closing Notes:</strong> ${escapeHtml(data.notes)}
+  </div>` : ''}
 
-  <div class="divider"></div>
+  <!-- Signatures -->
+  <div class="sign-block">
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Cashier / Till Operator</span>
+    </div>
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Cash Reconciled By</span>
+    </div>
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Store Manager / Owner</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
   <div class="footer">
-    Official Shift Closure Document<br>
-    Printed directly from POS System
+    Official Shift Closure Document • Hiru Bookshop & Communication<br>
+    Software by inkoart.online • 0724207000
   </div>
 
   <script>
