@@ -23,6 +23,7 @@ export interface ReceiptData {
   customer_phone?: string;
   points_earned?: number;
   points_balance?: number;
+  previous_due?: number;
   credit_due_amount?: number;
 }
 
@@ -140,7 +141,7 @@ export function printReceipt(data: ReceiptData): void {
       <span>NET TOTAL</span>
       <span>${money(data.total_amount)}</span>
     </div>
-    ${(data.cash_tendered != null && data.cash_tendered > 0) ? `
+    ${(data.payment_type === 'CASH' && data.cash_tendered != null && data.cash_tendered > 0) ? `
     <div class="total-row" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px;">
       <span>Cash Tendered</span>
       <span>${money(data.cash_tendered)}</span>
@@ -148,6 +149,15 @@ export function printReceipt(data: ReceiptData): void {
     <div class="total-row" style="font-weight: bold; color: #15803d;">
       <span>Change Return</span>
       <span>${money(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount))}</span>
+    </div>` : ''}
+    ${(data.previous_due != null && (data.previous_due > 0 || data.payment_type === 'CREDIT')) ? `
+    <div class="total-row" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px; color: #475569;">
+      <span>Previous Due</span>
+      <span>${money(data.previous_due)}</span>
+    </div>
+    <div class="total-row" style="color: #475569;">
+      <span>This Bill</span>
+      <span>${money(data.total_amount)}</span>
     </div>` : ''}
     ${(data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) ? `
     <div class="total-row" style="margin-top: 8px; border-top: 2px dashed #dc2626; padding-top: 6px; color: #dc2626; font-weight: 800; font-size: 15px;">
@@ -228,9 +238,14 @@ export function buildWhatsAppReceiptText(data: ReceiptData): string {
     text += `\n(Discount Saved: Rs. ${Number(data.bill_discount).toFixed(2)})`;
   }
 
-  if (data.cash_tendered && data.cash_tendered > data.total_amount) {
+  if (data.payment_type === 'CASH' && data.cash_tendered && data.cash_tendered > data.total_amount) {
     text += `\nCash Received: Rs. ${Number(data.cash_tendered).toFixed(2)}`;
     text += `\nChange Returned: Rs. ${(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount)).toFixed(2)}`;
+  }
+
+  if (data.previous_due != null && (data.previous_due > 0 || data.payment_type === 'CREDIT')) {
+    text += `\nPrevious Due: Rs. ${Number(data.previous_due).toFixed(2)}`;
+    text += `\nThis Bill: Rs. ${Number(data.total_amount).toFixed(2)}`;
   }
 
   if (data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) {
@@ -253,7 +268,8 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
       const width = 600;
       const rowHeight = 32;
       const hasCreditDue = data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT');
-      const baseHeight = 560 + (hasCreditDue ? 50 : 0);
+      const hasPrevDue = hasCreditDue && data.previous_due != null && (data.previous_due > 0 || data.payment_type === 'CREDIT');
+      const baseHeight = 560 + (hasCreditDue ? 50 : 0) + (hasPrevDue ? 30 : 0);
       const height = baseHeight + (data.items.length * rowHeight);
 
       canvas.width = width;
@@ -394,7 +410,7 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
       ctx.textAlign = 'left';
 
       y += 35;
-      if (data.cash_tendered && data.cash_tendered > data.total_amount) {
+      if (data.payment_type === 'CASH' && data.cash_tendered && data.cash_tendered > data.total_amount) {
         ctx.font = '12px "Segoe UI", sans-serif';
         ctx.fillStyle = '#475569';
         ctx.fillText(`Cash Tendered: Rs. ${data.cash_tendered.toFixed(2)}`, 340, y);
@@ -406,6 +422,16 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
       }
 
       if (hasCreditDue) {
+        if (hasPrevDue) {
+          ctx.font = '12px "Segoe UI", sans-serif';
+          ctx.fillStyle = '#64748b';
+          ctx.fillText(`Previous Due: Rs. ${Number(data.previous_due).toFixed(2)}`, 340, y);
+          ctx.textAlign = 'right';
+          ctx.fillText(`This Bill: Rs. ${data.total_amount.toFixed(2)}`, width - 32, y);
+          ctx.textAlign = 'left';
+          y += 24;
+        }
+
         y += 8;
         ctx.fillStyle = '#fef2f2';
         ctx.fillRect(20, y, width - 40, 36);

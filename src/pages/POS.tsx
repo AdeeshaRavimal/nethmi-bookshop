@@ -838,21 +838,27 @@ export default function POS() {
       }
 
       const receiptNo = res.receiptNo || 'REC-?';
-      const actualTendered = method === 'CASH' && tenderedAmount != null && tenderedAmount > 0
-        ? tenderedAmount
-        : adjustedNetTotal;
-      const actualChange = Math.max(0, Math.round((actualTendered - adjustedNetTotal) * 100) / 100);
+      const actualTendered = method === 'CASH'
+        ? (tenderedAmount != null && tenderedAmount > 0 ? tenderedAmount : adjustedNetTotal)
+        : undefined;
+      const actualChange = method === 'CASH' && actualTendered != null
+        ? Math.max(0, Math.round((actualTendered - adjustedNetTotal) * 100) / 100)
+        : undefined;
 
       const pointsEarned = res.pointsEarned ?? Math.floor(adjustedNetTotal / 100);
       const pointsBalance = activeCustomer
         ? (activeCustomer.loyalty_points || 0) - pointsToRedeem + pointsEarned
         : undefined;
 
+      const previousDue = (creditCustomer?.total_outstanding != null)
+        ? creditCustomer.total_outstanding
+        : (activeCustomer?.total_outstanding || 0);
+
       const creditDueAmount = (res as any)?.creditBalance != null
         ? (res as any).creditBalance
         : (method === 'CREDIT'
-            ? ((activeCustomer?.total_outstanding || 0) + adjustedNetTotal)
-            : (activeCustomer?.total_outstanding && activeCustomer.total_outstanding > 0 ? activeCustomer.total_outstanding : undefined));
+            ? (previousDue + adjustedNetTotal)
+            : (previousDue > 0 ? previousDue : undefined));
 
       const receiptPayload: ReceiptData = {
         receipt_no: receiptNo,
@@ -875,6 +881,7 @@ export default function POS() {
         customer_phone: activeCustomer?.phone,
         points_earned: pointsEarned,
         points_balance: pointsBalance,
+        previous_due: (method === 'CREDIT' || previousDue > 0) ? previousDue : undefined,
         credit_due_amount: creditDueAmount,
       };
 
@@ -944,6 +951,9 @@ export default function POS() {
       toast.info('No previous receipts found.');
       return;
     }
+    const totalDue = lastSale.customer_total_outstanding ?? lastSale.credit_due_amount;
+    const prevDue = totalDue != null ? Math.max(0, totalDue - (lastSale.total_amount || 0)) : undefined;
+
     const receiptPayload: ReceiptData = {
       receipt_no: lastSale.receipt_no,
       created_at: lastSale.created_at,
@@ -962,7 +972,8 @@ export default function POS() {
       customer_phone: lastSale.customer_phone,
       points_earned: lastSale.points_earned,
       points_balance: lastSale.points_balance,
-      credit_due_amount: lastSale.customer_total_outstanding ?? lastSale.credit_due_amount,
+      previous_due: prevDue,
+      credit_due_amount: totalDue,
     };
 
     const targetPhone = (lastSale.customer_phone || '').trim();
@@ -998,6 +1009,9 @@ export default function POS() {
       toast.info('No previous receipts found.');
       return;
     }
+    const totalDue = lastSale.customer_total_outstanding ?? lastSale.credit_due_amount;
+    const prevDue = totalDue != null ? Math.max(0, totalDue - (lastSale.total_amount || 0)) : undefined;
+
     printReceipt({
       receipt_no: lastSale.receipt_no,
       created_at: lastSale.created_at,
@@ -1008,7 +1022,8 @@ export default function POS() {
       subtotal: lastSale.subtotal ?? ((lastSale.total_amount ?? 0) + (lastSale.bill_discount ?? 0)),
       customer_name: lastSale.customer_name,
       customer_phone: lastSale.customer_phone,
-      credit_due_amount: lastSale.customer_total_outstanding ?? lastSale.credit_due_amount,
+      previous_due: prevDue,
+      credit_due_amount: totalDue,
     });
   };
 

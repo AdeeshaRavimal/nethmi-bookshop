@@ -159,7 +159,7 @@ describe('Checkout & POS Calculations', () => {
       expect(receiptText).not.toContain('Discount');
     });
 
-    it('displays total due credit amount at the end of the bill for credit customers', () => {
+    it('displays previous due and total credit due at the end of the bill for credit customers', () => {
       const receiptText = buildWhatsAppReceiptText({
         receipt_no: 'REC-20261116-003',
         created_at: '2026-11-16T11:00:00',
@@ -167,7 +167,9 @@ describe('Checkout & POS Calculations', () => {
         customer_name: 'Nimal Perera',
         customer_phone: '0712345678',
         total_amount: 1500,
+        previous_due: 3000,
         credit_due_amount: 4500,
+        cash_tendered: 1500, // Should NOT be printed on a CREDIT bill!
         items: [
           {
             title: 'Atlas 120pg Exercise Book',
@@ -179,7 +181,12 @@ describe('Checkout & POS Calculations', () => {
 
       expect(receiptText).toContain('Customer: Nimal Perera (0712345678)');
       expect(receiptText).toContain('TOTAL: Rs. 1500.00');
+      expect(receiptText).toContain('Previous Due: Rs. 3000.00');
+      expect(receiptText).toContain('This Bill: Rs. 1500.00');
       expect(receiptText).toContain('TOTAL CREDIT DUE: Rs. 4500.00');
+      expect(receiptText).not.toContain('Cash Received');
+      expect(receiptText).not.toContain('Change Returned');
+
       // Verify total credit due is placed near the end of the bill before the closing thank you
       const creditPos = receiptText.indexOf('TOTAL CREDIT DUE: Rs. 4500.00');
       const thankYouPos = receiptText.indexOf('Thank you for shopping with us!');
