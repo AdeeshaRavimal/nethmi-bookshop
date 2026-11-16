@@ -1300,7 +1300,7 @@ export default function POS() {
                               <span className="font-bold text-blue-600 dark:text-blue-400">Rs. {item.selling_price.toFixed(2)}</span>
                             )}
                             {isServiceItem(item) ? (
-                              <span className="inline-block text-[11px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 mt-1">
+                              <span className="inline-block text-[11px] font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 mt-1">
                                 Service (Unlimited)
                               </span>
                             ) : (
@@ -1361,10 +1361,10 @@ export default function POS() {
                 <button
                   type="button"
                   onClick={() => setShowServicesModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all cursor-pointer shadow-xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-all cursor-pointer shadow-2xs"
                   title="Services Calculator: Photocopy, Laminating, Binding (F3)"
                 >
-                  <Calculator className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <Calculator className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Services (F3)</span>
                 </button>
 
@@ -1383,13 +1383,14 @@ export default function POS() {
                       if (res.success && res.data) setCreditCustomers(res.data);
                     } catch (e) { console.error(e); }
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${attachedCustomer
-                    ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-xs'
-                    : 'bg-white dark:bg-gray-700/80 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
-                    }`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
+                    attachedCustomer
+                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                  }`}
                   title="Attach Customer for Loyalty Points & WhatsApp E-Bill (F6)"
                 >
-                  <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <Users className={`w-3.5 h-3.5 ${attachedCustomer ? 'text-white dark:text-slate-900' : 'text-slate-500 dark:text-slate-400'}`} />
                   <span>{attachedCustomer ? `${attachedCustomer.name} (${attachedCustomer.loyalty_points || 0} pts)` : 'Customer (F6)'}</span>
                   {attachedCustomer && (
                     <span
@@ -1398,7 +1399,7 @@ export default function POS() {
                         setAttachedCustomer(null);
                         setRedeemPoints(false);
                       }}
-                      className="p-0.5 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full"
+                      className="p-0.5 hover:bg-slate-800 dark:hover:bg-slate-200 rounded-full"
                       title="Detach Customer"
                     >
                       <X className="w-3 h-3" />
@@ -1417,10 +1418,10 @@ export default function POS() {
                     setShowReturnModal(true);
                     setLastProcessedReturn(null);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all cursor-pointer shadow-xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 transition-all cursor-pointer shadow-2xs"
                   title="Return or Exchange Items by Receipt"
                 >
-                  <RotateCcw className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
                   <span>Return / Exchange</span>
                 </button>
               </div>
@@ -1682,14 +1683,14 @@ export default function POS() {
 
             {/* Loyalty Points Redemption Option */}
             {attachedCustomer && (attachedCustomer.loyalty_points || 0) > 0 && (
-              <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center justify-between">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                    <Award className="w-4 h-4" />
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-slate-500" />
                     Redeem Loyalty Points
                   </span>
-                  <p className="text-[11px] text-gray-500">
-                    Available: <strong>{attachedCustomer.loyalty_points} pts</strong> (Value: Rs. {attachedCustomer.loyalty_points})
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Available: <strong className="font-mono text-slate-800 dark:text-slate-200">{attachedCustomer.loyalty_points} pts</strong> (Value: Rs. {attachedCustomer.loyalty_points})
                   </p>
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1697,9 +1698,9 @@ export default function POS() {
                     type="checkbox"
                     checked={redeemPoints}
                     onChange={(e) => setRedeemPoints(e.target.checked)}
-                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
-                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     {redeemPoints ? 'Applied' : 'Redeem'}
                   </span>
                 </label>
@@ -1707,9 +1708,9 @@ export default function POS() {
             )}
 
             {redeemPoints && attachedCustomer && (
-              <div className="flex justify-between items-center text-xs text-purple-600 dark:text-purple-400 font-bold">
-                <span>Points Discount:</span>
-                <span>- Rs. {Math.min(attachedCustomer.loyalty_points || 0, Math.floor(netTotal)).toFixed(2)}</span>
+              <div className="flex justify-between items-center text-xs font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                <span className="text-slate-500 font-sans font-normal">Points Discount:</span>
+                <span className="text-emerald-600 dark:text-emerald-400">- Rs. {Math.min(attachedCustomer.loyalty_points || 0, Math.floor(netTotal)).toFixed(2)}</span>
               </div>
             )}
 
@@ -1799,22 +1800,22 @@ export default function POS() {
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-4 flex items-center justify-between text-white">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 flex items-center justify-between text-white border-b border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <Banknote className="w-6 h-6" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <Banknote className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">Cash Payment & Change</h3>
-                  <p className="text-xs text-green-100 font-medium">Enter cash received from customer</p>
+                  <h3 className="text-base font-semibold tracking-tight text-white">Cash Payment & Change</h3>
+                  <p className="text-xs text-slate-400">Enter cash received from customer</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCashModal(false)}
-                className="p-1.5 hover:bg-white/20 rounded-xl text-white/80 hover:text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -2044,16 +2045,16 @@ export default function POS() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 text-white border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <Users className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">
+                  <h3 className="text-base font-semibold tracking-tight text-white">
                     {isRegisteringLoyalty ? 'Register Customer' : 'Attach Customer'}
                   </h3>
-                  <p className="text-xs text-purple-200">
+                  <p className="text-xs text-slate-400">
                     {isRegisteringLoyalty ? 'Create customer for loyalty points & e-bill' : 'Earn loyalty points & send WhatsApp e-bill'}
                   </p>
                 </div>
@@ -2061,9 +2062,9 @@ export default function POS() {
               <button
                 type="button"
                 onClick={() => setShowCustomerPicker(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -2072,13 +2073,13 @@ export default function POS() {
                 {/* Search Bar + Register Button */}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Search by name or phone..."
                       value={customerPickerSearch}
                       onChange={(e) => setCustomerPickerSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                       autoFocus
                     />
                   </div>
@@ -2094,21 +2095,21 @@ export default function POS() {
                       }
                       setIsRegisteringLoyalty(true);
                     }}
-                    className="px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-3.5 h-3.5" />
                     <span>+ New</span>
                   </button>
                 </div>
 
                 {/* Customer List */}
-                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
                   {creditCustomers.filter(c =>
                     c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
                     c.phone.includes(customerPickerSearch)
                   ).length === 0 ? (
                     <div className="p-6 text-center space-y-3">
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-slate-400">
                         {customerPickerSearch.trim()
                           ? `No customer found for "${customerPickerSearch}".`
                           : 'No loyalty customers registered yet.'}
@@ -2125,7 +2126,7 @@ export default function POS() {
                           }
                           setIsRegisteringLoyalty(true);
                         }}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-medium inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                       >
                         <UserPlus className="w-3.5 h-3.5" />
                         <span>Register New Customer</span>
@@ -2145,19 +2146,19 @@ export default function POS() {
                             setShowCustomerPicker(false);
                             toast.success(`Customer "${cust.name}" attached to bill`);
                           }}
-                          className="p-3 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                          className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-colors"
                         >
                           <div>
-                            <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
-                            <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                            <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 block">{cust.name}</span>
+                            <span className="text-[11px] text-slate-400">{cust.phone || 'No phone'}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 justify-end">
-                              <Award className="w-3.5 h-3.5" />
+                            <span className="text-xs font-mono font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1 justify-end">
+                              <Award className="w-3.5 h-3.5 text-slate-400" />
                               {cust.loyalty_points || 0} pts
                             </span>
                             {(cust.total_outstanding || 0) > 0 && (
-                              <span className="text-[10px] text-rose-500 font-semibold block">
+                              <span className="text-[10px] text-rose-500 font-medium block">
                                 Due: Rs. {cust.total_outstanding.toFixed(2)}
                               </span>
                             )}
@@ -2170,19 +2171,19 @@ export default function POS() {
             ) : (
               /* Inline Loyalty Customer Registration Form */
               <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Register Loyalty Customer</span>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Register Loyalty Customer</span>
                   <button
                     type="button"
                     onClick={() => setIsRegisteringLoyalty(false)}
-                    className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-semibold cursor-pointer"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
                   >
                     ← Back to search
                   </button>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">
                     Customer Name *
                   </label>
                   <input
@@ -2190,13 +2191,13 @@ export default function POS() {
                     placeholder="e.g. Nimal Silva"
                     value={loyaltyRegName}
                     onChange={(e) => setLoyaltyRegName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">
                     WhatsApp / Phone Number
                   </label>
                   <input
@@ -2204,15 +2205,15 @@ export default function POS() {
                     placeholder="e.g. 0771234567"
                     value={loyaltyRegPhone}
                     onChange={(e) => setLoyaltyRegPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                   />
-                  <span className="text-[10px] text-gray-400 mt-1 block">
+                  <span className="text-[10px] text-slate-400 mt-1 block">
                     Used for WhatsApp E-Bills and looking up loyalty points
                   </span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">
                     Address (Optional)
                   </label>
                   <input
@@ -2220,7 +2221,7 @@ export default function POS() {
                     placeholder="e.g. Avissawella"
                     value={loyaltyRegAddress}
                     onChange={(e) => setLoyaltyRegAddress(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                   />
                 </div>
 
@@ -2228,7 +2229,7 @@ export default function POS() {
                   <button
                     type="button"
                     onClick={() => setIsRegisteringLoyalty(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -2236,7 +2237,7 @@ export default function POS() {
                     type="button"
                     disabled={isSubmittingLoyalty || !loyaltyRegName.trim()}
                     onClick={handleRegisterLoyaltyCustomer}
-                    className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/25 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-medium shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmittingLoyalty ? 'Saving...' : 'Register & Attach'}
                   </button>
@@ -2258,30 +2259,30 @@ export default function POS() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 text-white border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-xs">
-                  <Users className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <Users className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">Select Credit Customer</h3>
-                  <p className="text-xs text-purple-200">Bill will be added to customer's credit ledger</p>
+                  <h3 className="text-base font-semibold tracking-tight text-white">Select Credit Customer</h3>
+                  <p className="text-xs text-slate-400">Bill will be added to customer's credit ledger</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreditModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               {/* Bill Amount Reminder */}
-              <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-2xl border border-purple-200 dark:border-purple-800 flex justify-between items-center">
-                <span className="text-xs font-bold uppercase text-purple-800 dark:text-purple-300">Total Credit Amount:</span>
-                <span className="text-2xl font-black text-purple-700 dark:text-purple-300">Rs. {netTotal.toFixed(2)}</span>
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Credit Amount:</span>
+                <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">Rs. {netTotal.toFixed(2)}</span>
               </div>
 
               {!isCreatingCreditCustomer ? (
@@ -2289,33 +2290,33 @@ export default function POS() {
                   {/* Search Customer Input & Add Button */}
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         ref={creditSearchInputRef}
                         type="text"
                         placeholder="Search customer by name or phone..."
                         value={creditSearch}
                         onChange={(e) => setCreditSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setIsCreatingCreditCustomer(true)}
-                      className="px-3 py-2.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/50 dark:hover:bg-purple-900/80 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer shrink-0"
                     >
-                      <UserPlus className="w-4 h-4" />
+                      <UserPlus className="w-3.5 h-3.5" />
                       New
                     </button>
                   </div>
 
                   {/* Customer Results List */}
-                  <div className="max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
+                  <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
                     {creditCustomers.filter(c =>
                       c.name.toLowerCase().includes(creditSearch.toLowerCase()) ||
                       c.phone.includes(creditSearch)
                     ).length === 0 ? (
-                      <div className="p-6 text-center text-gray-400 text-xs">
+                      <div className="p-6 text-center text-slate-400 text-xs">
                         No credit customer found for "{creditSearch}". Click <strong>+ New</strong> to register.
                       </div>
                     ) : (
@@ -2331,24 +2332,24 @@ export default function POS() {
                               key={cust.id}
                               onClick={() => setSelectedCreditCustomer(cust)}
                               className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${isSelected
-                                ? 'bg-purple-100 dark:bg-purple-900/40 border-l-4 border-purple-600'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                                ? 'bg-slate-100 dark:bg-slate-800 border-l-4 border-blue-600'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
                                 }`}
                             >
                               <div>
-                                <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
+                                <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 block">{cust.name}</span>
                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                                  <span className="text-[11px] text-slate-400">{cust.phone || 'No phone'}</span>
                                   {cust.credit_limit > 0 && (
-                                    <span className="text-[10px] bg-gray-200 dark:bg-gray-700 px-1.5 py-0.2 rounded text-gray-600 dark:text-gray-300 font-mono">
+                                    <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.2 rounded text-slate-600 dark:text-slate-300 font-mono">
                                       Limit: Rs. {cust.credit_limit.toFixed(0)}
                                     </span>
                                   )}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] text-gray-400 uppercase font-semibold block">Outstanding</span>
-                                <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                                <span className="text-[10px] text-slate-400 uppercase font-medium block">Outstanding</span>
+                                <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
                                   Rs. {(cust.total_outstanding || 0).toFixed(2)}
                                 </span>
                               </div>
@@ -2371,24 +2372,24 @@ export default function POS() {
                         <div className={`p-3 rounded-xl border flex items-center justify-between ${
                           isLimitExceeded
                             ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
-                            : 'bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
                         }`}>
                           <div>
-                            <span className="text-xs text-purple-700 dark:text-purple-300 font-bold">Selected:</span>
-                            <p className="text-sm font-black text-gray-900 dark:text-gray-100">{selectedCreditCustomer.name}</p>
-                            <p className="text-[11px] text-gray-500">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Selected:</span>
+                            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{selectedCreditCustomer.name}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">
                               Current Due: Rs. {currentDue.toFixed(2)} → New Due: <strong className="text-rose-600">Rs. {newDue.toFixed(2)}</strong>
                               {limit > 0 && (
-                                <span className="ml-1.5 font-semibold text-gray-600 dark:text-gray-400">
+                                <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-400">
                                   (Limit: Rs. {limit.toFixed(2)})
                                 </span>
                               )}
                             </p>
                           </div>
                           {isLimitExceeded ? (
-                            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                           ) : (
-                            <Check className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
+                            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           )}
                         </div>
 
@@ -2409,7 +2410,7 @@ export default function POS() {
                     <button
                       type="button"
                       onClick={() => setShowCreditModal(false)}
-                      className="py-3 px-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer text-xs"
+                      className="py-2.5 px-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-xs"
                     >
                       Cancel
                     </button>
@@ -2421,9 +2422,9 @@ export default function POS() {
                           handleCheckout('CREDIT', undefined, true, selectedCreditCustomer);
                         }
                       }}
-                      className="flex-1 py-3 px-3 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                      className="flex-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-lg transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                     >
-                      <Check className="w-4 h-4" />
+                      <Check className="w-3.5 h-3.5" />
                       <span>Confirm Credit Bill</span>
                     </button>
                     {selectedCreditCustomer?.phone && (
@@ -2435,10 +2436,10 @@ export default function POS() {
                             handleCheckout('CREDIT', undefined, true, selectedCreditCustomer, true);
                           }
                         }}
-                        className="flex-1 py-3 px-3 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-teal-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                        className="flex-1 py-2.5 px-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white font-medium rounded-lg transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                         title="1-Click: Confirm credit bill and open WhatsApp receipt directly"
                       >
-                        <MessageSquare className="w-4 h-4" />
+                        <MessageSquare className="w-3.5 h-3.5" />
                         <span>Bill & WhatsApp 💬</span>
                       </button>
                     )}
@@ -2447,47 +2448,47 @@ export default function POS() {
               ) : (
                 /* Inline Add Customer Form */
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Register New Customer</span>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Register New Customer</span>
                     <button
                       type="button"
                       onClick={() => setIsCreatingCreditCustomer(false)}
-                      className="text-xs text-purple-600 dark:text-purple-400 font-semibold"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
                     >
                       Back to search
                     </button>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Customer Name *</label>
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Customer Name *</label>
                     <input
                       type="text"
                       placeholder="e.g. Nimal Silva"
                       value={newCustomerName}
                       onChange={(e) => setNewCustomerName(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Phone Number</label>
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Phone Number</label>
                     <input
                       type="text"
                       placeholder="e.g. 0771234567"
                       value={newCustomerPhone}
                       onChange={(e) => setNewCustomerPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Credit Limit (Rs.)</label>
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Credit Limit (Rs.)</label>
                     <input
                       type="number"
                       placeholder="0 for unlimited"
                       value={newCustomerLimit}
                       onChange={(e) => setNewCustomerLimit(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                     />
                   </div>
 
@@ -2495,7 +2496,7 @@ export default function POS() {
                     <button
                       type="button"
                       onClick={() => setIsCreatingCreditCustomer(false)}
-                      className="flex-1 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-xs font-bold text-gray-700 dark:text-gray-300"
+                      className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       Cancel
                     </button>
@@ -2503,7 +2504,7 @@ export default function POS() {
                       type="button"
                       disabled={isSubmittingCredit}
                       onClick={handleQuickCreateCreditCustomer}
-                      className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-medium shadow-xs disabled:opacity-50"
                     >
                       {isSubmittingCredit ? 'Saving...' : 'Save & Select'}
                     </button>
@@ -2528,22 +2529,22 @@ export default function POS() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 text-white border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <MessageSquare className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">WhatsApp E-Bill</h3>
-                  <p className="text-xs text-emerald-100">Send formatted text receipt via WhatsApp</p>
+                  <h3 className="text-base font-semibold tracking-tight text-white">WhatsApp E-Bill</h3>
+                  <p className="text-xs text-slate-400">Send formatted text receipt via WhatsApp</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowWhatsAppModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -2622,21 +2623,21 @@ export default function POS() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-rose-600 to-rose-700 p-5 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 text-white border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <RotateCcw className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <RotateCcw className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">POS Item Return & Exchange</h3>
-                  <p className="text-xs text-rose-100">Restock returned goods, issue cash refunds, or exchange items</p>
+                  <h3 className="text-base font-semibold tracking-tight text-white">POS Item Return & Exchange</h3>
+                  <p className="text-xs text-slate-400">Restock returned goods, issue cash refunds, or exchange items</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowReturnModal(false)}
-                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -2877,17 +2878,17 @@ export default function POS() {
         <div className="fixed inset-0 z-[85] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden" onClick={() => setShowServicesModal(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-900 dark:bg-slate-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-600/30">
-                  <Calculator className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <Calculator className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <h3 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
                     Communication Services Calculator
-                    <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono font-bold px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">F3</span>
+                    <span className="text-[10px] bg-slate-800 text-slate-300 font-mono font-medium px-2 py-0.5 rounded border border-slate-700">F3</span>
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-slate-400">
                     Quickly price and add photocopies, laminating, and book binding to cart
                   </p>
                 </div>
@@ -2895,50 +2896,50 @@ export default function POS() {
               <button
                 type="button"
                 onClick={() => setShowServicesModal(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Service Type Tabs */}
-            <div className="grid grid-cols-3 p-3 gap-2 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-3 p-3 gap-2 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setServiceType('PHOTOCOPY')}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
                   serviceType === 'PHOTOCOPY'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-650'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700'
                 }`}
               >
-                <Copy className="w-4 h-4" />
+                <Copy className="w-3.5 h-3.5" />
                 <span>Photocopy & Print</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setServiceType('LAMINATING')}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
                   serviceType === 'LAMINATING'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-650'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700'
                 }`}
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Laminating</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setServiceType('BINDING')}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
                   serviceType === 'BINDING'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-650'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700'
                 }`}
               >
-                <FileText className="w-4 h-4" />
+                <FileText className="w-3.5 h-3.5" />
                 <span>Doc Binding</span>
               </button>
             </div>
@@ -2950,7 +2951,7 @@ export default function POS() {
                   {/* Paper Size & Color */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Paper Size
                       </label>
                       <div className="grid grid-cols-2 gap-2">
@@ -2959,10 +2960,10 @@ export default function POS() {
                             key={size}
                             type="button"
                             onClick={() => setCopySize(size)}
-                            className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                               copySize === size
-                                ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                                : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                                : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                           >
                             {size}
@@ -2972,17 +2973,17 @@ export default function POS() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Color Mode
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
                           onClick={() => setCopyColor('BW')}
-                          className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                          className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                             copyColor === 'BW'
-                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                           }`}
                         >
                           B & W
@@ -2990,10 +2991,10 @@ export default function POS() {
                         <button
                           type="button"
                           onClick={() => setCopyColor('COLOUR')}
-                          className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                          className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                             copyColor === 'COLOUR'
-                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                           }`}
                         >
                           Colour
@@ -3004,17 +3005,17 @@ export default function POS() {
 
                   {/* Sides */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                       Sides
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setCopySides('SINGLE')}
-                        className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                        className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                           copySides === 'SINGLE'
-                            ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                            ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         1-Sided (Single Page)
@@ -3022,10 +3023,10 @@ export default function POS() {
                       <button
                         type="button"
                         onClick={() => setCopySides('DOUBLE')}
-                        className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                        className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                           copySides === 'DOUBLE'
-                            ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                            ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         2-Sided (Back to Back)
@@ -3036,14 +3037,14 @@ export default function POS() {
                   {/* Quantity & Custom Rate */}
                   <div className="grid grid-cols-2 gap-3 items-center">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Pages / Copies Count
                       </label>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setCopyPages(prev => String(Math.max(1, (parseInt(prev || '1', 10) || 1) - 1)))}
-                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                          className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold cursor-pointer"
                         >
                           -
                         </button>
@@ -3052,12 +3053,12 @@ export default function POS() {
                           min="1"
                           value={copyPages}
                           onChange={e => setCopyPages(e.target.value)}
-                          className="flex-1 py-2 text-center text-base font-black bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                          className="flex-1 py-1.5 text-center text-sm font-bold font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
                         />
                         <button
                           type="button"
                           onClick={() => setCopyPages(prev => String((parseInt(prev || '1', 10) || 1) + 1))}
-                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                          className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold cursor-pointer"
                         >
                           +
                         </button>
@@ -3068,7 +3069,7 @@ export default function POS() {
                             key={c}
                             type="button"
                             onClick={() => setCopyPages(String(c))}
-                            className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-gray-100 dark:bg-gray-700 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 dark:text-gray-300 cursor-pointer"
+                            className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 cursor-pointer"
                           >
                             {c}
                           </button>
@@ -3077,7 +3078,7 @@ export default function POS() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Unit Rate (Rs.)
                       </label>
                       <input
@@ -3085,9 +3086,9 @@ export default function POS() {
                         placeholder={`Default: Rs. ${calculatedService.unitPrice}`}
                         value={copyCustomPrice}
                         onChange={e => setCopyCustomPrice(e.target.value)}
-                        className="w-full py-2 px-3 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                        className="w-full py-1.5 px-3 text-sm font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                       />
-                      <span className="block text-[11px] text-gray-400 mt-1">Leave blank to use default shop rate</span>
+                      <span className="block text-[11px] text-slate-400 mt-1">Leave blank to use default shop rate</span>
                     </div>
                   </div>
                 </div>
@@ -3096,7 +3097,7 @@ export default function POS() {
               {serviceType === 'LAMINATING' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                       Pouch / Sheet Size
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -3109,14 +3110,14 @@ export default function POS() {
                           key={item.key}
                           type="button"
                           onClick={() => setLaminateSize(item.key)}
-                          className={`p-3 text-left rounded-xl border transition-all cursor-pointer ${
+                          className={`p-3 text-left rounded-lg border transition-all cursor-pointer ${
                             laminateSize === item.key
-                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                           }`}
                         >
-                          <span className="block font-bold text-xs">{item.label}</span>
-                          <span className="block text-[11px] font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{item.rate}</span>
+                          <span className="block font-semibold text-xs">{item.label}</span>
+                          <span className={`block text-[11px] font-mono font-semibold mt-0.5 ${laminateSize === item.key ? 'text-slate-300 dark:text-slate-700' : 'text-slate-500 dark:text-slate-400'}`}>{item.rate}</span>
                         </button>
                       ))}
                     </div>
@@ -3124,14 +3125,14 @@ export default function POS() {
 
                   <div className="grid grid-cols-2 gap-3 items-center">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Quantity (Sheets)
                       </label>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setLaminateQty(prev => String(Math.max(1, (parseInt(prev || '1', 10) || 1) - 1)))}
-                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                          className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold cursor-pointer"
                         >
                           -
                         </button>
@@ -3140,12 +3141,12 @@ export default function POS() {
                           min="1"
                           value={laminateQty}
                           onChange={e => setLaminateQty(e.target.value)}
-                          className="flex-1 py-2 text-center text-base font-black bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                          className="flex-1 py-1.5 text-center text-sm font-bold font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
                         />
                         <button
                           type="button"
                           onClick={() => setLaminateQty(prev => String((parseInt(prev || '1', 10) || 1) + 1))}
-                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                          className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold cursor-pointer"
                         >
                           +
                         </button>
@@ -3153,7 +3154,7 @@ export default function POS() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Custom Price (Rs.)
                       </label>
                       <input
@@ -3161,7 +3162,7 @@ export default function POS() {
                         placeholder={`Default: Rs. ${calculatedService.unitPrice}`}
                         value={laminateCustomPrice}
                         onChange={e => setLaminateCustomPrice(e.target.value)}
-                        className="w-full py-2 px-3 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                        className="w-full py-1.5 px-3 text-sm font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                       />
                     </div>
                   </div>
@@ -3171,7 +3172,7 @@ export default function POS() {
               {serviceType === 'BINDING' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                       Binding Type
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -3184,14 +3185,14 @@ export default function POS() {
                           key={item.key}
                           type="button"
                           onClick={() => setBindingType(item.key)}
-                          className={`p-3 text-left rounded-xl border transition-all cursor-pointer ${
+                          className={`p-3 text-left rounded-lg border transition-all cursor-pointer ${
                             bindingType === item.key
-                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                           }`}
                         >
-                          <span className="block font-bold text-xs">{item.label}</span>
-                          <span className="block text-[11px] font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{item.rate}</span>
+                          <span className="block font-semibold text-xs">{item.label}</span>
+                          <span className={`block text-[11px] font-mono font-semibold mt-0.5 ${bindingType === item.key ? 'text-slate-300 dark:text-slate-700' : 'text-slate-500 dark:text-slate-400'}`}>{item.rate}</span>
                         </button>
                       ))}
                     </div>
@@ -3199,14 +3200,14 @@ export default function POS() {
 
                   <div className="grid grid-cols-2 gap-3 items-center">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Book / Document Count
                       </label>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setBindingQty(prev => String(Math.max(1, (parseInt(prev || '1', 10) || 1) - 1)))}
-                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                          className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold cursor-pointer"
                         >
                           -
                         </button>
@@ -3215,12 +3216,12 @@ export default function POS() {
                           min="1"
                           value={bindingQty}
                           onChange={e => setBindingQty(e.target.value)}
-                          className="flex-1 py-2 text-center text-base font-black bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                          className="flex-1 py-1.5 text-center text-sm font-bold font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
                         />
                         <button
                           type="button"
                           onClick={() => setBindingQty(prev => String((parseInt(prev || '1', 10) || 1) + 1))}
-                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                          className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold cursor-pointer"
                         >
                           +
                         </button>
@@ -3228,7 +3229,7 @@ export default function POS() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                         Custom Price (Rs.)
                       </label>
                       <input
@@ -3236,7 +3237,7 @@ export default function POS() {
                         placeholder={`Default: Rs. ${calculatedService.unitPrice}`}
                         value={bindingCustomPrice}
                         onChange={e => setBindingCustomPrice(e.target.value)}
-                        className="w-full py-2 px-3 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                        className="w-full py-1.5 px-3 text-sm font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                       />
                     </div>
                   </div>
@@ -3244,23 +3245,23 @@ export default function POS() {
               )}
 
               {/* Calculated Price & Margin Banner */}
-              <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
+              <div className="p-4 bg-slate-50 dark:bg-slate-850/60 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider block">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block">
                     Calculated Line Item
                   </span>
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {calculatedService.title}
                   </p>
-                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5 font-mono">
                     {calculatedService.count} unit(s) × Rs. {calculatedService.unitPrice.toFixed(2)}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-black text-indigo-700 dark:text-indigo-300 block">
+                  <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white block">
                     Rs. {calculatedService.total.toFixed(2)}
                   </span>
-                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                     Est. Margin: +Rs. {(calculatedService.total - (calculatedService.unitCost * calculatedService.count)).toFixed(2)}
                   </span>
                 </div>
@@ -3268,20 +3269,20 @@ export default function POS() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setShowServicesModal(false)}
-                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg font-medium text-xs transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleAddServiceToCart}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-medium text-xs shadow-xs transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Add to POS Cart (Rs. {calculatedService.total.toFixed(2)})</span>
               </button>
             </div>

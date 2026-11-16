@@ -520,7 +520,7 @@ export default function Bills() {
                           <button
                             onClick={() => setViewGrnId(grn.id!)}
                             title="View Received Items"
-                            className="p-1.5 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -566,7 +566,7 @@ export default function Bills() {
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <FileText className="w-5 h-5 text-slate-700 dark:text-slate-300" />
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
                   Credit Invoice Items ({viewGrnData?.header.grn_number || 'Loading...'})
                 </h3>
@@ -611,7 +611,7 @@ export default function Bills() {
                     </div>
                     <div>
                       <span className="text-gray-400 block">Total Amount</span>
-                      <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      <span className="font-bold font-mono text-slate-900 dark:text-slate-100">
                         {fmtRs(viewGrnData.header.total_amount)}
                       </span>
                     </div>
@@ -710,23 +710,23 @@ export default function Bills() {
                   type="date"
                   value={payDate}
                   onChange={(e) => setPayDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                 />
               </div>
 
               {/* Cashbook sync toggle */}
-              <label className="flex items-start gap-3 p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 cursor-pointer">
+              <label className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={logInCashbook}
                   onChange={(e) => setLogInCashbook(e.target.checked)}
-                  className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                  className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
                 />
                 <div className="text-xs">
-                  <span className="font-bold text-indigo-950 dark:text-indigo-200 block">
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 block">
                     Record in Cashbook as Cash Out
                   </span>
-                  <span className="text-indigo-700 dark:text-indigo-400">
+                  <span className="text-slate-500 dark:text-slate-400">
                     Automatically logs -{fmtRs(payingGrn.total_amount)} under "Supplier Payment" in today's Cashbook.
                   </span>
                 </div>

@@ -544,7 +544,7 @@ function NewGRNModal({ suppliers, onClose, onCreated }: { suppliers: Supplier[];
 
           {/* Shipment Analytics Bar */}
           {draftItems.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/60 rounded-xl p-3.5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5">
               <div>
                 <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Shipment Size</p>
                 <p className="text-base font-bold text-gray-900 dark:text-gray-100">

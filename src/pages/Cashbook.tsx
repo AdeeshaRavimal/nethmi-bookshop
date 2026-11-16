@@ -48,29 +48,29 @@ const OUT_CATEGORIES = [
 function getCategoryBadge(category: string, type: string) {
   switch (category) {
     case 'POS_SALES':
-      return { label: 'POS Cash Sales', bg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' };
+      return { label: 'POS Cash Sales', bg: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60' };
     case 'CAPITAL':
-      return { label: 'Owner Cash', bg: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300' };
+      return { label: 'Owner Cash', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     case 'BANK_WITHDRAWAL':
-      return { label: 'Bank Withdrawal', bg: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300' };
+      return { label: 'Bank Withdrawal', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     case 'CUSTOMER_PAYMENT':
-      return { label: 'Customer Payment', bg: 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300' };
+      return { label: 'Customer Payment', bg: 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' };
     case 'SERVICE_INCOME':
-      return { label: 'Service Income', bg: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300' };
+      return { label: 'Service Income', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     case 'EXPENSE':
-      return { label: 'Shop Expense', bg: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300' };
+      return { label: 'Shop Expense', bg: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60' };
     case 'SUPPLIER_PAYMENT':
-      return { label: 'Supplier Payment', bg: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300' };
+      return { label: 'Supplier Payment', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     case 'BANK_DEPOSIT':
-      return { label: 'Bank Deposit', bg: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' };
+      return { label: 'Bank Deposit', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     case 'DRAWINGS':
-      return { label: 'Owner Drawings', bg: 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300' };
+      return { label: 'Owner Drawings', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     case 'SALARY':
-      return { label: 'Salary / Wages', bg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300' };
+      return { label: 'Salary / Wages', bg: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' };
     default:
       return type === 'IN'
-        ? { label: category || 'Other In', bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' }
-        : { label: category || 'Other Out', bg: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' };
+        ? { label: category || 'Other In', bg: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60' }
+        : { label: category || 'Other Out', bg: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60' };
   }
 }
 
@@ -563,9 +563,9 @@ export default function Cashbook() {
             </p>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
               {(summary.supplierCashOut != null && summary.supplierCashOut > 0) && (
-                <div className="flex justify-between text-purple-600 dark:text-purple-400 font-medium">
+                <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
                   <span>Supplier Cash Paid:</span>
-                  <span>Rs. {summary.supplierCashOut.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200">Rs. {summary.supplierCashOut.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -767,7 +767,7 @@ export default function Cashbook() {
                               <button
                                 onClick={() => handleOpenEdit(tx)}
                                 title="Edit Entry"
-                                className="p-1.5 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                                className="p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
@@ -1021,25 +1021,25 @@ export default function Cashbook() {
       {/* ── Shift Close & Daily Z-Report Modal ───────────────────────────────────── */}
       {showShiftCloseModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Receipt className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <Receipt className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">Daily Shift Close & Z-Report</h3>
-                  <p className="text-xs text-indigo-100">
-                    Reconcile cash drawer for <strong>{selectedDate}</strong>
+                  <h3 className="text-base font-semibold tracking-tight text-white">Daily Shift Close & Z-Report</h3>
+                  <p className="text-xs text-slate-400">
+                    Reconcile cash drawer for <strong className="text-slate-200">{selectedDate}</strong>
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowShiftCloseModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1051,17 +1051,17 @@ export default function Cashbook() {
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span>This day was previously closed at <strong>{existingClosing.closed_at}</strong>.</span>
                   </div>
-                  <span className="font-bold uppercase tracking-wider text-[10px] bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">Recorded</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px] bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">Recorded</span>
                 </div>
               )}
 
               {/* Denomination Counter */}
               <div>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 mb-2">
-                  <Calculator className="w-4 h-4 text-indigo-500" />
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mb-2">
+                  <Calculator className="w-3.5 h-3.5 text-slate-400" />
                   Cash Drawer Denomination Count
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-gray-50 dark:bg-gray-800/50 p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50 dark:bg-slate-850 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
                   {[
                     { note: '5000', label: 'Rs. 5,000 Note' },
                     { note: '1000', label: 'Rs. 1,000 Note' },
@@ -1073,8 +1073,8 @@ export default function Cashbook() {
                     const count = parseInt(closingDenoms[note] || '0', 10);
                     const subtotal = !isNaN(count) && count > 0 ? Number(note) * count : 0;
                     return (
-                      <div key={note} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2">
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">{label}</span>
+                      <div key={note} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 shadow-2xs">
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block">{label}</span>
                         <div className="flex items-center gap-1.5 mt-1">
                           <input
                             type="number"
@@ -1082,9 +1082,9 @@ export default function Cashbook() {
                             placeholder="0"
                             value={closingDenoms[note] || ''}
                             onChange={(e) => setClosingDenoms({ ...closingDenoms, [note]: e.target.value })}
-                            className="w-16 px-2 py-1 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center"
+                            className="w-16 px-2 py-1 text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 text-center"
                           />
-                          <span className="text-[11px] text-gray-400 font-mono flex-1 text-right truncate">
+                          <span className="text-[11px] text-slate-400 font-mono flex-1 text-right truncate">
                             {subtotal > 0 ? `Rs. ${subtotal.toLocaleString()}` : '—'}
                           </span>
                         </div>
@@ -1093,8 +1093,8 @@ export default function Cashbook() {
                   })}
 
                   {/* Coins Total input */}
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2 sm:col-span-3">
-                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">Total Coins Amount (Rs.)</span>
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 sm:col-span-3 shadow-2xs">
+                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block">Total Coins Amount (Rs.)</span>
                     <input
                       type="number"
                       step="0.01"
@@ -1102,49 +1102,49 @@ export default function Cashbook() {
                       placeholder="e.g. 145.00"
                       value={closingDenoms['coins'] || ''}
                       onChange={(e) => setClosingDenoms({ ...closingDenoms, coins: e.target.value })}
-                      className="w-full mt-1 px-2.5 py-1 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full mt-1 px-2.5 py-1 text-sm font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Till Reconciliation Comparison Box */}
-              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-4 space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-850/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">Expected Closing Cash Balance:</span>
-                  <span className="font-mono font-bold text-gray-900 dark:text-gray-100 text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Expected Closing Cash Balance:</span>
+                  <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm">
                     {fmtRs(summary.closingBalance)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">Actual Physically Counted Cash:</span>
-                  <span className="font-mono font-black text-indigo-700 dark:text-indigo-300 text-base">
+                  <span className="text-slate-500 dark:text-slate-400">Actual Physically Counted Cash:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100 text-base">
                     {fmtRs(countedCash)}
                   </span>
                 </div>
 
                 {/* Variance Result Pill */}
                 <div className={`p-3 rounded-xl border flex items-center justify-between ${Math.abs(cashVariance) < 0.01
-                    ? 'bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                     : cashVariance > 0
-                      ? 'bg-blue-100/70 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-700'
-                      : 'bg-rose-100/70 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-700'
+                      ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                      : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                   }`}>
                   <div className="flex items-center gap-2">
                     {Math.abs(cashVariance) < 0.01 ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     ) : (
-                      <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                     )}
                     <div>
-                      <span className="text-xs font-black block">
+                      <span className="text-xs font-semibold block">
                         {Math.abs(cashVariance) < 0.01
                           ? 'Zero Discrepancy (Exact Match)'
                           : cashVariance > 0
                             ? `Cash Surplus (+${fmtRs(cashVariance)})`
                             : `Cash Shortage (-${fmtRs(Math.abs(cashVariance))})`}
                       </span>
-                      <span className="text-[10px] opacity-80">
+                      <span className="text-[11px] opacity-80">
                         {Math.abs(cashVariance) < 0.01
                           ? 'Drawer count exactly matches the day’s ledger.'
                           : cashVariance > 0
@@ -1158,7 +1158,7 @@ export default function Cashbook() {
 
               {/* Notes */}
               <div>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                   Closing Notes (Optional)
                 </label>
                 <input
@@ -1166,17 +1166,17 @@ export default function Cashbook() {
                   placeholder="e.g. Rs. 500 kept in till for tomorrow's petty change..."
                   value={closingNotes}
                   onChange={(e) => setClosingNotes(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
                 />
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
+            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setShowShiftCloseModal(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -1185,7 +1185,7 @@ export default function Cashbook() {
                   type="button"
                   disabled={savingClosing}
                   onClick={() => handleSaveShiftClose(false)}
-                  className="px-4 py-2 border border-indigo-600 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Save Record
                 </button>
@@ -1193,9 +1193,9 @@ export default function Cashbook() {
                   type="button"
                   disabled={savingClosing}
                   onClick={() => handleSaveShiftClose(true)}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-black shadow-md shadow-indigo-600/25 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-medium shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  <Printer className="w-4 h-4" />
+                  <Printer className="w-3.5 h-3.5" />
                   <span>Save & Print Z-Report</span>
                 </button>
               </div>

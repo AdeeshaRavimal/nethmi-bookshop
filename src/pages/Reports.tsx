@@ -46,9 +46,9 @@ function getCategoryColor(category: string) {
       };
     default:
       return {
-        bg: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-        badge: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300',
-        bar: 'bg-purple-500',
+        bg: 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+        badge: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
+        bar: 'bg-slate-500',
       };
   }
 }
@@ -424,7 +424,7 @@ export default function Reports() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <PieChart className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <PieChart className="w-5 h-5 text-slate-700 dark:text-slate-300" />
             <h3 className="text-base font-bold text-gray-900 dark:text-white">
               Revenue Breakdown by Category
             </h3>
@@ -478,7 +478,7 @@ export default function Reports() {
                       setSelectedCategory(isSelected ? 'ALL' : cat.category)
                     }
                     className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected
-                        ? 'ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 shadow-md'
+                        ? 'ring-2 ring-slate-900 dark:ring-slate-100 bg-slate-100/80 dark:bg-slate-800 border-slate-900 dark:border-slate-100 shadow-md'
                         : `${color.bg} hover:shadow-md hover:scale-[1.01]`
                       }`}
                   >
@@ -530,7 +530,7 @@ export default function Reports() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col flex-1">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <Layers className="w-4 h-4 text-slate-700 dark:text-slate-300" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
               Item & Service Sales Performance Ranking
             </h3>
@@ -643,7 +643,7 @@ export default function Reports() {
                     {summary.totalItemsSold}
                   </td>
                   <td></td>
-                  <td className="py-3 px-4 text-right text-indigo-600 dark:text-indigo-400 font-black">
+                  <td className="py-3 px-4 text-right text-slate-900 dark:text-slate-100 font-mono font-bold">
                     {fmtRs(summary.totalRevenue)}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">

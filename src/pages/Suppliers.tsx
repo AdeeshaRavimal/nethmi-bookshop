@@ -982,7 +982,7 @@ export default function Suppliers() {
     <div className="space-y-6 pb-12">
       {/* Due Alerts Banner */}
       {dueAlerts.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border-2 border-amber-400/60 dark:border-amber-500/40 rounded-3xl p-5 shadow-sm">
+        <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-2xl p-5 shadow-2xs">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-amber-500 text-white rounded-xl shadow-xs">
@@ -1307,21 +1307,21 @@ export default function Suppliers() {
         className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-amber-600 to-amber-700 p-5 text-white flex items-center justify-between">
+        <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 text-white border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-white" />
+            <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+              <Calendar className="w-5 h-5 text-slate-200" />
             </div>
             <div>
-              <h3 className="text-lg font-black tracking-wide">Record Post-Dated Cheque</h3>
-              <p className="text-xs text-amber-100">Set due date alerts and track bank clearing</p>
+              <h3 className="text-base font-semibold tracking-tight text-white">Record Post-Dated Cheque</h3>
+              <p className="text-xs text-slate-400">Set due date alerts and track bank clearing</p>
             </div>
           </div>
           <button
             onClick={() => setShowAddChequeModal(false)}
-            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -1511,22 +1511,22 @@ export default function Suppliers() {
             className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-4 text-white border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Truck className="w-6 h-6 text-white" />
+                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-slate-300">
+                  <Truck className="w-5 h-5 text-slate-200" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">
+                  <h3 className="text-base font-semibold tracking-tight text-white">
                     {editingSupplier ? 'Edit Supplier' : 'Register New Supplier'}
                   </h3>
-                  <p className="text-xs text-blue-100">Distributor or publisher details</p>
+                  <p className="text-xs text-slate-400">Distributor or publisher details</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddEditModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1647,13 +1647,13 @@ export default function Suppliers() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-6 py-5 text-white border-b border-slate-800 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase font-bold tracking-wider text-blue-200">Supplier Ledger & Statement</span>
+                  <span className="text-[11px] uppercase font-semibold tracking-wider text-slate-400">Supplier Ledger & Statement</span>
                 </div>
-                <h3 className="text-2xl font-black">{selectedLedgerSupplier.name}</h3>
-                <p className="text-xs text-blue-200 mt-0.5">
+                <h3 className="text-xl font-bold tracking-tight text-white mt-0.5">{selectedLedgerSupplier.name}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
                   {selectedLedgerSupplier.contact_person ? `Rep: ${selectedLedgerSupplier.contact_person} • ` : ''}
                   Phone: {selectedLedgerSupplier.phone || 'No phone'}
                 </p>
@@ -1661,7 +1661,7 @@ export default function Suppliers() {
               <button
                 type="button"
                 onClick={() => setSelectedLedgerSupplier(null)}
-                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer text-white/80 hover:text-white"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
