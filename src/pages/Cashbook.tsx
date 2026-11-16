@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { db, type CashbookEntry, type CashbookSummary } from '../db';
+import { db, type CashbookEntry, type CashbookSummary, type DailyClosing } from '../db';
 import { localDateString } from '../utils/dates';
 import { useToast } from '../components/Toast';
 import { Skeleton, EmptyState } from '../components/Skeleton';
+import { printZReport } from '../utils/receipt';
 import {
   Wallet,
   ArrowDownLeft,
@@ -20,6 +21,11 @@ import {
   Layers,
   CheckCircle2,
   Info,
+  Receipt,
+  AlertTriangle,
+  Check,
+  Calculator,
+  Clock,
 } from 'lucide-react';
 
 const IN_CATEGORIES = [
@@ -106,6 +112,138 @@ export default function Cashbook() {
     entry_date: localDateString(),
     entry_time: '',
   });
+
+  // Shift Close & Daily Z-Report State
+  const [showShiftCloseModal, setShowShiftCloseModal] = useState(false);
+  const [closingDenoms, setClosingDenoms] = useState<Record<string, string>>({
+    '5000': '',
+    '1000': '',
+    '500': '',
+    '100': '',
+    '50': '',
+    '20': '',
+    'coins': '',
+  });
+  const [closingNotes, setClosingNotes] = useState('');
+  const [existingClosing, setExistingClosing] = useState<DailyClosing | null>(null);
+  const [savingClosing, setSavingClosing] = useState(false);
+  const [paymentBreakdown, setPaymentBreakdown] = useState<Array<{ payment_type: string; total: number }>>([]);
+
+  const countedCash = useMemo(() => {
+    let sum = 0;
+    ['5000', '1000', '500', '100', '50', '20'].forEach(note => {
+      const count = parseInt(closingDenoms[note] || '0', 10);
+      if (!isNaN(count) && count > 0) sum += Number(note) * count;
+    });
+    const coins = parseFloat(closingDenoms['coins'] || '0');
+    if (!isNaN(coins) && coins > 0) sum += coins;
+    return Math.round(sum * 100) / 100;
+  }, [closingDenoms]);
+
+  const cashVariance = Math.round((countedCash - (summary.closingBalance || 0)) * 100) / 100;
+
+  const handleOpenShiftClose = async () => {
+    setShowShiftCloseModal(true);
+    try {
+      const [closeRes, bdRes] = await Promise.all([
+        db.cashbook.getShiftClose(selectedDate),
+        db.sales.getPaymentBreakdown({ date: selectedDate }),
+      ]);
+      if (closeRes.success && closeRes.data) {
+        setExistingClosing(closeRes.data);
+        try {
+          const parsed = JSON.parse(closeRes.data.denominations_json);
+          setClosingDenoms({
+            '5000': parsed['5000'] ? String(parsed['5000']) : '',
+            '1000': parsed['1000'] ? String(parsed['1000']) : '',
+            '500': parsed['500'] ? String(parsed['500']) : '',
+            '100': parsed['100'] ? String(parsed['100']) : '',
+            '50': parsed['50'] ? String(parsed['50']) : '',
+            '20': parsed['20'] ? String(parsed['20']) : '',
+            'coins': parsed['coins'] ? String(parsed['coins']) : '',
+          });
+        } catch {}
+        setClosingNotes(closeRes.data.notes || '');
+      } else {
+        setExistingClosing(null);
+      }
+      if (bdRes.success && bdRes.data) {
+        setPaymentBreakdown(bdRes.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveShiftClose = async (printReport = false) => {
+    setSavingClosing(true);
+    try {
+      const denomsPayload: Record<string, number> = {};
+      ['5000', '1000', '500', '100', '50', '20'].forEach(note => {
+        const val = parseInt(closingDenoms[note] || '0', 10);
+        if (val > 0) denomsPayload[note] = val;
+      });
+      const coins = parseFloat(closingDenoms['coins'] || '0');
+      if (coins > 0) denomsPayload['coins'] = coins;
+
+      const res = await db.cashbook.recordShiftClose({
+        closing_date: selectedDate,
+        expected_cash: summary.closingBalance,
+        counted_cash: countedCash,
+        difference: cashVariance,
+        denominations_json: JSON.stringify(denomsPayload),
+        notes: closingNotes.trim(),
+      });
+
+      if (!res.success) {
+        toast.error(res.error || 'Failed to record shift close');
+        return;
+      }
+
+      toast.success('Shift close saved successfully!');
+      setExistingClosing({
+        closing_date: selectedDate,
+        expected_cash: summary.closingBalance,
+        counted_cash: countedCash,
+        difference: cashVariance,
+        denominations_json: JSON.stringify(denomsPayload),
+        notes: closingNotes.trim(),
+        closed_at: new Date().toLocaleTimeString(),
+      });
+
+      if (printReport) {
+        const cardSales = paymentBreakdown.find(p => p.payment_type === 'CARD')?.total || 0;
+        const creditSales = paymentBreakdown.find(p => p.payment_type === 'CREDIT')?.total || 0;
+        const totalGross = summary.posCashSales + cardSales + creditSales;
+
+        printZReport({
+          closing_date: selectedDate,
+          closed_at: new Date().toLocaleTimeString(),
+          opening_balance: summary.openingBalance,
+          pos_cash_sales: summary.posCashSales,
+          customer_debt_collected: summary.customerCashIn || 0,
+          supplier_cash_paid: summary.supplierCashOut || 0,
+          expenses: summary.manualCashOut || 0,
+          other_in: summary.manualCashIn || 0,
+          other_out: 0,
+          expected_cash: summary.closingBalance,
+          counted_cash: countedCash,
+          variance: cashVariance,
+          card_sales: cardSales,
+          credit_sales: creditSales,
+          total_gross_sales: totalGross,
+          pos_sales_count: summary.posSalesCount,
+          denominations: denomsPayload,
+          notes: closingNotes.trim(),
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Error recording shift close');
+    } finally {
+      setSavingClosing(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -310,10 +448,19 @@ export default function Cashbook() {
           <button
             onClick={handlePrint}
             title="Print daily cash sheet"
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>Print Sheet</span>
+          </button>
+
+          <button
+            onClick={handleOpenShiftClose}
+            title="End of day till reconciliation & print Daily Z-Report"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-sm font-bold shadow-sm transition-colors cursor-pointer"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Close Day & Z-Report</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -875,6 +1022,193 @@ export default function Cashbook() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Shift Close & Daily Z-Report Modal ───────────────────────────────────── */}
+      {showShiftCloseModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Receipt className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-wide">Daily Shift Close & Z-Report</h3>
+                  <p className="text-xs text-indigo-100">
+                    Reconcile cash drawer for <strong>{selectedDate}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowShiftCloseModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 space-y-5">
+              {/* Status Banner if already closed */}
+              {existingClosing && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>This day was previously closed at <strong>{existingClosing.closed_at}</strong>.</span>
+                  </div>
+                  <span className="font-bold uppercase tracking-wider text-[10px] bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">Recorded</span>
+                </div>
+              )}
+
+              {/* Denomination Counter */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 mb-2">
+                  <Calculator className="w-4 h-4 text-indigo-500" />
+                  Cash Drawer Denomination Count
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-gray-50 dark:bg-gray-800/50 p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700">
+                  {[
+                    { note: '5000', label: 'Rs. 5,000 Note' },
+                    { note: '1000', label: 'Rs. 1,000 Note' },
+                    { note: '500', label: 'Rs. 500 Note' },
+                    { note: '100', label: 'Rs. 100 Note' },
+                    { note: '50', label: 'Rs. 50 Note' },
+                    { note: '20', label: 'Rs. 20 Note' },
+                  ].map(({ note, label }) => {
+                    const count = parseInt(closingDenoms[note] || '0', 10);
+                    const subtotal = !isNaN(count) && count > 0 ? Number(note) * count : 0;
+                    return (
+                      <div key={note} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2">
+                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">{label}</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={closingDenoms[note] || ''}
+                            onChange={(e) => setClosingDenoms({ ...closingDenoms, [note]: e.target.value })}
+                            className="w-16 px-2 py-1 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center"
+                          />
+                          <span className="text-[11px] text-gray-400 font-mono flex-1 text-right truncate">
+                            {subtotal > 0 ? `Rs. ${subtotal.toLocaleString()}` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Coins Total input */}
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2 sm:col-span-3">
+                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block">Total Coins Amount (Rs.)</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g. 145.00"
+                      value={closingDenoms['coins'] || ''}
+                      onChange={(e) => setClosingDenoms({ ...closingDenoms, coins: e.target.value })}
+                      className="w-full mt-1 px-2.5 py-1 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Till Reconciliation Comparison Box */}
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-4 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">Expected Closing Cash Balance:</span>
+                  <span className="font-mono font-bold text-gray-900 dark:text-gray-100 text-sm">
+                    {fmtRs(summary.closingBalance)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">Actual Physically Counted Cash:</span>
+                  <span className="font-mono font-black text-indigo-700 dark:text-indigo-300 text-base">
+                    {fmtRs(countedCash)}
+                  </span>
+                </div>
+
+                {/* Variance Result Pill */}
+                <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                  Math.abs(cashVariance) < 0.01
+                    ? 'bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                    : cashVariance > 0
+                    ? 'bg-blue-100/70 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                    : 'bg-rose-100/70 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-700'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {Math.abs(cashVariance) < 0.01 ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                    )}
+                    <div>
+                      <span className="text-xs font-black block">
+                        {Math.abs(cashVariance) < 0.01
+                          ? 'Zero Discrepancy (Exact Match)'
+                          : cashVariance > 0
+                          ? `Cash Surplus (+${fmtRs(cashVariance)})`
+                          : `Cash Shortage (-${fmtRs(Math.abs(cashVariance))})`}
+                      </span>
+                      <span className="text-[10px] opacity-80">
+                        {Math.abs(cashVariance) < 0.01
+                          ? 'Drawer count exactly matches the day’s ledger.'
+                          : cashVariance > 0
+                          ? 'Physical cash in drawer is higher than recorded transactions.'
+                          : 'Physical cash in drawer is less than expected closing balance.'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  Closing Notes (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rs. 500 kept in till for tomorrow's petty change..."
+                  value={closingNotes}
+                  onChange={(e) => setClosingNotes(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowShiftCloseModal(false)}
+                className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={savingClosing}
+                  onClick={() => handleSaveShiftClose(false)}
+                  className="px-4 py-2 border border-indigo-600 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Save Record
+                </button>
+                <button
+                  type="button"
+                  disabled={savingClosing}
+                  onClick={() => handleSaveShiftClose(true)}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-black shadow-md shadow-indigo-600/25 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Save & Print Z-Report</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

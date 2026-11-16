@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 16;
+export const CURRENT_SCHEMA_VERSION = 17;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -344,6 +344,26 @@ export function runMigrations(instance: Database.Database) {
     currentVersion = 16;
   }
 
+  // ── Migration v16 → v17: Add daily_closings table for Z-Report & Till Reconciliation ───
+  if (currentVersion < 17) {
+    try {
+      instance.exec(`
+        CREATE TABLE IF NOT EXISTS daily_closings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          closing_date DATE UNIQUE NOT NULL,
+          expected_cash REAL NOT NULL,
+          counted_cash REAL NOT NULL,
+          difference REAL NOT NULL,
+          denominations_json TEXT NOT NULL DEFAULT '{}',
+          notes TEXT DEFAULT '',
+          closed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_daily_closings_date ON daily_closings(closing_date);
+      `);
+    } catch {}
+    currentVersion = 17;
+  }
+
   // Persist the version so we don't re-run migrations next time.
   if (row === undefined) {
     instance.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
@@ -596,6 +616,18 @@ export function initPragmasAndSchema(instance: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_sales_returns_sale ON sales_returns(sale_id);
     CREATE INDEX IF NOT EXISTS idx_sales_returns_date ON sales_returns(return_date);
+
+    CREATE TABLE IF NOT EXISTS daily_closings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      closing_date DATE UNIQUE NOT NULL,
+      expected_cash REAL NOT NULL,
+      counted_cash REAL NOT NULL,
+      difference REAL NOT NULL,
+      denominations_json TEXT NOT NULL DEFAULT '{}',
+      notes TEXT DEFAULT '',
+      closed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_daily_closings_date ON daily_closings(closing_date);
   `);
 
   // Run incremental migrations after the base schema is in place.

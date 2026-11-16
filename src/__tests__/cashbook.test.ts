@@ -188,4 +188,38 @@ describe('Cashbook Database & Calculations', () => {
 
     expect(custSum).toBe(600);
   });
+
+  it('records and retrieves daily shift closing and Z-Report drawer reconciliation', () => {
+    const table = memDb
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='daily_closings'")
+      .get();
+    expect(table).toBeDefined();
+
+    const denominations = JSON.stringify({
+      n5000: 5,
+      n1000: 10,
+      n500: 8,
+      n100: 20,
+      n50: 10,
+      n20: 15,
+      coins: 180,
+    }); // 25000 + 10000 + 4000 + 2000 + 500 + 300 + 180 = 41980
+
+    memDb.prepare(`
+      INSERT INTO daily_closings (
+        closing_date, expected_cash, counted_cash, difference,
+        denominations_json, notes
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      '2026-11-16', 41980, 41980, 0,
+      denominations, 'Shift closed accurately without variance'
+    );
+
+    const record = memDb.prepare('SELECT * FROM daily_closings WHERE closing_date = ?').get('2026-11-16') as any;
+    expect(record).toBeDefined();
+    expect(record.expected_cash).toBe(41980);
+    expect(record.counted_cash).toBe(41980);
+    expect(record.difference).toBe(0);
+    expect(JSON.parse(record.denominations_json).n5000).toBe(5);
+  });
 });

@@ -162,6 +162,17 @@ export interface CashbookSummary {
   posSalesCount: number;
 }
 
+export interface DailyClosing {
+  id?: number;
+  closing_date: string;
+  expected_cash: number;
+  counted_cash: number;
+  difference: number;
+  denominations_json: string;
+  notes?: string;
+  closed_at?: string;
+}
+
 export interface RevenueAnalytics {
   summary: {
     totalRevenue: number;
@@ -506,6 +517,19 @@ export const db = {
 
     delete: (id: number): Promise<{ success: boolean; error?: string }> =>
       ipc('db:cashbook:delete', { id }),
+
+    recordShiftClose: (payload: {
+      closing_date: string;
+      expected_cash: number;
+      counted_cash: number;
+      difference: number;
+      denominations_json?: string;
+      notes?: string;
+    }): Promise<{ success: boolean; id?: number; error?: string }> =>
+      ipc('db:cashbook:recordShiftClose', payload),
+
+    getShiftClose: (date: string): Promise<{ success: boolean; data?: DailyClosing | null; error?: string }> =>
+      ipc('db:cashbook:getShiftClose', { date }),
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────────

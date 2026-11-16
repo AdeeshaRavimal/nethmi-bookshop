@@ -1220,6 +1220,49 @@ ipcMain.handle('db:cashbook:delete', (_e, { id }: { id: number }) => {
   }
 });
 
+ipcMain.handle('db:cashbook:recordShiftClose', (_e, payload: {
+  closing_date: string;
+  expected_cash: number;
+  counted_cash: number;
+  difference: number;
+  denominations_json?: string;
+  notes?: string;
+}) => {
+  try {
+    const db = getDb();
+    const info = db.prepare(`
+      INSERT INTO daily_closings (closing_date, expected_cash, counted_cash, difference, denominations_json, notes, closed_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+      ON CONFLICT(closing_date) DO UPDATE SET
+        expected_cash = excluded.expected_cash,
+        counted_cash = excluded.counted_cash,
+        difference = excluded.difference,
+        denominations_json = excluded.denominations_json,
+        notes = excluded.notes,
+        closed_at = datetime('now', 'localtime')
+    `).run(
+      payload.closing_date,
+      Number(payload.expected_cash) || 0,
+      Number(payload.counted_cash) || 0,
+      Number(payload.difference) || 0,
+      payload.denominations_json || '{}',
+      payload.notes || ''
+    );
+    return { success: true, id: info.lastInsertRowid };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:cashbook:getShiftClose', (_e, { date }: { date: string }) => {
+  try {
+    const row = getDb().prepare('SELECT * FROM daily_closings WHERE closing_date = ?').get(date);
+    return { success: true, data: row || null };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
 // ── Bills ─────────────────────────────────────────────────────────────────────
 
 ipcMain.handle('db:bills:getAll', () => {

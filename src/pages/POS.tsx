@@ -1,11 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { db } from '../db';
 import type { CreditCustomer } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy, RotateCcw, Undo2, AlertCircle, AlertTriangle } from 'lucide-react';
+import {
+  Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard,
+  X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy,
+  RotateCcw, Undo2, AlertCircle, AlertTriangle, Calculator, Volume2, VolumeX,
+  FileText, Sparkles
+} from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
 import { printReceipt, buildWhatsAppReceiptText, printReturnReceipt, type ReturnReceiptData } from '../utils/receipt';
 import type { ReceiptData } from '../utils/receipt';
+import { soundFX } from '../utils/audio';
 
 import { addCartItem, type CartItem } from '../utils/cart';
 
@@ -13,6 +19,9 @@ const SHORTCUTS = [
   { keys: 'Enter', desc: 'Scan / add highlighted item' },
   { keys: '+ or F1', desc: 'Cash Payment & Change Calculator' },
   { keys: '- or F2', desc: 'Checkout with Card (Single Key "-", no Fn needed)' },
+  { keys: 'F3', desc: 'Services Calculator (Photocopy, Print, Laminate, Binding)' },
+  { keys: 'F4', desc: 'Focus Bill Discount input' },
+  { keys: 'F6', desc: 'Select Credit Customer / Loyalty' },
   { keys: '↑ / ↓', desc: 'Navigate search results' },
   { keys: '?', desc: 'Show this shortcuts panel' },
   { keys: 'Esc', desc: 'Close dialogs / cancel' },
@@ -47,7 +56,100 @@ export default function POS() {
     customerPhone?: string;
     receiptData?: ReceiptData;
   } | null>(null);
-  const cashInputRef = useRef<HTMLInputElement>(null);
+  // Sound Feedback & Shortcuts
+  const [soundEnabled, setSoundEnabled] = useState(() => soundFX.isEnabled());
+  const discountInputRef = useRef<HTMLInputElement>(null);
+
+  // Communication Services Quick Calculator State
+  const [showServicesModal, setShowServicesModal] = useState(false);
+  const [serviceType, setServiceType] = useState<'PHOTOCOPY' | 'LAMINATING' | 'BINDING'>('PHOTOCOPY');
+
+  // Photocopy / Printout inputs
+  const [copySize, setCopySize] = useState<'A4' | 'A3'>('A4');
+  const [copyColor, setCopyColor] = useState<'BW' | 'COLOUR'>('BW');
+  const [copySides, setCopySides] = useState<'SINGLE' | 'DOUBLE'>('SINGLE');
+  const [copyPages, setCopyPages] = useState('1');
+  const [copyCustomPrice, setCopyCustomPrice] = useState('');
+
+  // Laminating inputs
+  const [laminateSize, setLaminateSize] = useState<'ID' | 'A4' | 'A3'>('A4');
+  const [laminateQty, setLaminateQty] = useState('1');
+  const [laminateCustomPrice, setLaminateCustomPrice] = useState('');
+
+  // Binding inputs
+  const [bindingType, setBindingType] = useState<'SPIRAL' | 'TAPE' | 'HARD'>('SPIRAL');
+  const [bindingQty, setBindingQty] = useState('1');
+  const [bindingCustomPrice, setBindingCustomPrice] = useState('');
+
+  const calculatedService = useMemo(() => {
+    if (serviceType === 'PHOTOCOPY') {
+      let defaultSell = 15;
+      let defaultCost = 5;
+      if (copySize === 'A4') {
+        if (copyColor === 'BW') {
+          defaultSell = copySides === 'SINGLE' ? 15 : 25;
+          defaultCost = copySides === 'SINGLE' ? 5 : 8;
+        } else {
+          defaultSell = copySides === 'SINGLE' ? 50 : 90;
+          defaultCost = copySides === 'SINGLE' ? 15 : 30;
+        }
+      } else {
+        if (copyColor === 'BW') {
+          defaultSell = copySides === 'SINGLE' ? 30 : 50;
+          defaultCost = copySides === 'SINGLE' ? 10 : 18;
+        } else {
+          defaultSell = copySides === 'SINGLE' ? 100 : 180;
+          defaultCost = copySides === 'SINGLE' ? 35 : 65;
+        }
+      }
+      const unitPrice = copyCustomPrice ? parseFloat(copyCustomPrice) || defaultSell : defaultSell;
+      const count = Math.max(1, parseInt(copyPages || '1', 10) || 1);
+      const title = `Photocopy (${copySize} ${copyColor === 'BW' ? 'B&W' : 'Colour'} ${copySides === 'SINGLE' ? '1-Side' : '2-Sides'})`;
+      return { title, unitPrice, unitCost: defaultCost, count, total: unitPrice * count };
+    } else if (serviceType === 'LAMINATING') {
+      const presets: Record<string, { sell: number; cost: number; label: string }> = {
+        ID: { sell: 60, cost: 20, label: 'ID Card' },
+        A4: { sell: 100, cost: 40, label: 'A4 Document' },
+        A3: { sell: 200, cost: 80, label: 'A3 Document' },
+      };
+      const cur = presets[laminateSize];
+      const unitPrice = laminateCustomPrice ? parseFloat(laminateCustomPrice) || cur.sell : cur.sell;
+      const count = Math.max(1, parseInt(laminateQty || '1', 10) || 1);
+      const title = `Laminating (${cur.label})`;
+      return { title, unitPrice, unitCost: cur.cost, count, total: unitPrice * count };
+    } else {
+      const presets: Record<string, { sell: number; cost: number; label: string }> = {
+        SPIRAL: { sell: 150, cost: 50, label: 'Spiral / Comb Binding' },
+        TAPE: { sell: 100, cost: 30, label: 'Tape Strip Binding' },
+        HARD: { sell: 850, cost: 350, label: 'Hard Cover Project' },
+      };
+      const cur = presets[bindingType];
+      const unitPrice = bindingCustomPrice ? parseFloat(bindingCustomPrice) || cur.sell : cur.sell;
+      const count = Math.max(1, parseInt(bindingQty || '1', 10) || 1);
+      const title = `Document Binding (${cur.label})`;
+      return { title, unitPrice, unitCost: cur.cost, count, total: unitPrice * count };
+    }
+  }, [serviceType, copySize, copyColor, copySides, copyPages, copyCustomPrice, laminateSize, laminateQty, laminateCustomPrice, bindingType, bindingQty, bindingCustomPrice]);
+
+  const handleAddServiceToCart = () => {
+    addToCart({
+      id: 0,
+      category: 'SERVICE',
+      barcode: `SRV-${serviceType.toLowerCase()}`,
+      title: calculatedService.title,
+      selling_price: calculatedService.unitPrice,
+      cost_price: calculatedService.unitCost,
+      quantity: calculatedService.count,
+      stock_limit: 999999,
+      discount_percent: 0,
+      original_price: calculatedService.unitPrice,
+      catalog_price: calculatedService.unitPrice,
+      is_special_discount: false,
+    });
+    soundFX.playScanSuccess();
+    toast.success(`Added ${calculatedService.title} to bill!`);
+    setShowServicesModal(false);
+  };
 
   // Credit Customer Modal state
   const [showCreditModal, setShowCreditModal] = useState(false);
@@ -312,6 +414,7 @@ export default function POS() {
   const selectItem = (item: any) => {
     const isService = isServiceItem(item);
     if (!isService && item.quantity <= 0) {
+      soundFX.playScanError();
       toast.warning('This item is out of stock!');
     } else {
       const discount = item.discount_percent || 0;
@@ -331,6 +434,7 @@ export default function POS() {
         catalog_price: item.selling_price,
         is_special_discount: discount > 0,
       });
+      soundFX.playScanSuccess();
     }
     setSearchTerm('');
     setIsDropdownOpen(false);
@@ -387,6 +491,9 @@ export default function POS() {
       if (searchResults && searchResults.length > 0) {
         const exactMatch = searchResults.find(i => i.barcode === term);
         selectItem(exactMatch || searchResults[0]);
+      } else {
+        soundFX.playScanError();
+        toast.error(`Item "${term}" not found in inventory!`);
       }
     }
   };
@@ -911,6 +1018,7 @@ export default function POS() {
           'Sale completed'
         );
       }
+      soundFX.playCheckout();
 
       if (shouldPrint) {
         printReceipt(receiptPayload);
@@ -1034,33 +1142,48 @@ export default function POS() {
       const tag = (e.target as HTMLElement)?.tagName;
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
 
-      if (showCashModal) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          setShowCashModal(false);
-        }
+      // Modal escape handlers
+      if (e.key === 'Escape') {
+        if (showCashModal) { e.preventDefault(); setShowCashModal(false); return; }
+        if (showServicesModal) { e.preventDefault(); setShowServicesModal(false); return; }
+        if (showCustomerPicker) { e.preventDefault(); setShowCustomerPicker(false); return; }
+        if (showCreditModal) { e.preventDefault(); setShowCreditModal(false); return; }
+        if (showReturnModal) { e.preventDefault(); setShowReturnModal(false); return; }
+        if (showShortcuts) { e.preventDefault(); setShowShortcuts(false); return; }
+      }
+
+      // If inside an open modal dialog, don't trigger background action shortcuts
+      if (showCashModal || showServicesModal || showCustomerPicker || showCreditModal || showReturnModal || showShortcuts) {
         return;
       }
 
-      // Checkout shortcuts
+      // Checkout & POS Action shortcuts
       if (e.key === 'F1' || (!isInput && (e.key === '+' || e.key === 'Add' || e.key === 'End'))) {
         e.preventDefault();
         if (cart.length > 0) openCashModal();
       } else if (e.key === 'F2' || (!isInput && (e.key === '-' || e.key === 'Subtract' || e.key === 'Home'))) {
         e.preventDefault();
         if (cart.length > 0) handleCheckout('CARD');
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        setShowServicesModal(true);
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        discountInputRef.current?.focus();
+        discountInputRef.current?.select();
+      } else if (e.key === 'F6') {
+        e.preventDefault();
+        setShowCustomerPicker(true);
       } else if (e.key === '?' && !showShortcuts) {
         if (!isInput) {
           e.preventDefault();
           setShowShortcuts(true);
         }
-      } else if (e.key === 'Escape') {
-        if (showShortcuts) setShowShortcuts(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, handleCheckout, showShortcuts, showCashModal]);
+  }, [cart, handleCheckout, showShortcuts, showCashModal, showServicesModal, showCustomerPicker, showCreditModal, showReturnModal]);
 
   return (
     <>
@@ -1267,6 +1390,36 @@ export default function POS() {
                 <span className="block font-bold">Return</span>
                 <span className="block text-[10px] text-rose-500/80">Exchange</span>
               </div>
+            </button>
+
+            {/* Communication Services Quick Calculator Button (F3) */}
+            <button
+              onClick={() => setShowServicesModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all cursor-pointer shadow-xs"
+              title="Services Calculator: Photocopy, Laminating, Binding (F3)"
+            >
+              <Calculator className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <div className="text-left leading-tight hidden sm:block">
+                <span className="block font-bold">Services</span>
+                <span className="block text-[10px] text-indigo-500/80 font-mono">F3</span>
+              </div>
+            </button>
+
+            {/* Audio Feedback Toggle */}
+            <button
+              onClick={() => {
+                const next = soundFX.toggle();
+                setSoundEnabled(next);
+                if (next) soundFX.playScanSuccess();
+              }}
+              className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                soundEnabled
+                  ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-200 dark:border-gray-600'
+              }`}
+              title={soundEnabled ? 'Audio Feedback ON (Click to Mute)' : 'Audio Feedback MUTED (Click to Unmute)'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
             {/* Live POS Clock & Date */}
@@ -1492,10 +1645,11 @@ export default function POS() {
 
               <div className="relative flex items-center">
                 <input
+                  ref={discountInputRef}
                   type="number"
                   min="0"
                   step="any"
-                  placeholder={discountType === 'PERCENT' ? 'Enter % discount...' : 'Enter Rs. discount...'}
+                  placeholder={discountType === 'PERCENT' ? 'Enter % discount (F4)...' : 'Enter Rs. discount (F4)...'}
                   value={discountInput}
                   onChange={(e) => setDiscountInput(e.target.value)}
                   disabled={cart.length === 0}
@@ -2712,6 +2866,423 @@ export default function POS() {
                   <span>{isProcessingReturn ? 'Processing...' : 'Confirm Return & Restock'}</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Communication Services Quick Calculator Modal (F3) */}
+      {showServicesModal && (
+        <div className="fixed inset-0 z-[85] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden" onClick={() => setShowServicesModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-600/30">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    Communication Services Calculator
+                    <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono font-bold px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">F3</span>
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Quickly price and add photocopies, laminating, and book binding to cart
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowServicesModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Service Type Tabs */}
+            <div className="grid grid-cols-3 p-3 gap-2 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setServiceType('PHOTOCOPY')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  serviceType === 'PHOTOCOPY'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-650'
+                }`}
+              >
+                <Copy className="w-4 h-4" />
+                <span>Photocopy & Print</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setServiceType('LAMINATING')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  serviceType === 'LAMINATING'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-650'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Laminating</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setServiceType('BINDING')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  serviceType === 'BINDING'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-650'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Doc Binding</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+              {serviceType === 'PHOTOCOPY' && (
+                <div className="space-y-4">
+                  {/* Paper Size & Color */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Paper Size
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['A4', 'A3'] as const).map(size => (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => setCopySize(size)}
+                            className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                              copySize === size
+                                ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                                : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Color Mode
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCopyColor('BW')}
+                          className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            copyColor === 'BW'
+                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          B & W
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCopyColor('COLOUR')}
+                          className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            copyColor === 'COLOUR'
+                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          Colour
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sides */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Sides
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCopySides('SINGLE')}
+                        className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                          copySides === 'SINGLE'
+                            ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        1-Sided (Single Page)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCopySides('DOUBLE')}
+                        className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                          copySides === 'DOUBLE'
+                            ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        2-Sided (Back to Back)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quantity & Custom Rate */}
+                  <div className="grid grid-cols-2 gap-3 items-center">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Pages / Copies Count
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCopyPages(prev => String(Math.max(1, (parseInt(prev || '1', 10) || 1) - 1)))}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={copyPages}
+                          onChange={e => setCopyPages(e.target.value)}
+                          className="flex-1 py-2 text-center text-base font-black bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCopyPages(prev => String((parseInt(prev || '1', 10) || 1) + 1))}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div className="flex gap-1 mt-2">
+                        {[1, 5, 10, 25, 50, 100].map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setCopyPages(String(c))}
+                            className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-gray-100 dark:bg-gray-700 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 dark:text-gray-300 cursor-pointer"
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Unit Rate (Rs.)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder={`Default: Rs. ${calculatedService.unitPrice}`}
+                        value={copyCustomPrice}
+                        onChange={e => setCopyCustomPrice(e.target.value)}
+                        className="w-full py-2 px-3 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                      />
+                      <span className="block text-[11px] text-gray-400 mt-1">Leave blank to use default shop rate</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {serviceType === 'LAMINATING' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Pouch / Sheet Size
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: 'ID' as const, label: 'ID Card / Badge', rate: 'Rs. 60' },
+                        { key: 'A4' as const, label: 'A4 Document', rate: 'Rs. 100' },
+                        { key: 'A3' as const, label: 'A3 Document', rate: 'Rs. 200' },
+                      ].map(item => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setLaminateSize(item.key)}
+                          className={`p-3 text-left rounded-xl border transition-all cursor-pointer ${
+                            laminateSize === item.key
+                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <span className="block font-bold text-xs">{item.label}</span>
+                          <span className="block text-[11px] font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{item.rate}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 items-center">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Quantity (Sheets)
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setLaminateQty(prev => String(Math.max(1, (parseInt(prev || '1', 10) || 1) - 1)))}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={laminateQty}
+                          onChange={e => setLaminateQty(e.target.value)}
+                          className="flex-1 py-2 text-center text-base font-black bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setLaminateQty(prev => String((parseInt(prev || '1', 10) || 1) + 1))}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Custom Price (Rs.)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder={`Default: Rs. ${calculatedService.unitPrice}`}
+                        value={laminateCustomPrice}
+                        onChange={e => setLaminateCustomPrice(e.target.value)}
+                        className="w-full py-2 px-3 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {serviceType === 'BINDING' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Binding Type
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: 'SPIRAL' as const, label: 'Spiral / Comb', rate: 'Rs. 150' },
+                        { key: 'TAPE' as const, label: 'Tape Strip', rate: 'Rs. 100' },
+                        { key: 'HARD' as const, label: 'Hard Cover', rate: 'Rs. 850' },
+                      ].map(item => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setBindingType(item.key)}
+                          className={`p-3 text-left rounded-xl border transition-all cursor-pointer ${
+                            bindingType === item.key
+                              ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <span className="block font-bold text-xs">{item.label}</span>
+                          <span className="block text-[11px] font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{item.rate}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 items-center">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Book / Document Count
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setBindingQty(prev => String(Math.max(1, (parseInt(prev || '1', 10) || 1) - 1)))}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={bindingQty}
+                          onChange={e => setBindingQty(e.target.value)}
+                          className="flex-1 py-2 text-center text-base font-black bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBindingQty(prev => String((parseInt(prev || '1', 10) || 1) + 1))}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-black cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Custom Price (Rs.)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder={`Default: Rs. ${calculatedService.unitPrice}`}
+                        value={bindingCustomPrice}
+                        onChange={e => setBindingCustomPrice(e.target.value)}
+                        className="w-full py-2 px-3 text-sm font-bold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Calculated Price & Margin Banner */}
+              <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider block">
+                    Calculated Line Item
+                  </span>
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                    {calculatedService.title}
+                  </p>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">
+                    {calculatedService.count} unit(s) × Rs. {calculatedService.unitPrice.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-indigo-700 dark:text-indigo-300 block">
+                    Rs. {calculatedService.total.toFixed(2)}
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    Est. Margin: +Rs. {(calculatedService.total - (calculatedService.unitCost * calculatedService.count)).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowServicesModal(false)}
+                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddServiceToCart}
+                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add to POS Cart (Rs. {calculatedService.total.toFixed(2)})</span>
+              </button>
             </div>
           </div>
         </div>

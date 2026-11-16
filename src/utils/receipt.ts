@@ -936,3 +936,191 @@ export function printReturnReceipt(data: ReturnReceiptData): void {
     if (iframe.parentNode) document.body.removeChild(iframe);
   }, 60000);
 }
+
+// ── Daily Shift Close & Z-Report Thermal Printing ───────────────────────────
+
+export interface ZReportData {
+  closing_date: string;
+  closed_at: string;
+  opening_balance: number;
+  pos_cash_sales: number;
+  customer_debt_collected: number;
+  supplier_cash_paid: number;
+  expenses: number;
+  other_in: number;
+  other_out: number;
+  expected_cash: number;
+  counted_cash: number;
+  variance: number;
+  card_sales?: number;
+  credit_sales?: number;
+  total_gross_sales?: number;
+  pos_sales_count: number;
+  denominations?: Record<string, number>;
+  notes?: string;
+}
+
+export function printZReport(data: ZReportData): void {
+  const isMatch = Math.abs(data.variance) < 0.01;
+  const isSurplus = data.variance > 0.01;
+  const varianceStatus = isMatch ? 'EXACT MATCH' : isSurplus ? `SURPLUS (+${money(data.variance)})` : `SHORTAGE (-${money(Math.abs(data.variance))})`;
+
+  let denomRows = '';
+  if (data.denominations) {
+    const dKeys = ['5000', '1000', '500', '100', '50', '20', 'coins'];
+    const renderedDenoms = dKeys
+      .map(k => {
+        const count = data.denominations![k] || 0;
+        if (count <= 0) return '';
+        const val = k === 'coins' ? count : Number(k) * count;
+        const label = k === 'coins' ? 'Coins Total' : `Rs. ${k} x ${count}`;
+        return `<tr><td style="padding:1px 0;">${label}</td><td style="text-align:right;padding:1px 0;">${money(val)}</td></tr>`;
+      })
+      .filter(Boolean)
+      .join('');
+    if (renderedDenoms) {
+      denomRows = `
+        <div class="divider"></div>
+        <div class="center bold" style="margin:4px 0;">CASH DRAWER BREAKDOWN</div>
+        <table><tbody>${renderedDenoms}</tbody></table>
+      `;
+    }
+  }
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Z-Report - ${escapeHtml(data.closing_date)}</title>
+  <style>
+    @page { size: 58mm auto; margin: 0; }
+    @media print {
+      body { width: 48mm; margin: 2mm auto; }
+      .no-print { display: none !important; }
+    }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10px;
+      line-height: 1.25;
+      color: #000;
+      background: #fff;
+      padding: 3mm 2mm;
+    }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .bold { font-weight: bold; }
+    .shop-name { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
+    .title-banner {
+      font-size: 11px;
+      font-weight: bold;
+      border-top: 1px dashed #000;
+      border-bottom: 1px dashed #000;
+      padding: 3px 0;
+      margin: 4px 0;
+      text-align: center;
+    }
+    .divider { border-top: 1px dashed #000; margin: 4px 0; }
+    .double-divider { border-top: 2px solid #000; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    td { vertical-align: top; padding: 1.5px 0; }
+    .amount { text-align: right; font-family: monospace; }
+    .footer { text-align: center; font-size: 8px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div class="shop-name">${SHOP_NAME}</div>
+    <div>${SHOP_ADDRESS}</div>
+    <div>Tel: ${SHOP_PHONE}</div>
+  </div>
+
+  <div class="title-banner">DAILY Z-REPORT / SHIFT CLOSE</div>
+
+  <table>
+    <tr><td>Date:</td><td class="amount bold">${escapeHtml(data.closing_date)}</td></tr>
+    <tr><td>Closed At:</td><td class="amount">${escapeHtml(data.closed_at)}</td></tr>
+  </table>
+
+  <div class="divider"></div>
+  <div class="bold" style="margin-bottom:2px;">DRAWER CASH RECONCILIATION</div>
+  <table>
+    <tr><td>Opening Cash:</td><td class="amount">${money(data.opening_balance)}</td></tr>
+    <tr><td>+ POS Cash Sales (${data.pos_sales_count}):</td><td class="amount bold">${money(data.pos_cash_sales)}</td></tr>
+    <tr><td>+ Debt Collected:</td><td class="amount">${money(data.customer_debt_collected)}</td></tr>
+    ${data.other_in > 0 ? `<tr><td>+ Other Cash In:</td><td class="amount">${money(data.other_in)}</td></tr>` : ''}
+    <tr><td>- Supplier Cash Paid:</td><td class="amount">-${money(data.supplier_cash_paid)}</td></tr>
+    <tr><td>- Expenses / Drawings:</td><td class="amount">-${money(data.expenses + data.other_out)}</td></tr>
+    <tr class="bold" style="border-top:1px solid #000;">
+      <td>EXPECTED DRAWER CASH:</td>
+      <td class="amount">${money(data.expected_cash)}</td>
+    </tr>
+    <tr class="bold" style="font-size:11px;">
+      <td>ACTUAL COUNTED CASH:</td>
+      <td class="amount">${money(data.counted_cash)}</td>
+    </tr>
+    <tr class="bold" style="font-size:11px;border-top:1px dashed #000;">
+      <td>VARIANCE:</td>
+      <td class="amount">${varianceStatus}</td>
+    </tr>
+  </table>
+
+  ${denomRows}
+
+  <div class="double-divider"></div>
+  <div class="bold" style="margin-bottom:2px;">TOTAL REVENUE OVERVIEW</div>
+  <table>
+    <tr><td>Total Cash Sales:</td><td class="amount">${money(data.pos_cash_sales)}</td></tr>
+    ${data.card_sales !== undefined ? `<tr><td>Card Payments:</td><td class="amount">${money(data.card_sales)}</td></tr>` : ''}
+    ${data.credit_sales !== undefined ? `<tr><td>Credit Book Sales:</td><td class="amount">${money(data.credit_sales)}</td></tr>` : ''}
+    ${data.total_gross_sales !== undefined ? `
+    <tr class="bold" style="border-top:1px solid #000;">
+      <td>TOTAL GROSS SALES:</td>
+      <td class="amount">${money(data.total_gross_sales)}</td>
+    </tr>` : ''}
+  </table>
+
+  ${data.notes ? `
+  <div class="divider"></div>
+  <div style="font-size:9px;"><strong>Notes:</strong> ${escapeHtml(data.notes)}</div>
+  ` : ''}
+
+  <div class="divider"></div>
+  <div class="footer">
+    Official Shift Closure Document<br>
+    Printed directly from POS System
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 150);
+    };
+  </script>
+</body>
+</html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.contentWindow?.addEventListener('afterprint', () => {
+    document.body.removeChild(iframe);
+  });
+  setTimeout(() => {
+    if (iframe.parentNode) document.body.removeChild(iframe);
+  }, 60000);
+}

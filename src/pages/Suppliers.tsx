@@ -79,11 +79,16 @@ export default function Suppliers() {
   // Additional Cheque fields in Ledger Payment drawer
   const [paymentChequeBank, setPaymentChequeBank] = useState('Commercial Bank');
   const [paymentChequeDueDate, setPaymentChequeDueDate] = useState(todayStr());
+  const [pendingGrns, setPendingGrns] = useState<GRNHeader[]>([]);
 
   const fetchSuppliers = async () => {
     try {
-      const res = await db.suppliers.getAll();
-      setSuppliers(res.data ?? []);
+      const [supRes, grnRes] = await Promise.all([
+        db.suppliers.getAll(),
+        db.grn.getPending(),
+      ]);
+      setSuppliers(supRes.data ?? []);
+      if (grnRes?.success) setPendingGrns(grnRes.data ?? []);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load suppliers.');
@@ -414,6 +419,57 @@ export default function Suppliers() {
     return { totalCount, totalDebt, totalPurchases, pendingBillsCount };
   }, [suppliers]);
 
+  // Debt Aging Breakdown for Pending GRN Bills
+  const agingSummary = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let under15 = 0;
+    let days15to30 = 0;
+    let days30to60 = 0;
+    let over60 = 0;
+
+    let countUnder15 = 0;
+    let count15to30 = 0;
+    let count30to60 = 0;
+    let countOver60 = 0;
+
+    pendingGrns.forEach(g => {
+      const refDate = new Date(g.received_date || g.created_at || today);
+      refDate.setHours(0, 0, 0, 0);
+      const ageDays = Math.max(0, Math.floor((today.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const amt = g.total_amount || 0;
+
+      if (ageDays < 15) {
+        under15 += amt;
+        countUnder15++;
+      } else if (ageDays <= 30) {
+        days15to30 += amt;
+        count15to30++;
+      } else if (ageDays <= 60) {
+        days30to60 += amt;
+        count30to60++;
+      } else {
+        over60 += amt;
+        countOver60++;
+      }
+    });
+
+    const totalAgingDebt = under15 + days15to30 + days30to60 + over60;
+
+    return {
+      under15,
+      days15to30,
+      days30to60,
+      over60,
+      countUnder15,
+      count15to30,
+      count30to60,
+      countOver60,
+      totalAgingDebt,
+    };
+  }, [pendingGrns]);
+
   // Filtered Suppliers
   const filteredSuppliers = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -664,6 +720,72 @@ export default function Suppliers() {
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
             <DollarSign className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* Supplier Debt Aging Breakdown (<15d, 15-30d, 30-60d, 60d+) */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-lg">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-200 block">
+                Payables Debt Aging Analysis
+              </span>
+              <span className="text-[11px] text-gray-400">Aging breakdown across unpaid credit GRN invoices</span>
+            </div>
+          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Pending Invoices Total: <strong className="text-gray-900 dark:text-gray-100 font-bold">{fmtRs(agingSummary.totalAgingDebt || metrics.totalDebt)}</strong>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">
+              <span>&lt; 15 Days</span>
+              <span className="text-[10px] bg-emerald-200/70 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded font-mono">{agingSummary.countUnder15} bills</span>
+            </div>
+            <span className="text-base font-black text-emerald-700 dark:text-emerald-400 block">
+              {fmtRs(agingSummary.under15)}
+            </span>
+            <span className="text-[10px] text-emerald-600/80 dark:text-emerald-500 font-medium mt-0.5 block">Recent purchases</span>
+          </div>
+
+          <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900/50">
+            <div className="flex items-center justify-between text-xs font-bold text-blue-800 dark:text-blue-300 mb-1">
+              <span>15 – 30 Days</span>
+              <span className="text-[10px] bg-blue-200/70 dark:bg-blue-900/60 px-1.5 py-0.5 rounded font-mono">{agingSummary.count15to30} bills</span>
+            </div>
+            <span className="text-base font-black text-blue-700 dark:text-blue-400 block">
+              {fmtRs(agingSummary.days15to30)}
+            </span>
+            <span className="text-[10px] text-blue-600/80 dark:text-blue-500 font-medium mt-0.5 block">Standard monthly terms</span>
+          </div>
+
+          <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/50">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">
+              <span>30 – 60 Days</span>
+              <span className="text-[10px] bg-amber-200/70 dark:bg-amber-900/60 px-1.5 py-0.5 rounded font-mono">{agingSummary.count30to60} bills</span>
+            </div>
+            <span className="text-base font-black text-amber-700 dark:text-amber-400 block">
+              {fmtRs(agingSummary.days30to60)}
+            </span>
+            <span className="text-[10px] text-amber-600/80 dark:text-amber-500 font-medium mt-0.5 block">Payment priority</span>
+          </div>
+
+          <div className="p-3 bg-rose-50/70 dark:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-rose-900/50">
+            <div className="flex items-center justify-between text-xs font-bold text-rose-800 dark:text-rose-300 mb-1">
+              <span>60+ Days Overdue</span>
+              <span className="text-[10px] bg-rose-200/70 dark:bg-rose-900/60 px-1.5 py-0.5 rounded font-mono">{agingSummary.countOver60} bills</span>
+            </div>
+            <span className="text-base font-black text-rose-700 dark:text-rose-400 block">
+              {fmtRs(agingSummary.over60)}
+            </span>
+            <span className="text-[10px] text-rose-600/80 dark:text-rose-500 font-medium mt-0.5 block">Urgent settlement required</span>
           </div>
         </div>
       </div>
