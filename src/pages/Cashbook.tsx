@@ -28,6 +28,9 @@ import {
   Clock,
 } from 'lucide-react';
 
+const fmtRs = (n: number = 0) =>
+  `Rs. ${Number(n).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 const IN_CATEGORIES = [
   { value: 'CAPITAL', label: 'Owner / Initial Cash In' },
   { value: 'BANK_WITHDRAWAL', label: 'Bank Withdrawal' },
@@ -162,7 +165,7 @@ export default function Cashbook() {
             '20': parsed['20'] ? String(parsed['20']) : '',
             'coins': parsed['coins'] ? String(parsed['coins']) : '',
           });
-        } catch {}
+        } catch { }
         setClosingNotes(closeRes.data.notes || '');
       } else {
         setExistingClosing(null);
@@ -406,21 +409,19 @@ export default function Cashbook() {
           <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-0.5 text-xs font-medium">
             <button
               onClick={setToday}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                selectedDate === localDateString()
+              className={`px-3 py-1.5 rounded-md transition-colors ${selectedDate === localDateString()
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               Today
             </button>
             <button
               onClick={setYesterday}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                selectedDate !== localDateString()
+              className={`px-3 py-1.5 rounded-md transition-colors ${selectedDate !== localDateString()
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               Yesterday / Other
             </button>
@@ -614,31 +615,28 @@ export default function Cashbook() {
             <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-0.5 text-xs font-medium">
               <button
                 onClick={() => setTypeFilter('ALL')}
-                className={`px-3 py-1.5 rounded-md transition-colors ${
-                  typeFilter === 'ALL'
+                className={`px-3 py-1.5 rounded-md transition-colors ${typeFilter === 'ALL'
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
-                }`}
+                  }`}
               >
                 All Flow
               </button>
               <button
                 onClick={() => setTypeFilter('IN')}
-                className={`px-3 py-1.5 rounded-md transition-colors ${
-                  typeFilter === 'IN'
+                className={`px-3 py-1.5 rounded-md transition-colors ${typeFilter === 'IN'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
-                }`}
+                  }`}
               >
                 Cash In (+)
               </button>
               <button
                 onClick={() => setTypeFilter('OUT')}
-                className={`px-3 py-1.5 rounded-md transition-colors ${
-                  typeFilter === 'OUT'
+                className={`px-3 py-1.5 rounded-md transition-colors ${typeFilter === 'OUT'
                     ? 'bg-rose-600 text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400'
-                }`}
+                  }`}
               >
                 Cash Out (-)
               </button>
@@ -870,11 +868,10 @@ export default function Cashbook() {
                           category: 'CAPITAL',
                         });
                       }}
-                      className={`py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 font-medium text-sm transition-all ${
-                        formData.type === 'IN'
+                      className={`py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 font-medium text-sm transition-all ${formData.type === 'IN'
                           ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 ring-2 ring-emerald-500/20 font-bold'
                           : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
+                        }`}
                     >
                       <ArrowDownLeft className="w-4 h-4" />
                       Cash In (+)
@@ -888,11 +885,10 @@ export default function Cashbook() {
                           category: 'EXPENSE',
                         });
                       }}
-                      className={`py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 font-medium text-sm transition-all ${
-                        formData.type === 'OUT'
+                      className={`py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 font-medium text-sm transition-all ${formData.type === 'OUT'
                           ? 'border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 ring-2 ring-rose-500/20 font-bold'
                           : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
+                        }`}
                     >
                       <ArrowUpRight className="w-4 h-4" />
                       Cash Out (-)
@@ -937,11 +933,11 @@ export default function Cashbook() {
                   >
                     {formData.type === 'IN'
                       ? IN_CATEGORIES.map(c => (
-                          <option key={c.value} value={c.value}>{c.label}</option>
-                        ))
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))
                       : OUT_CATEGORIES.map(c => (
-                          <option key={c.value} value={c.value}>{c.label}</option>
-                        ))
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))
                     }
                   </select>
                 </div>
@@ -1012,11 +1008,10 @@ export default function Cashbook() {
                 </button>
                 <button
                   type="submit"
-                  className={`px-5 py-2 rounded-xl text-white text-sm font-semibold shadow-md transition-colors ${
-                    formData.type === 'IN'
+                  className={`px-5 py-2 rounded-xl text-white text-sm font-semibold shadow-md transition-colors ${formData.type === 'IN'
                       ? 'bg-emerald-600 hover:bg-emerald-700'
                       : 'bg-rose-600 hover:bg-rose-700'
-                  }`}
+                    }`}
                 >
                   {editingEntry ? 'Save Changes' : formData.type === 'IN' ? 'Add Cash In' : 'Record Cash Out'}
                 </button>
@@ -1132,13 +1127,12 @@ export default function Cashbook() {
                 </div>
 
                 {/* Variance Result Pill */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between ${
-                  Math.abs(cashVariance) < 0.01
+                <div className={`p-3 rounded-xl border flex items-center justify-between ${Math.abs(cashVariance) < 0.01
                     ? 'bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                     : cashVariance > 0
-                    ? 'bg-blue-100/70 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-700'
-                    : 'bg-rose-100/70 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-700'
-                }`}>
+                      ? 'bg-blue-100/70 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                      : 'bg-rose-100/70 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-700'
+                  }`}>
                   <div className="flex items-center gap-2">
                     {Math.abs(cashVariance) < 0.01 ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -1150,15 +1144,15 @@ export default function Cashbook() {
                         {Math.abs(cashVariance) < 0.01
                           ? 'Zero Discrepancy (Exact Match)'
                           : cashVariance > 0
-                          ? `Cash Surplus (+${fmtRs(cashVariance)})`
-                          : `Cash Shortage (-${fmtRs(Math.abs(cashVariance))})`}
+                            ? `Cash Surplus (+${fmtRs(cashVariance)})`
+                            : `Cash Shortage (-${fmtRs(Math.abs(cashVariance))})`}
                       </span>
                       <span className="text-[10px] opacity-80">
                         {Math.abs(cashVariance) < 0.01
                           ? 'Drawer count exactly matches the day’s ledger.'
                           : cashVariance > 0
-                          ? 'Physical cash in drawer is higher than recorded transactions.'
-                          : 'Physical cash in drawer is less than expected closing balance.'}
+                            ? 'Physical cash in drawer is higher than recorded transactions.'
+                            : 'Physical cash in drawer is less than expected closing balance.'}
                       </span>
                     </div>
                   </div>
