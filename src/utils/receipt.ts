@@ -43,14 +43,21 @@ function money(n: number): string {
 }
 
 /**
- * Builds a 58mm thermal-printer receipt and prints ONLY that receipt by
- * writing it into a hidden, dedicated iframe. This avoids the previous
- * behaviour of `window.print()` which printed the entire application UI.
+ * Builds an A5 Portrait retail invoice and prints ONLY that invoice by
+ * writing it into a hidden, dedicated iframe.
  */
 export function printReceipt(data: ReceiptData): void {
-  const date = new Date(data.created_at).toLocaleString();
+  const date = new Date(data.created_at).toLocaleString('en-LK', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-  const rows = data.items.map(item => {
+  const isCredit = data.payment_type === 'CREDIT';
+
+  const rows = data.items.map((item, index) => {
     const lineTotal = item.unit_price * item.quantity;
     const origPrice = Number(item.original_price ?? 0);
     const isReduced = origPrice > 0 && origPrice > item.unit_price;
@@ -59,15 +66,19 @@ export function printReceipt(data: ReceiptData): void {
       ? `<span class="strike">${money(origPrice * item.quantity)}</span>`
       : '';
     const discountNote = hasDiscount
-      ? `<br><span style="font-size:11px; color:#d97706; font-weight:600;">(Special Discount: ${item.discount_percent ? `${item.discount_percent}%` : money((origPrice - item.unit_price) * item.quantity)})</span>`
+      ? `<span class="disc-pill">-${item.discount_percent ? `${item.discount_percent}%` : money((origPrice - item.unit_price) * item.quantity)}</span>`
       : '';
       
     return `
       <tr>
-        <td>${escapeHtml(item.title)}${discountNote}</td>
-        <td class="num">${item.quantity}</td>
-        <td class="num">${money(item.unit_price)}</td>
-        <td class="num">${originalLine}${money(lineTotal)}</td>
+        <td class="col-idx">${index + 1}</td>
+        <td class="col-desc">
+          <div class="item-title">${escapeHtml(item.title)}</div>
+          ${discountNote}
+        </td>
+        <td class="col-qty">${item.quantity}</td>
+        <td class="col-price">${money(item.unit_price)}</td>
+        <td class="col-total">${originalLine}${money(lineTotal)}</td>
       </tr>`;
   }).join('');
 
@@ -77,49 +88,311 @@ export function printReceipt(data: ReceiptData): void {
 <meta charset="utf-8">
 <title>Invoice ${escapeHtml(data.receipt_no)}</title>
 <style>
-  @page { size: A5 landscape; margin: 10mm; }
+  @page {
+    size: A5 portrait;
+    margin: 8mm 8mm 10mm 8mm;
+  }
   * { box-sizing: border-box; }
-  body { font-family: "Segoe UI", system-ui, sans-serif; width: 100%; margin: 0 auto; color: #000; font-size: 13px; line-height: 1.4; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 15px; }
-  .shop-info h1 { font-size: 22px; margin: 0 0 5px 0; font-weight: 800; text-transform: uppercase; }
-  .shop-info p { margin: 0; color: #444; }
-  .invoice-info { text-align: right; }
-  .invoice-info h2 { font-size: 18px; margin: 0 0 5px 0; color: #555; text-transform: uppercase; letter-spacing: 1px; }
-  .invoice-info p { margin: 2px 0; color: #333; font-weight: 600; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-  th { border-bottom: 2px solid #000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 12px; text-transform: uppercase; }
-  td { border-bottom: 1px solid #eee; padding: 8px 4px; vertical-align: top; }
-  th.num, td.num { text-align: right; }
-  .strike { text-decoration: line-through; color: #888; font-size: 11px; display: block; }
-  .totals { width: 300px; margin-left: auto; }
-  .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
-  .total-row.grand { font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 8px; margin-top: 4px; }
-  .footer { margin-top: 20px; text-align: center; color: #555; font-size: 11px; border-top: 1px solid #ddd; padding-top: 10px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    color: #0f172a;
+    font-size: 11px;
+    line-height: 1.35;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Header & Business Letterhead ── */
+  .inv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .company h1 {
+    font-size: 17px;
+    font-weight: 800;
+    margin: 0 0 2px 0;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+    text-transform: uppercase;
+  }
+  .company p {
+    margin: 1px 0;
+    color: #475569;
+    font-size: 10.5px;
+  }
+  .inv-badge-block {
+    text-align: right;
+  }
+  .inv-type-title {
+    font-size: 15px;
+    font-weight: 800;
+    margin: 0 0 3px 0;
+    color: ${isCredit ? '#b91c1c' : '#0f172a'};
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .inv-number {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  /* ── Meta Details Strip (Customer & Invoice Info) ── */
+  .meta-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 12px;
+  }
+  .meta-left {
+    flex: 1;
+  }
+  .meta-right {
+    text-align: right;
+  }
+  .meta-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+  }
+  .meta-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .meta-sub {
+    font-size: 10px;
+    color: #475569;
+  }
+  .payment-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: #e2e8f0;
+    color: #1e293b;
+    margin-top: 2px;
+  }
+
+  /* ── Items Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+  thead {
+    display: table-header-group;
+  }
+  th {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-top: 1px solid #0f172a;
+    border-bottom: 1px solid #0f172a;
+    padding: 5px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  td {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 5px 6px;
+    vertical-align: middle;
+    font-size: 11px;
+  }
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .col-idx {
+    width: 20px;
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 10px;
+  }
+  .col-desc {
+    text-align: left;
+  }
+  .item-title {
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .disc-pill {
+    display: inline-block;
+    font-size: 9px;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-weight: 700;
+    margin-top: 1px;
+  }
+  .col-qty {
+    width: 36px;
+    text-align: center;
+    font-weight: 700;
+    font-family: monospace;
+    font-size: 11px;
+  }
+  .col-price {
+    width: 70px;
+    text-align: right;
+    font-family: monospace;
+    color: #334155;
+  }
+  .col-total {
+    width: 80px;
+    text-align: right;
+    font-family: monospace;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .strike {
+    text-decoration: line-through;
+    color: #94a3b8;
+    font-size: 9.5px;
+    display: block;
+  }
+
+  /* ── Settlement / Financial Summary ── */
+  .summary-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .totals-box {
+    width: 230px;
+  }
+  .total-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 2.5px 0;
+    font-size: 11px;
+    color: #334155;
+  }
+  .total-line.grand {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #0f172a;
+    border-top: 2px solid #0f172a;
+    border-bottom: 2px solid #0f172a;
+    padding: 5px 0;
+    margin: 4px 0;
+  }
+  .total-line.credit-due {
+    background: #fef2f2;
+    border: 1px dashed #ef4444;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #dc2626;
+    margin-top: 4px;
+  }
+  .total-line.change-due {
+    color: #16a34a;
+    font-weight: 700;
+  }
+
+  /* ── Sign-off & Footer ── */
+  .inv-sign-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+    padding-top: 8px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .sign-col {
+    text-align: center;
+    border-top: 1px dashed #94a3b8;
+    padding-top: 4px;
+    font-size: 9.5px;
+    color: #475569;
+  }
+  .inv-footer {
+    margin-top: 16px;
+    text-align: center;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
+    font-size: 10px;
+    color: #64748b;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .terms-note {
+    font-size: 9px;
+    color: #64748b;
+    margin-bottom: 3px;
+  }
+  .branding {
+    font-size: 8.5px;
+    color: #94a3b8;
+    margin: 2px 0 0 0;
+  }
 </style>
 </head>
 <body>
-  <div class="header">
-    <div class="shop-info">
+  <!-- Letterhead -->
+  <div class="inv-header">
+    <div class="company">
       <h1>${SHOP_NAME}</h1>
-      <p>${SHOP_ADDRESS}</p>
-      <p>Tel: ${SHOP_PHONE}</p>
+      <p>Books • Stationery • Office & School Supplies • Color Copy</p>
+      <p>${SHOP_ADDRESS} • Tel: <strong>${SHOP_PHONE}</strong></p>
     </div>
-    <div class="invoice-info">
-      <h2>INVOICE / BILL</h2>
-      <p>No: ${escapeHtml(data.receipt_no)}</p>
-      <p>Date: ${date}</p>
-      <p>Payment: ${escapeHtml(data.payment_type)}</p>
-      ${data.customer_name ? `<p>Customer: <strong>${escapeHtml(data.customer_name)}</strong>${data.customer_phone ? ` (${escapeHtml(data.customer_phone)})` : ''}</p>` : ''}
+    <div class="inv-badge-block">
+      <div class="inv-type-title">${isCredit ? 'Credit Invoice' : 'Retail Cash Bill'}</div>
+      <p class="inv-number">${escapeHtml(data.receipt_no)}</p>
     </div>
   </div>
 
+  <!-- Meta Strip -->
+  <div class="meta-container">
+    <div class="meta-left">
+      <div class="meta-label">Billed To</div>
+      <div class="meta-value">${data.customer_name ? escapeHtml(data.customer_name) : 'Cash Customer / Walk-in'}</div>
+      ${data.customer_phone ? `<div class="meta-sub">Tel: ${escapeHtml(data.customer_phone)}</div>` : ''}
+    </div>
+    <div class="meta-right">
+      <div class="meta-label">Invoice Details</div>
+      <div class="meta-sub">Date: <strong>${date}</strong></div>
+      <div><span class="payment-pill">${escapeHtml(data.payment_type)}</span></div>
+    </div>
+  </div>
+
+  <!-- Items Table -->
   <table>
     <thead>
       <tr>
-        <th>Item Description</th>
-        <th class="num" style="width: 80px;">Qty</th>
-        <th class="num" style="width: 120px;">Unit Price</th>
-        <th class="num" style="width: 140px;">Total</th>
+        <th class="col-idx">#</th>
+        <th class="col-desc">Item Description</th>
+        <th class="col-qty">Qty</th>
+        <th class="col-price">Price</th>
+        <th class="col-total">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -127,48 +400,69 @@ export function printReceipt(data: ReceiptData): void {
     </tbody>
   </table>
 
-  <div class="totals">
-    ${(data.bill_discount && data.bill_discount > 0) ? `
-    <div class="total-row">
-      <span>Subtotal</span>
-      <span>${money(data.subtotal ?? (data.total_amount + data.bill_discount))}</span>
+  <!-- Financial Summary -->
+  <div class="summary-container">
+    <div class="totals-box">
+      ${(data.bill_discount && data.bill_discount > 0) ? `
+      <div class="total-line">
+        <span>Subtotal:</span>
+        <span style="font-family:monospace;">${money(data.subtotal ?? (data.total_amount + data.bill_discount))}</span>
+      </div>
+      <div class="total-line" style="color: #b91c1c;">
+        <span>Bill Discount:</span>
+        <span style="font-family:monospace;">- ${money(data.bill_discount)}</span>
+      </div>` : ''}
+      
+      <div class="total-line grand">
+        <span>NET TOTAL:</span>
+        <span style="font-family:monospace;">${money(data.total_amount)}</span>
+      </div>
+
+      ${(data.payment_type === 'CASH' && data.cash_tendered != null && data.cash_tendered > 0) ? `
+      <div class="total-line" style="border-top:1px dashed #cbd5e1; padding-top:3px; margin-top:2px;">
+        <span>Cash Tendered:</span>
+        <span style="font-family:monospace;">${money(data.cash_tendered)}</span>
+      </div>
+      <div class="total-line change-due">
+        <span>Change Return:</span>
+        <span style="font-family:monospace;">${money(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount))}</span>
+      </div>` : ''}
+
+      ${(data.payment_type === 'CREDIT' && data.previous_due != null) ? `
+      <div class="total-line" style="border-top:1px dashed #cbd5e1; padding-top:3px; margin-top:2px;">
+        <span>Previous Balance:</span>
+        <span style="font-family:monospace;">${money(data.previous_due)}</span>
+      </div>
+      <div class="total-line">
+        <span>This Bill:</span>
+        <span style="font-family:monospace;">${money(data.total_amount)}</span>
+      </div>` : ''}
+
+      ${(data.credit_due_amount != null && (data.credit_due_amount > 0 || isCredit)) ? `
+      <div class="total-line credit-due">
+        <span>${isCredit ? 'TOTAL CREDIT DUE:' : 'REMAINING CREDIT:'}</span>
+        <span style="font-family:monospace;">${money(data.credit_due_amount)}</span>
+      </div>` : ''}
     </div>
-    <div class="total-row" style="color: #dc2626;">
-      <span>Bill Discount</span>
-      <span>- ${money(data.bill_discount)}</span>
-    </div>` : ''}
-    <div class="total-row grand">
-      <span>NET TOTAL</span>
-      <span>${money(data.total_amount)}</span>
-    </div>
-    ${(data.payment_type === 'CASH' && data.cash_tendered != null && data.cash_tendered > 0) ? `
-    <div class="total-row" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px;">
-      <span>Cash Tendered</span>
-      <span>${money(data.cash_tendered)}</span>
-    </div>
-    <div class="total-row" style="font-weight: bold; color: #15803d;">
-      <span>Change Return</span>
-      <span>${money(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount))}</span>
-    </div>` : ''}
-    ${(data.payment_type === 'CREDIT' && data.previous_due != null) ? `
-    <div class="total-row" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px; color: #475569;">
-      <span>Previous Due</span>
-      <span>${money(data.previous_due)}</span>
-    </div>
-    <div class="total-row" style="color: #475569;">
-      <span>This Bill</span>
-      <span>${money(data.total_amount)}</span>
-    </div>` : ''}
-    ${(data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) ? `
-    <div class="total-row" style="margin-top: 8px; border-top: 2px dashed #dc2626; padding-top: 6px; color: #dc2626; font-weight: 800; font-size: 15px;">
-      <span>${data.payment_type === 'CREDIT' ? 'TOTAL CREDIT DUE' : 'REMAINING CREDIT DUE'}</span>
-      <span>${money(data.credit_due_amount)}</span>
-    </div>` : ''}
   </div>
 
-  <div class="footer">
-    <p>${FOOTER}</p>
-    <p style="font-size: 9px; margin-top: 4px; opacity: 0.7;">Software by inkoart.online • 0724207000</p>
+  <!-- Signatures Block (Crucial for A5 credit invoices & customer verification) -->
+  <div class="inv-sign-block">
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Customer Signature</span>
+    </div>
+    <div class="sign-col">
+      <p style="margin:0 0 16px 0;"></p>
+      <span>Authorized / Cashier</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="inv-footer">
+    <div class="terms-note">Goods once sold can be exchanged within 7 days in original condition with this invoice.</div>
+    <div style="font-weight: 600; color: #1e293b;">${FOOTER}</div>
+    <div class="branding">Software by inkoart.online • 0724207000</div>
   </div>
 
   <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 150); };<` + `/script>
