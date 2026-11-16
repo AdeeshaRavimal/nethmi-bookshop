@@ -681,14 +681,14 @@ export default function Cashbook() {
         </div>
 
         {/* ── Transactions Ledger Table ──────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden print:bg-white print:border-slate-300 print:shadow-none print:overflow-visible">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between print:py-2 print:px-3 print:bg-slate-50 print:border-slate-300">
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+              <Layers className="w-4 h-4 text-gray-500 print:hidden" />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white print:text-xs print:font-extrabold print:text-slate-900">
                 Ledger Entries for {selectedDate}
               </h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium print:text-[10px] print:bg-transparent print:p-0 print:text-slate-600">
                 {filteredTransactions.length} transactions
               </span>
             </div>
@@ -712,21 +712,21 @@ export default function Cashbook() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto print:overflow-visible">
-              <table className="w-full text-left text-sm print:text-xs">
+            <div className="overflow-x-auto print:overflow-visible print:bg-white">
+              <table className="w-full text-left text-sm print:text-xs print:bg-white print:divide-slate-300">
                 <thead className="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold border-b border-gray-200 dark:border-gray-800 print:bg-slate-100 print:text-slate-900 print:table-header-group">
                   <tr>
-                    <th className="py-3 px-4 print:py-1.5 print:px-2">Time</th>
-                    <th className="py-3 px-4 print:py-1.5 print:px-2">Type</th>
-                    <th className="py-3 px-4 print:py-1.5 print:px-2">Category</th>
-                    <th className="py-3 px-4 print:py-1.5 print:px-2">Description</th>
-                    <th className="py-3 px-4 print:py-1.5 print:px-2">Ref #</th>
-                    <th className="py-3 px-4 text-right print:py-1.5 print:px-2">Cash In (Rs.)</th>
-                    <th className="py-3 px-4 text-right print:py-1.5 print:px-2">Cash Out (Rs.)</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Time</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Type</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Category</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Description</th>
+                    <th className="py-3 px-4 print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Ref #</th>
+                    <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Cash In (Rs.)</th>
+                    <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:bg-slate-100 print:text-slate-900">Cash Out (Rs.)</th>
                     <th className="py-3 px-4 text-center print:hidden">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80 print:divide-slate-200">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80 print:divide-slate-200 print:bg-white">
                   {filteredTransactions.map((tx) => {
                     const badge = getCategoryBadge(tx.category, tx.type);
                     const isPos = Boolean(tx.is_auto);
@@ -734,9 +734,9 @@ export default function Cashbook() {
                     return (
                       <tr
                         key={tx.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors print:break-inside-avoid print:hover:bg-transparent"
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors print:break-inside-avoid print:bg-white print:hover:bg-white"
                       >
-                        <td className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600">
+                        <td className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600 print:bg-white">
                           {tx.entry_time || '—'}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap print:py-1.5 print:px-2">

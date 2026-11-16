@@ -457,21 +457,21 @@ export default function Bills() {
       </div>
 
       {/* ── Invoices Table ──────────────────────────────────────────────────────── */}
-      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col print:border-slate-300 print:shadow-none print:overflow-visible">
-        <div className="overflow-x-auto flex-1 overflow-y-auto print:overflow-visible">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm print:text-xs">
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col print:bg-white print:border-slate-300 print:shadow-none print:overflow-visible">
+        <div className="overflow-x-auto flex-1 overflow-y-auto print:overflow-visible print:bg-white">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm print:text-xs print:bg-white print:divide-slate-300">
             <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider print:bg-slate-100 print:text-slate-900 print:table-header-group">
               <tr>
-                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">GRN Invoice #</th>
-                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Supplier / Distributor</th>
-                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Received Date</th>
-                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Due Date</th>
-                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px]">Payment Status</th>
-                <th className="px-6 py-3 text-right print:py-1.5 print:px-2 print:text-[10px]">Invoice Amount</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">GRN Invoice #</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Supplier / Distributor</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Received Date</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Due Date</th>
+                <th className="px-6 py-3 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Payment Status</th>
+                <th className="px-6 py-3 text-right print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Invoice Amount</th>
                 <th className="px-6 py-3 text-center print:hidden">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 print:divide-slate-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 print:divide-slate-200 print:bg-white">
               {loading ? (
                 [0, 1, 2, 3].map((r) => (
                   <tr key={r}>
@@ -499,14 +499,14 @@ export default function Bills() {
                   return (
                     <tr
                       key={grn.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:break-inside-avoid ${
-                        overdue ? 'bg-red-50/50 dark:bg-red-950/20 print:bg-transparent' : ''
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:break-inside-avoid print:bg-white print:hover:bg-white ${
+                        overdue ? 'bg-red-50/50 dark:bg-red-950/20 print:bg-white' : ''
                       }`}
                     >
-                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
+                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900 print:bg-white">
                         {grn.grn_number}
                       </td>
-                      <td className="px-6 py-4 text-gray-800 dark:text-gray-200 font-medium print:py-1.5 print:px-2 print:text-slate-900">
+                      <td className="px-6 py-4 text-gray-800 dark:text-gray-200 font-medium print:py-1.5 print:px-2 print:text-slate-900 print:bg-white">
                         <div className="flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-gray-400 print:hidden" />
                           <span>{grn.supplier_name || 'Walk-in / Direct'}</span>
@@ -515,7 +515,7 @@ export default function Bills() {
                           <p className="text-xs text-gray-400 italic mt-0.5 print:text-[10px] print:text-slate-500">{grn.notes}</p>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-700">
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-700 print:bg-white">
                         {fmtDate(grn.received_date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap print:py-1.5 print:px-2">

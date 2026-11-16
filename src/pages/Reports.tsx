@@ -560,14 +560,14 @@ export default function Reports() {
       </div>
 
       {/* ── Item-Wise Revenue & Performance Table ─────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col flex-1 print:border-slate-300 print:shadow-none print:overflow-visible">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2 print:py-2 print:px-3 print:bg-slate-50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col flex-1 print:bg-white print:border-slate-300 print:shadow-none print:overflow-visible">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2 print:py-2 print:px-3 print:bg-slate-50 print:border-slate-300">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-slate-700 dark:text-slate-300 print:hidden" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white print:text-xs print:font-extrabold print:text-slate-900">
               Item & Service Sales Performance Ranking
             </h3>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold print:text-[10px] print:bg-transparent print:p-0">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold print:text-[10px] print:bg-transparent print:p-0 print:text-slate-600">
               ({items.length} items ranked by revenue)
             </span>
           </div>
@@ -577,21 +577,21 @@ export default function Reports() {
           </div>
         </div>
 
-        <div className="overflow-x-auto flex-1 print:overflow-visible">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm print:text-xs">
+        <div className="overflow-x-auto flex-1 print:overflow-visible print:bg-white">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm print:text-xs print:bg-white print:divide-slate-300">
             <thead className="bg-gray-50 dark:bg-gray-900/60 sticky top-0 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider print:bg-slate-100 print:text-slate-900 print:table-header-group">
               <tr>
-                <th className="py-3 px-4 text-center w-12 print:py-1.5 print:px-1 print:text-[10px]">#</th>
-                <th className="py-3 px-4 text-left print:py-1.5 print:px-2 print:text-[10px]">Product / Service</th>
-                <th className="py-3 px-4 text-left print:py-1.5 print:px-2 print:text-[10px]">Category</th>
-                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Quantity</th>
-                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Avg Price</th>
-                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Total Revenue</th>
-                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">COGS Cost</th>
-                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px]">Gross Profit</th>
+                <th className="py-3 px-4 text-center w-12 print:py-1.5 print:px-1 print:text-[10px] print:bg-slate-100 print:text-slate-900">#</th>
+                <th className="py-3 px-4 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Product / Service</th>
+                <th className="py-3 px-4 text-left print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Category</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Quantity</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Avg Price</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Total Revenue</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">COGS Cost</th>
+                <th className="py-3 px-4 text-right print:py-1.5 print:px-2 print:text-[10px] print:bg-slate-100 print:text-slate-900">Gross Profit</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60 print:divide-slate-200">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60 print:divide-slate-200 print:bg-white">
               {loading ? (
                 [0, 1, 2, 3, 4].map((r) => (
                   <tr key={r}>
@@ -623,12 +623,12 @@ export default function Reports() {
                   return (
                     <tr
                       key={`${item.productId}-${item.barcode}-${index}`}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors print:break-inside-avoid print:hover:bg-transparent"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors print:break-inside-avoid print:bg-white print:hover:bg-white"
                     >
-                      <td className="py-3 px-4 text-center font-bold text-xs text-gray-400 print:py-1.5 print:px-1 print:text-[10px] print:text-slate-500">
+                      <td className="py-3 px-4 text-center font-bold text-xs text-gray-400 print:py-1.5 print:px-1 print:text-[10px] print:text-slate-600 print:bg-white">
                         {index + 1}
                       </td>
-                      <td className="py-3 px-4 print:py-1.5 print:px-2">
+                      <td className="py-3 px-4 print:py-1.5 print:px-2 print:bg-white">
                         <div className="font-bold text-gray-900 dark:text-gray-100 print:text-xs print:text-slate-900">
                           {item.title}
                         </div>
@@ -638,26 +638,26 @@ export default function Reports() {
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap print:py-1.5 print:px-2">
+                      <td className="py-3 px-4 whitespace-nowrap print:py-1.5 print:px-2 print:bg-white">
                         <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-bold print:p-0 print:border-0 print:bg-transparent print:text-slate-800 print:font-semibold ${color.badge}`}>
                           {item.category}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-bold font-mono text-gray-900 dark:text-gray-100 print:py-1.5 print:px-2 print:text-slate-900">
+                      <td className="py-3 px-4 text-right font-bold font-mono text-gray-900 dark:text-gray-100 print:py-1.5 print:px-2 print:text-slate-900 print:bg-white">
                         {item.quantitySold}
                       </td>
-                      <td className="py-3 px-4 text-right text-xs font-mono text-gray-600 dark:text-gray-300 print:py-1.5 print:px-2 print:text-slate-700">
+                      <td className="py-3 px-4 text-right text-xs font-mono text-gray-600 dark:text-gray-300 print:py-1.5 print:px-2 print:text-slate-700 print:bg-white">
                         Rs. {item.avgPrice.toFixed(2)}
                       </td>
-                      <td className="py-3 px-4 text-right font-extrabold font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900">
+                      <td className="py-3 px-4 text-right font-extrabold font-mono text-gray-900 dark:text-gray-100 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-900 print:bg-white">
                         {fmtRs(item.totalRevenue)}
                       </td>
-                      <td className="py-3 px-4 text-right text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600">
+                      <td className="py-3 px-4 text-right text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-slate-600 print:bg-white">
                         {fmtRs(item.totalCost)}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-emerald-800 font-mono">
+                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap print:py-1.5 print:px-2 print:text-emerald-800 font-mono print:bg-white">
                         <div>+{fmtRs(item.profit)}</div>
-                        <div className="text-[10px] text-emerald-700 dark:text-emerald-500 font-semibold print:text-[9px]">
+                        <div className="text-[10px] text-emerald-700 dark:text-emerald-500 font-semibold print:text-[9px] print:text-emerald-800">
                           ({marginPct}% margin)
                         </div>
                       </td>
@@ -667,22 +667,22 @@ export default function Reports() {
               )}
             </tbody>
             {items.length > 0 && (
-              <tfoot className="bg-gray-50 dark:bg-gray-900/80 font-bold border-t-2 border-gray-200 dark:border-gray-700 text-sm print:bg-slate-100 print:text-slate-900 print:table-footer-group">
+              <tfoot className="bg-gray-50 dark:bg-gray-900/80 font-bold border-t-2 border-gray-200 dark:border-gray-700 text-sm print:bg-slate-100 print:text-slate-900 print:table-footer-group print:border-slate-300">
                 <tr>
-                  <td colSpan={3} className="py-3 px-4 text-right text-gray-700 dark:text-gray-300 print:py-2 print:px-2 print:text-slate-800">
+                  <td colSpan={3} className="py-3 px-4 text-right text-gray-700 dark:text-gray-300 print:py-2 print:px-2 print:text-slate-800 print:bg-slate-100">
                     Grand Total:
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-900 dark:text-white print:text-slate-900 font-mono print:py-2 print:px-2">
+                  <td className="py-3 px-4 text-right text-gray-900 dark:text-white print:text-slate-900 font-mono print:py-2 print:px-2 print:bg-slate-100">
                     {summary.totalItemsSold}
                   </td>
-                  <td></td>
-                  <td className="py-3 px-4 text-right text-slate-900 dark:text-slate-100 font-mono font-bold print:py-2 print:px-2">
+                  <td className="print:bg-slate-100"></td>
+                  <td className="py-3 px-4 text-right text-slate-900 dark:text-slate-100 font-mono font-bold print:py-2 print:px-2 print:text-slate-900 print:bg-slate-100">
                     {fmtRs(summary.totalRevenue)}
                   </td>
-                  <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400 font-mono print:text-slate-700 print:py-2 print:px-2">
+                  <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400 font-mono print:text-slate-700 print:py-2 print:px-2 print:bg-slate-100">
                     {fmtRs(summary.totalCost)}
                   </td>
-                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-black font-mono print:text-emerald-800 print:py-2 print:px-2">
+                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-black font-mono print:text-emerald-800 print:py-2 print:px-2 print:bg-slate-100">
                     +{fmtRs(summary.grossProfit)}
                   </td>
                 </tr>
