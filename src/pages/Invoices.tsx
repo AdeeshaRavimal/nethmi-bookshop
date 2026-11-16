@@ -953,7 +953,7 @@ export default function Invoices() {
                       {returnItems.map((item, idx) => {
                         const isFullyReturned = item.max_return_qty <= 0;
                         return (
-                          <tr key={idx} className={isFullyReturned ? 'bg-slate-50/50 dark:bg-slate-850/50 opacity-60' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40'}>
+                          <tr key={idx} className={isFullyReturned ? 'bg-slate-50/50 dark:bg-slate-900/60 opacity-60' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40'}>
                             <td className="py-2.5 px-3">
                               <span className="font-medium text-slate-900 dark:text-slate-100 block">
                                 {item.title}

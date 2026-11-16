@@ -442,7 +442,7 @@ export default function CreditCustomers() {
                 {(selectedCustomer.total_outstanding || 0) > 0 && selectedCustomer.phone && (
                   <button
                     onClick={() => sendWhatsAppReminder(selectedCustomer)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-750 rounded-lg text-xs font-medium transition-all shadow-2xs cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 rounded-lg text-xs font-medium transition-all shadow-2xs cursor-pointer"
                     title="Send WhatsApp Debt Reminder"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />

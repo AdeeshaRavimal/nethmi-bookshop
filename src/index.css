@@ -2,6 +2,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-slate-750: #243044;
+  --color-slate-850: #151e2e;
+  --color-gray-750: #262e3d;
+  --color-gray-850: #161c28;
+}
+
 :root {
   --color-primary: #2563eb;
   --color-primary-hover: #1d4ed8;
@@ -61,7 +68,9 @@ body {
 }
 
 /* Form controls & inputs styling foundation */
-input, select, textarea {
+input,
+select,
+textarea {
   font-feature-settings: "tnum";
 }
 
@@ -95,9 +104,21 @@ textarea:focus-visible {
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
 }
 
 .animate-shake {
@@ -112,7 +133,13 @@ textarea:focus-visible {
   }
 
   /* Force pure light theme across the entire document during print */
-  :root, html, html.dark, body, #root, main, .print-container {
+  :root,
+  html,
+  html.dark,
+  body,
+  #root,
+  main,
+  .print-container {
     color-scheme: light !important;
     height: auto !important;
     min-height: auto !important;
@@ -125,15 +152,28 @@ textarea:focus-visible {
   }
 
   /* Neutralize dark-mode classes completely in print mode */
-  html.dark div, html.dark section, html.dark article,
-  html.dark main, html.dark table, html.dark tbody,
-  html.dark tr, html.dark td, html.dark p, html.dark span,
-  html.dark h1, html.dark h2, html.dark h3, html.dark h4 {
+  html.dark div,
+  html.dark section,
+  html.dark article,
+  html.dark main,
+  html.dark table,
+  html.dark tbody,
+  html.dark tr,
+  html.dark td,
+  html.dark p,
+  html.dark span,
+  html.dark h1,
+  html.dark h2,
+  html.dark h3,
+  html.dark h4 {
     color: #0f172a !important;
   }
 
   /* Force all tables and rows to pure white background */
-  table, tbody, tr, td {
+  table,
+  tbody,
+  tr,
+  td {
     background-color: #ffffff !important;
     background: #ffffff !important;
   }
@@ -156,7 +196,10 @@ textarea:focus-visible {
 
   html.dark [class*="print:bg-slate-100"],
   [class*="print:bg-slate-100"],
-  thead, thead th, tfoot, tfoot td {
+  thead,
+  thead th,
+  tfoot,
+  tfoot td {
     background-color: #f1f5f9 !important;
     color: #0f172a !important;
   }
@@ -168,7 +211,8 @@ textarea:focus-visible {
   }
 
   thead {
-    display: table-header-group !important; /* Repeats table header across pages 2, 3, etc. */
+    display: table-header-group !important;
+    /* Repeats table header across pages 2, 3, etc. */
   }
 
   tfoot {
@@ -191,5 +235,3 @@ textarea:focus-visible {
     print-color-adjust: exact !important;
   }
 }
-
-

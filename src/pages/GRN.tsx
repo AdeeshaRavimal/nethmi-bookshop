@@ -109,7 +109,7 @@ function GRNDetailModal({ grnId, onClose, onMarkPaid }: { grnId: number; onClose
             {header && items.length > 0 && (
               <button
                 onClick={() => printGRNVoucher({ header, items })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-lg font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
                 title="Print official delivery voucher"
               >
                 <Printer className="w-3.5 h-3.5 text-blue-600" />
@@ -666,7 +666,7 @@ function NewGRNModal({ suppliers, onClose, onCreated }: { suppliers: Supplier[];
                       const marginPct = sellPrice > 0 ? Math.round((unitProfit / sellPrice) * 1000) / 10 : 0;
 
                       return (
-                        <tr key={item._key} className="hover:bg-gray-50/50 dark:hover:bg-gray-750">
+                        <tr key={item._key} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                           <td className="px-3 py-2">
                             <input
                               className="w-24 p-1.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded font-mono focus:ring-1 focus:ring-blue-500 focus:outline-none"

@@ -1361,7 +1361,7 @@ export default function POS() {
                 <button
                   type="button"
                   onClick={() => setShowServicesModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-all cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-2xs"
                   title="Services Calculator: Photocopy, Laminating, Binding (F3)"
                 >
                   <Calculator className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
@@ -1386,7 +1386,7 @@ export default function POS() {
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
                     attachedCustomer
                       ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                   }`}
                   title="Attach Customer for Loyalty Points & WhatsApp E-Bill (F6)"
                 >
@@ -1755,7 +1755,7 @@ export default function POS() {
             <button
               onClick={openCreditModal}
               disabled={cart.length === 0 || isCheckingOut}
-              className="flex flex-col items-center justify-center p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed h-22 shadow-2xs cursor-pointer"
+              className="flex flex-col items-center justify-center p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed h-22 shadow-2xs cursor-pointer"
               title="Credit Payment (Assign bill to a credit customer account)"
             >
               <Users className="w-5 h-5 mb-1 text-slate-600 dark:text-slate-400" />
@@ -2303,7 +2303,7 @@ export default function POS() {
                     <button
                       type="button"
                       onClick={() => setIsCreatingCreditCustomer(true)}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer shrink-0"
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer shrink-0"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       New
@@ -2704,7 +2704,7 @@ export default function POS() {
                     </h4>
                     <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
                       <table className="w-full text-left text-xs">
-                        <thead className="bg-gray-50 dark:bg-gray-750 text-gray-500 dark:text-gray-400 uppercase font-bold border-b border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase font-bold border-b border-gray-200 dark:border-gray-700">
                           <tr>
                             <th className="py-2.5 px-3">Item</th>
                             <th className="py-2.5 px-2 text-center">Sold Qty</th>
@@ -2713,7 +2713,7 @@ export default function POS() {
                             <th className="py-2.5 px-3 text-right">Refund Total</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-750">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                           {returnItems.map((item, idx) => {
                             const isFullyReturned = item.max_return_qty <= 0;
                             return (
@@ -2801,7 +2801,7 @@ export default function POS() {
                   </div>
 
                   {/* Refund Summary Banner */}
-                  <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-gray-500 dark:text-gray-400 block">
                         Total Items Returning: <strong>{returnItems.reduce((sum, i) => sum + i.return_qty, 0)} units</strong>
@@ -2849,7 +2849,7 @@ export default function POS() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-750 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setShowReturnModal(false)}
@@ -2903,14 +2903,14 @@ export default function POS() {
             </div>
 
             {/* Service Type Tabs */}
-            <div className="grid grid-cols-3 p-3 gap-2 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-3 p-3 gap-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setServiceType('PHOTOCOPY')}
                 className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
                   serviceType === 'PHOTOCOPY'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -2923,7 +2923,7 @@ export default function POS() {
                 className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
                   serviceType === 'LAMINATING'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -2936,7 +2936,7 @@ export default function POS() {
                 className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
                   serviceType === 'BINDING'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -3245,7 +3245,7 @@ export default function POS() {
               )}
 
               {/* Calculated Price & Margin Banner */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-850/60 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider block">
                     Calculated Line Item
@@ -3269,7 +3269,7 @@ export default function POS() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setShowServicesModal(false)}

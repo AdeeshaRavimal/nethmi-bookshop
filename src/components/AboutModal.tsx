@@ -121,7 +121,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+        <div className="p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex justify-end">
           <button
             type="button"
             onClick={onClose}

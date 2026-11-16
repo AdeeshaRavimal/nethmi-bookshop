@@ -339,7 +339,7 @@ export default function BackupModal({ isOpen, onClose }: BackupModalProps) {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
+        <div className="px-5 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
           <button
             type="button"
             onClick={onClose}

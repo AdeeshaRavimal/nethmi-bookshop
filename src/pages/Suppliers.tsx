@@ -1190,7 +1190,7 @@ export default function Suppliers() {
                 {filteredCheques.map(c => {
                   const dueInfo = getChequeDueStatus(c.due_date, c.status);
                   return (
-                    <tr key={c.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-750/40 transition-colors">
+                    <tr key={c.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition-colors">
                       <td className="py-3.5 px-4">
                         <span className="font-mono font-bold text-sm text-gray-900 dark:text-gray-100 block">
                           #{c.cheque_number}
@@ -1896,7 +1896,7 @@ export default function Suppliers() {
                         return true;
                       })
                       .map(item => (
-                        <div key={item.id} className="py-3.5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-750 px-2 rounded-xl transition-colors">
+                        <div key={item.id} className="py-3.5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-700/50 px-2 rounded-xl transition-colors">
                           <div className="flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                               item.type === 'GRN'
