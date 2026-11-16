@@ -188,7 +188,12 @@ export function printReceipt(data: ReceiptData): void {
 export function buildWhatsAppReceiptText(data: ReceiptData): string {
   const date = new Date(data.created_at).toLocaleString();
   const itemsList = (data.items || [])
-    .map(i => `• ${i.title}  x${i.quantity}  =  Rs. ${(i.unit_price * i.quantity).toFixed(2)}`)
+    .map(i => {
+      const unitPrice = Number(i.unit_price ?? (i as any).selling_price ?? 0);
+      const qty = Number(i.quantity ?? 1);
+      const lineTotal = unitPrice * qty;
+      return `• ${i.title}  x${qty}  =  Rs. ${lineTotal.toFixed(2)}`;
+    })
     .join('\n');
 
   let text = `*${SHOP_NAME}*\n${SHOP_ADDRESS} (Tel: ${SHOP_PHONE})\n----------------------------------------\n*INVOICE / RECEIPT: ${data.receipt_no}*\nDate: ${date}\nPayment: ${data.payment_type}\n`;
@@ -197,25 +202,18 @@ export function buildWhatsAppReceiptText(data: ReceiptData): string {
     text += `Customer: ${data.customer_name}${data.customer_phone ? ` (${data.customer_phone})` : ''}\n`;
   }
 
-  text += `----------------------------------------\n*Items Purchased:*\n${itemsList}\n----------------------------------------\n*TOTAL: Rs. ${data.total_amount.toFixed(2)}*`;
+  text += `----------------------------------------\n*Items Purchased:*\n${itemsList}\n----------------------------------------\n*TOTAL: Rs. ${Number(data.total_amount || 0).toFixed(2)}*`;
 
   if (data.bill_discount && data.bill_discount > 0) {
-    text += `\n(Discount Saved: Rs. ${data.bill_discount.toFixed(2)})`;
+    text += `\n(Discount Saved: Rs. ${Number(data.bill_discount).toFixed(2)})`;
   }
 
   if (data.cash_tendered && data.cash_tendered > data.total_amount) {
-    text += `\nCash Received: Rs. ${data.cash_tendered.toFixed(2)}`;
+    text += `\nCash Received: Rs. ${Number(data.cash_tendered).toFixed(2)}`;
     text += `\nChange Returned: Rs. ${(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount)).toFixed(2)}`;
   }
 
-  if (data.points_earned && data.points_earned > 0) {
-    text += `\n\n✨ Points Earned: +${data.points_earned} pts`;
-  }
-  if (data.points_balance !== undefined && data.points_balance !== null) {
-    text += `\n⭐ Loyalty Balance: ${data.points_balance} pts`;
-  }
-
-  text += `\n\nThank you for shopping with us! Have a great day! 🙏`;
+  text += `\n\nThank you for shopping with us! Have a great day!`;
 
   return text;
 }
