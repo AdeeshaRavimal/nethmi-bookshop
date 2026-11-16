@@ -52,7 +52,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <p className="text-xs text-slate-400 mt-0.5 truncate">Maniyangama, Avissawella • 070200042</p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] font-mono text-blue-400 font-semibold bg-blue-950/60 border border-blue-800/80 px-1.5 py-0.2 rounded">
-                  v1.0.4 Enterprise
+                  v1.0.5 Enterprise
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">Point of Sale System</span>
               </div>

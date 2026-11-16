@@ -967,8 +967,8 @@ export default function POS() {
       const creditDueAmount = (res as any)?.creditBalance != null
         ? (res as any).creditBalance
         : (method === 'CREDIT'
-            ? (previousDue + adjustedNetTotal)
-            : (previousDue > 0 ? previousDue : undefined));
+          ? (previousDue + adjustedNetTotal)
+          : (previousDue > 0 ? previousDue : undefined));
 
       const receiptPayload: ReceiptData = {
         receipt_no: receiptNo,
@@ -1332,11 +1332,10 @@ export default function POS() {
                     setSoundEnabled(next);
                     if (next) soundFX.playScanSuccess();
                   }}
-                  className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
-                    soundEnabled
+                  className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${soundEnabled
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-200 dark:border-gray-600'
-                  }`}
+                    }`}
                   title={soundEnabled ? 'Audio Feedback ON (Click to Mute)' : 'Audio Feedback MUTED (Click to Unmute)'}
                 >
                   {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -1383,11 +1382,10 @@ export default function POS() {
                       if (res.success && res.data) setCreditCustomers(res.data);
                     } catch (e) { console.error(e); }
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
-                    attachedCustomer
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${attachedCustomer
                       ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
                       : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
+                    }`}
                   title="Attach Customer for Loyalty Points & WhatsApp E-Bill (F6)"
                 >
                   <Users className={`w-3.5 h-3.5 ${attachedCustomer ? 'text-white dark:text-slate-900' : 'text-slate-500 dark:text-slate-400'}`} />
@@ -2369,11 +2367,10 @@ export default function POS() {
 
                     return (
                       <div className="space-y-2">
-                        <div className={`p-3 rounded-xl border flex items-center justify-between ${
-                          isLimitExceeded
+                        <div className={`p-3 rounded-xl border flex items-center justify-between ${isLimitExceeded
                             ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
                             : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
-                        }`}>
+                          }`}>
                           <div>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Selected:</span>
                             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{selectedCreditCustomer.name}</p>
@@ -2907,11 +2904,10 @@ export default function POS() {
               <button
                 type="button"
                 onClick={() => setServiceType('PHOTOCOPY')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
-                  serviceType === 'PHOTOCOPY'
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${serviceType === 'PHOTOCOPY'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                }`}
+                  }`}
               >
                 <Copy className="w-3.5 h-3.5" />
                 <span>Photocopy & Print</span>
@@ -2920,11 +2916,10 @@ export default function POS() {
               <button
                 type="button"
                 onClick={() => setServiceType('LAMINATING')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
-                  serviceType === 'LAMINATING'
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${serviceType === 'LAMINATING'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                }`}
+                  }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Laminating</span>
@@ -2933,11 +2928,10 @@ export default function POS() {
               <button
                 type="button"
                 onClick={() => setServiceType('BINDING')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${
-                  serviceType === 'BINDING'
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-all cursor-pointer ${serviceType === 'BINDING'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold shadow-2xs'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                }`}
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Doc Binding</span>
@@ -2960,11 +2954,10 @@ export default function POS() {
                             key={size}
                             type="button"
                             onClick={() => setCopySize(size)}
-                            className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                              copySize === size
+                            className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${copySize === size
                                 ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                                 : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                            }`}
+                              }`}
                           >
                             {size}
                           </button>
@@ -2980,22 +2973,20 @@ export default function POS() {
                         <button
                           type="button"
                           onClick={() => setCopyColor('BW')}
-                          className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                            copyColor === 'BW'
+                          className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${copyColor === 'BW'
                               ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                               : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                          }`}
+                            }`}
                         >
                           B & W
                         </button>
                         <button
                           type="button"
                           onClick={() => setCopyColor('COLOUR')}
-                          className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                            copyColor === 'COLOUR'
+                          className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${copyColor === 'COLOUR'
                               ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                               : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                          }`}
+                            }`}
                         >
                           Colour
                         </button>
@@ -3012,22 +3003,20 @@ export default function POS() {
                       <button
                         type="button"
                         onClick={() => setCopySides('SINGLE')}
-                        className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                          copySides === 'SINGLE'
+                        className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${copySides === 'SINGLE'
                             ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                             : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
+                          }`}
                       >
                         1-Sided (Single Page)
                       </button>
                       <button
                         type="button"
                         onClick={() => setCopySides('DOUBLE')}
-                        className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                          copySides === 'DOUBLE'
+                        className={`py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${copySides === 'DOUBLE'
                             ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                             : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
+                          }`}
                       >
                         2-Sided (Back to Back)
                       </button>
@@ -3110,11 +3099,10 @@ export default function POS() {
                           key={item.key}
                           type="button"
                           onClick={() => setLaminateSize(item.key)}
-                          className={`p-3 text-left rounded-lg border transition-all cursor-pointer ${
-                            laminateSize === item.key
+                          className={`p-3 text-left rounded-lg border transition-all cursor-pointer ${laminateSize === item.key
                               ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                               : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                          }`}
+                            }`}
                         >
                           <span className="block font-semibold text-xs">{item.label}</span>
                           <span className={`block text-[11px] font-mono font-semibold mt-0.5 ${laminateSize === item.key ? 'text-slate-300 dark:text-slate-700' : 'text-slate-500 dark:text-slate-400'}`}>{item.rate}</span>
@@ -3185,11 +3173,10 @@ export default function POS() {
                           key={item.key}
                           type="button"
                           onClick={() => setBindingType(item.key)}
-                          className={`p-3 text-left rounded-lg border transition-all cursor-pointer ${
-                            bindingType === item.key
+                          className={`p-3 text-left rounded-lg border transition-all cursor-pointer ${bindingType === item.key
                               ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-2xs'
                               : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                          }`}
+                            }`}
                         >
                           <span className="block font-semibold text-xs">{item.label}</span>
                           <span className={`block text-[11px] font-mono font-semibold mt-0.5 ${bindingType === item.key ? 'text-slate-300 dark:text-slate-700' : 'text-slate-500 dark:text-slate-400'}`}>{item.rate}</span>
