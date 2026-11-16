@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 15;
+export const CURRENT_SCHEMA_VERSION = 16;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -259,6 +259,7 @@ export function runMigrations(instance: Database.Database) {
         created_at TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id);
+    CREATE INDEX IF NOT EXISTS idx_supplier_payments_date ON supplier_payments(payment_date);
     `);
     currentVersion = 13;
   }
@@ -316,6 +317,22 @@ export function runMigrations(instance: Database.Database) {
       instance.exec("UPDATE credit_payments SET payment_date = SUBSTR(created_at, 1, 10) WHERE payment_date IS NULL;");
     } catch {}
     currentVersion = 15;
+  }
+
+  // ── Migration v15 → v16: Performance composite indexes ───────────────────────
+  if (currentVersion < 16) {
+    try {
+      instance.exec(`
+        CREATE INDEX IF NOT EXISTS idx_sales_pay_created ON sales(payment_type, created_at);
+        CREATE INDEX IF NOT EXISTS idx_sales_receipt ON sales(receipt_no);
+        CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
+        CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id);
+        CREATE INDEX IF NOT EXISTS idx_credit_payments_date ON credit_payments(payment_date);
+        CREATE INDEX IF NOT EXISTS idx_supplier_payments_date ON supplier_payments(payment_date);
+        CREATE INDEX IF NOT EXISTS idx_inventory_category ON inventory(category);
+      `);
+    } catch {}
+    currentVersion = 16;
   }
 
   // Persist the version so we don't re-run migrations next time.
@@ -413,7 +430,12 @@ export function initPragmasAndSchema(instance: Database.Database) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_inventory_barcode ON inventory(barcode);
+    CREATE INDEX IF NOT EXISTS idx_inventory_category ON inventory(category);
     CREATE INDEX IF NOT EXISTS idx_sales_created ON sales(created_at);
+    CREATE INDEX IF NOT EXISTS idx_sales_pay_created ON sales(payment_type, created_at);
+    CREATE INDEX IF NOT EXISTS idx_sales_receipt ON sales(receipt_no);
+    CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id);
     CREATE INDEX IF NOT EXISTS idx_bills_due ON bills(due_date);
 
     CREATE TABLE IF NOT EXISTS grn_headers (
@@ -443,6 +465,7 @@ export function initPragmasAndSchema(instance: Database.Database) {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id);
+    CREATE INDEX IF NOT EXISTS idx_supplier_payments_date ON supplier_payments(payment_date);
 
     CREATE TABLE IF NOT EXISTS grn_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -512,6 +535,7 @@ export function initPragmasAndSchema(instance: Database.Database) {
 
     CREATE INDEX IF NOT EXISTS idx_credit_payments_customer ON credit_payments(customer_id);
     CREATE INDEX IF NOT EXISTS idx_credit_payments_sale ON credit_payments(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_credit_payments_date ON credit_payments(payment_date);
 
     CREATE TABLE IF NOT EXISTS cheques (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

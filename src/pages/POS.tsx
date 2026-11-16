@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
 import type { CreditCustomer } from '../db';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy, RotateCcw, Undo2 } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Keyboard, X, Coins, Check, Users, UserPlus, Clock, MessageSquare, Award, Copy, RotateCcw, Undo2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
 import { printReceipt, buildWhatsAppReceiptText, printReturnReceipt, type ReturnReceiptData } from '../utils/receipt';
@@ -2182,7 +2182,14 @@ export default function POS() {
                             >
                               <div>
                                 <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
-                                <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                                  {cust.credit_limit > 0 && (
+                                    <span className="text-[10px] bg-gray-200 dark:bg-gray-700 px-1.5 py-0.2 rounded text-gray-600 dark:text-gray-300 font-mono">
+                                      Limit: Rs. {cust.credit_limit.toFixed(0)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="text-right">
                                 <span className="text-[10px] text-gray-400 uppercase font-semibold block">Outstanding</span>
@@ -2196,19 +2203,51 @@ export default function POS() {
                     )}
                   </div>
 
-                  {/* Selected Customer Preview */}
-                  {selectedCreditCustomer && (
-                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-300 dark:border-purple-700 flex items-center justify-between">
-                      <div>
-                        <span className="text-xs text-purple-700 dark:text-purple-300 font-bold">Selected:</span>
-                        <p className="text-sm font-black text-gray-900 dark:text-gray-100">{selectedCreditCustomer.name}</p>
-                        <p className="text-[11px] text-gray-500">
-                          Current Due: Rs. {(selectedCreditCustomer.total_outstanding || 0).toFixed(2)} → New Due: <strong className="text-rose-600">Rs. {((selectedCreditCustomer.total_outstanding || 0) + netTotal).toFixed(2)}</strong>
-                        </p>
+                  {/* Selected Customer Preview with Credit Limit Check */}
+                  {selectedCreditCustomer && (() => {
+                    const currentDue = selectedCreditCustomer.total_outstanding || 0;
+                    const newDue = currentDue + netTotal;
+                    const limit = selectedCreditCustomer.credit_limit || 0;
+                    const isLimitExceeded = limit > 0 && newDue > limit;
+                    const excessAmount = newDue - limit;
+
+                    return (
+                      <div className="space-y-2">
+                        <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                          isLimitExceeded
+                            ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
+                            : 'bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700'
+                        }`}>
+                          <div>
+                            <span className="text-xs text-purple-700 dark:text-purple-300 font-bold">Selected:</span>
+                            <p className="text-sm font-black text-gray-900 dark:text-gray-100">{selectedCreditCustomer.name}</p>
+                            <p className="text-[11px] text-gray-500">
+                              Current Due: Rs. {currentDue.toFixed(2)} → New Due: <strong className="text-rose-600">Rs. {newDue.toFixed(2)}</strong>
+                              {limit > 0 && (
+                                <span className="ml-1.5 font-semibold text-gray-600 dark:text-gray-400">
+                                  (Limit: Rs. {limit.toFixed(2)})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {isLimitExceeded ? (
+                            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                          ) : (
+                            <Check className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
+                          )}
+                        </div>
+
+                        {isLimitExceeded && (
+                          <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>
+                              <strong>Credit Limit Warning:</strong> Customer will exceed their agreed limit (Rs. {limit.toFixed(2)}) by <strong className="text-rose-700 dark:text-rose-400 font-bold">Rs. {excessAmount.toFixed(2)}</strong>.
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">

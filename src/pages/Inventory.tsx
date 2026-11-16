@@ -16,7 +16,9 @@ import {
   Upload,
   Download,
   FileCheck,
-  CheckCircle2
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface InventoryItemWithSupplier extends InventoryItem {
@@ -435,6 +437,23 @@ export default function Inventory() {
       return true;
     });
   }, [inventory, searchQuery, selectedCategory, showLowStockOnly]);
+
+  // Pagination State for Instant High-Volume Rendering
+  const [pageSize, setPageSize] = useState<number | 'ALL'>(50);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to page 1 on search or filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, showLowStockOnly, pageSize]);
+
+  const totalPages = pageSize === 'ALL' ? 1 : Math.max(1, Math.ceil(filteredInventory.length / pageSize));
+
+  const paginatedInventory = useMemo(() => {
+    if (pageSize === 'ALL') return filteredInventory;
+    const start = (currentPage - 1) * pageSize;
+    return filteredInventory.slice(start, start + pageSize);
+  }, [filteredInventory, currentPage, pageSize]);
 
   // Summary Metrics (Physical Stock Only)
   const stockItems = inventory.filter(item => !isService(item));
@@ -877,7 +896,7 @@ export default function Inventory() {
                   </tr>
                 )}
 
-                {filteredInventory.map((item) => {
+                {paginatedInventory.map((item) => {
                   const discount = item.discount_percent || 0;
                   const finalSellingPrice = item.selling_price * (1 - discount / 100);
                   const margin = finalSellingPrice - item.cost_price;
@@ -1016,9 +1035,57 @@ export default function Inventory() {
             </table>
           </div>
 
-          {/* Table Footer */}
-          <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-            <span>Showing {filteredInventory.length} of {inventory.length} items</span>
+          {/* Table Footer with Pagination Controls */}
+          <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap justify-between items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-3">
+              <span>
+                Showing {filteredInventory.length === 0 ? 0 : (pageSize === 'ALL' ? 1 : (currentPage - 1) * pageSize + 1)} - {pageSize === 'ALL' ? filteredInventory.length : Math.min(currentPage * pageSize, filteredInventory.length)} of {filteredInventory.length} items
+                {filteredInventory.length !== inventory.length && ` (filtered from ${inventory.length})`}
+              </span>
+              <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 rounded-lg p-0.5">
+                {[25, 50, 100, 'ALL' as const].map(size => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setPageSize(size)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                      pageSize === size
+                        ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {pageSize !== 'ALL' && totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="p-1 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="font-bold text-gray-700 dark:text-gray-300">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className="p-1 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <span>Total Retail Valuation: Rs. {totalStockValueRetail.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
 
