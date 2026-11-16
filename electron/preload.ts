@@ -58,6 +58,8 @@ const ALLOWED_CHANNELS = new Set([
   'db:cashbook:create',
   'db:cashbook:update',
   'db:cashbook:delete',
+  'db:cashbook:recordShiftClose',
+  'db:cashbook:getShiftClose',
 
   'db:reports:getRevenueAnalytics',
 
