@@ -43,6 +43,9 @@ export default function POS() {
     total: number;
     tendered: number;
     change: number;
+    customerName?: string;
+    customerPhone?: string;
+    receiptData?: ReceiptData;
   } | null>(null);
   const cashInputRef = useRef<HTMLInputElement>(null);
 
@@ -522,7 +525,8 @@ export default function POS() {
     method: string,
     tenderedAmount?: number,
     shouldPrint: boolean = true,
-    creditCustomer?: CreditCustomer | null
+    creditCustomer?: CreditCustomer | null,
+    sendWhatsApp: boolean = false
   ) => {
     if (cart.length === 0 || checkoutPending.current) return;
     checkoutPending.current = true;
@@ -566,30 +570,6 @@ export default function POS() {
         : adjustedNetTotal;
       const actualChange = Math.max(0, Math.round((actualTendered - adjustedNetTotal) * 100) / 100);
 
-      if (method === 'CASH') {
-        setChangeBanner({
-          receiptNo,
-          total: adjustedNetTotal,
-          tendered: actualTendered,
-          change: actualChange,
-        });
-      } else {
-        setChangeBanner(null);
-      }
-
-      if (method === 'CREDIT' && creditCustomer) {
-        const newBalance = (creditCustomer.total_outstanding || 0) + adjustedNetTotal;
-        toast.success(
-          `Credit Sale to ${creditCustomer.name} (Due: Rs.${newBalance.toFixed(2)}) • Receipt ${receiptNo}`,
-          'Credit Bill Recorded'
-        );
-      } else {
-        toast.success(
-          `Receipt ${receiptNo} • ${method} • Rs.${adjustedNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
-          'Sale completed'
-        );
-      }
-
       const pointsEarned = res.pointsEarned ?? Math.floor(adjustedNetTotal / 100);
       const pointsBalance = activeCustomer
         ? (activeCustomer.loyalty_points || 0) - pointsToRedeem + pointsEarned
@@ -611,12 +591,43 @@ export default function POS() {
         points_balance: pointsBalance,
       };
 
+      if (method === 'CASH') {
+        setChangeBanner({
+          receiptNo,
+          total: adjustedNetTotal,
+          tendered: actualTendered,
+          change: actualChange,
+          customerName: activeCustomer?.name,
+          customerPhone: activeCustomer?.phone,
+          receiptData: receiptPayload,
+        });
+      } else {
+        setChangeBanner(null);
+      }
+
+      if (method === 'CREDIT' && creditCustomer) {
+        const newBalance = (creditCustomer.total_outstanding || 0) + adjustedNetTotal;
+        toast.success(
+          `Credit Sale to ${creditCustomer.name} (Due: Rs.${newBalance.toFixed(2)}) • Receipt ${receiptNo}`,
+          'Credit Bill Recorded'
+        );
+      } else {
+        toast.success(
+          `Receipt ${receiptNo} • ${method} • Rs.${adjustedNetTotal.toFixed(2)}${actualChange > 0 ? ` (Change: Rs.${actualChange.toFixed(2)})` : ''}`,
+          'Sale completed'
+        );
+      }
+
       if (shouldPrint) {
         printReceipt(receiptPayload);
       }
 
-      // Automatically prepare for WhatsApp E-Bill if customer has phone
-      if (activeCustomer?.phone) {
+      // 1-Click WhatsApp E-Bill Send
+      if (sendWhatsApp && activeCustomer?.phone) {
+        const msg = buildWhatsAppReceiptText(receiptPayload);
+        await db.whatsapp.openChat(activeCustomer.phone.trim(), msg);
+        toast.success(`WhatsApp opened for ${activeCustomer.name || activeCustomer.phone}!`);
+      } else if (activeCustomer?.phone) {
         setWhatsAppReceiptData(receiptPayload);
         setWhatsAppPhone(activeCustomer.phone);
       }
@@ -641,7 +652,7 @@ export default function POS() {
     }
   };
 
-  const handleOpenWhatsAppFromLast = () => {
+  const handleOpenWhatsAppFromLast = async () => {
     if (!lastSale) {
       toast.info('No previous receipts found.');
       return;
@@ -656,9 +667,22 @@ export default function POS() {
       subtotal: lastSale.subtotal ?? ((lastSale.total_amount ?? 0) + (lastSale.bill_discount ?? 0)),
       customer_name: lastSale.customer_name,
       customer_phone: lastSale.customer_phone,
+      points_earned: lastSale.points_earned,
+      points_balance: lastSale.points_balance,
     };
+
+    const targetPhone = (lastSale.customer_phone || '').trim();
+    if (targetPhone) {
+      // 1-Click Direct Send! No popup modal needed when customer phone is attached.
+      const msg = buildWhatsAppReceiptText(receiptPayload);
+      await db.whatsapp.openChat(targetPhone, msg);
+      toast.success(`WhatsApp opened for ${lastSale.customer_name || targetPhone}!`);
+      return;
+    }
+
+    // Fallback: If no phone was attached to sale, open modal to input phone
     setWhatsAppReceiptData(receiptPayload);
-    setWhatsAppPhone(lastSale.customer_phone || '');
+    setWhatsAppPhone('');
     setShowWhatsAppModal(true);
   };
 
@@ -754,14 +778,32 @@ export default function POS() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setChangeBanner(null)}
-                className="p-1.5 hover:bg-white/20 rounded-lg text-emerald-100 hover:text-white transition-colors cursor-pointer"
-                title="Dismiss"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {changeBanner.customerPhone && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (changeBanner.receiptData && changeBanner.customerPhone) {
+                        const msg = buildWhatsAppReceiptText(changeBanner.receiptData);
+                        await db.whatsapp.openChat(changeBanner.customerPhone.trim(), msg);
+                        toast.success(`WhatsApp opened for ${changeBanner.customerName || changeBanner.customerPhone}!`);
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-800 hover:bg-emerald-50 rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>WhatsApp Bill ({changeBanner.customerName?.split(' ')[0] || changeBanner.customerPhone})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setChangeBanner(null)}
+                  className="p-1.5 hover:bg-white/20 rounded-lg text-emerald-100 hover:text-white transition-colors cursor-pointer"
+                  title="Dismiss"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -1205,9 +1247,10 @@ export default function POS() {
               onClick={handleOpenWhatsAppFromLast}
               disabled={!lastSale}
               className="flex items-center justify-center p-3 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl font-bold text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title={lastSale?.customer_phone ? `1-Click: Send WhatsApp to ${lastSale.customer_name || lastSale.customer_phone}` : 'Send WhatsApp E-Bill'}
             >
               <MessageSquare className="w-4 h-4 mr-1.5 text-emerald-600 dark:text-emerald-400" />
-              WhatsApp E-Bill
+              {lastSale?.customer_name ? `WhatsApp (${lastSale.customer_name.split(' ')[0]})` : 'WhatsApp E-Bill'}
             </button>
           </div>
         </div>
@@ -1408,11 +1451,11 @@ export default function POS() {
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCashModal(false)}
-                  className="py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-2xl transition-all cursor-pointer"
+                  className="py-3 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-2xl transition-all cursor-pointer text-xs"
                 >
                   Cancel (Esc)
                 </button>
@@ -1427,11 +1470,30 @@ export default function POS() {
                     }
                   }}
                   disabled={isCheckingOut || (cashReceived.trim() !== '' && (parseFloat(cashReceived) || 0) < netTotal)}
-                  className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  className="flex-1 py-3 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 text-xs"
                 >
-                  <Check className="w-5 h-5" />
-                  <span>Complete Sale (Enter)</span>
+                  <Check className="w-4 h-4" />
+                  <span>Complete (Enter)</span>
                 </button>
+                {attachedCustomer?.phone && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = parseFloat(cashReceived) || netTotal;
+                      if (val >= netTotal) {
+                        handleCheckout('CASH', val, autoPrintReceipt, undefined, true);
+                      } else {
+                        toast.error(`Cash received is less than total by Rs. ${(netTotal - val).toFixed(2)}`);
+                      }
+                    }}
+                    disabled={isCheckingOut || (cashReceived.trim() !== '' && (parseFloat(cashReceived) || 0) < netTotal)}
+                    className="flex-1 py-3 px-3 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-teal-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 text-xs"
+                    title="1-Click: Complete sale and open WhatsApp receipt directly"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Bill & WhatsApp 💬</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1773,11 +1835,11 @@ export default function POS() {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="flex gap-2 pt-2">
                     <button
                       type="button"
                       onClick={() => setShowCreditModal(false)}
-                      className="py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                      className="py-3 px-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer text-xs"
                     >
                       Cancel
                     </button>
@@ -1789,11 +1851,27 @@ export default function POS() {
                           handleCheckout('CREDIT', undefined, true, selectedCreditCustomer);
                         }
                       }}
-                      className="py-3 px-4 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                      className="flex-1 py-3 px-3 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                     >
-                      <Check className="w-5 h-5" />
+                      <Check className="w-4 h-4" />
                       <span>Confirm Credit Bill</span>
                     </button>
+                    {selectedCreditCustomer?.phone && (
+                      <button
+                        type="button"
+                        disabled={!selectedCreditCustomer || isCheckingOut}
+                        onClick={() => {
+                          if (selectedCreditCustomer) {
+                            handleCheckout('CREDIT', undefined, true, selectedCreditCustomer, true);
+                          }
+                        }}
+                        className="flex-1 py-3 px-3 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-black rounded-2xl transition-all shadow-lg shadow-teal-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                        title="1-Click: Confirm credit bill and open WhatsApp receipt directly"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Bill & WhatsApp 💬</span>
+                      </button>
+                    )}
                   </div>
                 </>
               ) : (
