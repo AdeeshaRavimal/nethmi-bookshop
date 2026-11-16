@@ -242,12 +242,15 @@ export default function POS() {
     setCart(prev => addCartItem(prev, item));
   };
 
+  const [itemQtyInputs, setItemQtyInputs] = useState<Record<string, string>>({});
+
   const updateQuantity = (id: string, delta: number) => {
     if (checkoutPending.current) return;
     checkoutRequestId.current = null;
     setCart(prev => prev.map(i => {
       if (i.lineId === id) {
         const newQty = clampCartQuantity(i.quantity, delta, i.stock_limit);
+        setItemQtyInputs(q => ({ ...q, [id]: String(newQty) }));
         const origPrice = i.original_price ?? i.selling_price;
         const currentMode = itemDiscountSettings[id]?.mode ?? (i.discount_percent && i.discount_percent > 0 ? '%' : 'Rs');
         const discountText = itemDiscountSettings[id]?.text;
@@ -277,6 +280,58 @@ export default function POS() {
       }
       return i;
     }));
+  };
+
+  const handleQuantityInputChange = (id: string, rawVal: string) => {
+    if (checkoutPending.current) return;
+    checkoutRequestId.current = null;
+    setItemQtyInputs(prev => ({ ...prev, [id]: rawVal }));
+
+    const val = parseInt(rawVal, 10);
+    if (isNaN(val) || val <= 0) return;
+
+    setCart(prev => prev.map(i => {
+      if (i.lineId === id) {
+        const targetQty = Math.max(1, Math.min(val, i.stock_limit));
+        const origPrice = i.original_price ?? i.selling_price;
+        const currentMode = itemDiscountSettings[id]?.mode ?? (i.discount_percent && i.discount_percent > 0 ? '%' : 'Rs');
+        const discountText = itemDiscountSettings[id]?.text;
+        const discVal = parseFloat(discountText || '');
+
+        let finalSellingPrice = origPrice;
+        let discountPercent = 0;
+
+        if (!isNaN(discVal) && discVal > 0 && targetQty > 0) {
+          const lineOrigTotal = origPrice * targetQty;
+          if (currentMode === '%') {
+            discountPercent = Math.min(100, Math.max(0, discVal));
+            finalSellingPrice = Math.round(origPrice * (1 - discountPercent / 100) * 100) / 100;
+          } else {
+            const totalLineDiscount = Math.min(lineOrigTotal, Math.max(0, discVal));
+            discountPercent = Math.round(((totalLineDiscount / lineOrigTotal) * 100) * 100) / 100;
+            const finalLineTotal = lineOrigTotal - totalLineDiscount;
+            finalSellingPrice = Math.round((finalLineTotal / targetQty) * 100) / 100;
+          }
+        } else if (!discountText && (i.discount_percent ?? 0) > 0) {
+          discountPercent = i.discount_percent ?? 0;
+          finalSellingPrice = Math.round(origPrice * (1 - discountPercent / 100) * 100) / 100;
+        }
+
+        return { ...i, quantity: targetQty, selling_price: finalSellingPrice, discount_percent: discountPercent };
+      }
+      return i;
+    }));
+  };
+
+  const handleQuantityBlur = (id: string) => {
+    const item = cart.find(i => i.lineId === id);
+    if (!item) return;
+    const raw = itemQtyInputs[id];
+    if (raw === undefined || raw.trim() === '' || isNaN(parseInt(raw, 10)) || parseInt(raw, 10) <= 0) {
+      setItemQtyInputs(prev => ({ ...prev, [id]: String(item.quantity) }));
+    } else {
+      setItemQtyInputs(prev => ({ ...prev, [id]: String(item.quantity) }));
+    }
   };
 
   const [itemPriceInputs, setItemPriceInputs] = useState<Record<string, string>>({});
@@ -340,6 +395,11 @@ export default function POS() {
       return copy;
     });
     setItemPriceInputs(prev => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+    setItemQtyInputs(prev => {
       const copy = { ...prev };
       delete copy[id];
       return copy;
@@ -1138,9 +1198,34 @@ export default function POS() {
 
                       <div className="flex items-center gap-4 self-end sm:self-center">
                         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                          <button onClick={() => updateQuantity(item.lineId, -1)} className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded shadow-sm text-gray-600 dark:text-gray-300 cursor-pointer"><Minus className="w-4 h-4" /></button>
-                          <span className="w-10 text-center font-bold text-gray-900 dark:text-gray-100">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.lineId, 1)} disabled={item.quantity >= item.stock_limit} className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded shadow-sm text-gray-600 dark:text-gray-300 disabled:opacity-30 cursor-pointer"><Plus className="w-4 h-4" /></button>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.lineId, -1)}
+                            className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded shadow-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                            title="Decrease quantity"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            max={item.stock_limit}
+                            value={itemQtyInputs[item.lineId] !== undefined ? itemQtyInputs[item.lineId] : item.quantity}
+                            onChange={(e) => handleQuantityInputChange(item.lineId, e.target.value)}
+                            onBlur={() => handleQuantityBlur(item.lineId)}
+                            onFocus={(e) => e.target.select()}
+                            className="w-14 py-1 text-center font-bold text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded mx-1 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            title="Type quantity directly (e.g. 50, 100)"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.lineId, 1)}
+                            disabled={item.quantity >= item.stock_limit}
+                            className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded shadow-sm text-gray-600 dark:text-gray-300 disabled:opacity-30 cursor-pointer"
+                            title="Increase quantity"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
                         </div>
                         <div className="w-28 text-right">
                           <p className="font-bold text-lg text-gray-900 dark:text-gray-100">Rs. {(item.selling_price * item.quantity).toFixed(2)}</p>
