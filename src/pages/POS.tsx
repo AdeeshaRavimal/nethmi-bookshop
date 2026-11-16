@@ -63,6 +63,11 @@ export default function POS() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [customerPickerSearch, setCustomerPickerSearch] = useState('');
   const [redeemPoints, setRedeemPoints] = useState(false);
+  const [isRegisteringLoyalty, setIsRegisteringLoyalty] = useState(false);
+  const [loyaltyRegName, setLoyaltyRegName] = useState('');
+  const [loyaltyRegPhone, setLoyaltyRegPhone] = useState('');
+  const [loyaltyRegAddress, setLoyaltyRegAddress] = useState('');
+  const [isSubmittingLoyalty, setIsSubmittingLoyalty] = useState(false);
 
   // E-Bill WhatsApp Modal state
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -468,6 +473,51 @@ export default function POS() {
     }
   };
 
+  const handleRegisterLoyaltyCustomer = async () => {
+    if (!loyaltyRegName.trim()) {
+      toast.error('Customer name is required');
+      return;
+    }
+    try {
+      setIsSubmittingLoyalty(true);
+      const res = await db.credit.createCustomer({
+        name: loyaltyRegName.trim(),
+        phone: loyaltyRegPhone.trim(),
+        address: loyaltyRegAddress.trim(),
+        credit_limit: 0,
+      });
+      if (!res.success || !res.id) throw new Error(res.error || 'Failed to create customer');
+
+      const newCust: CreditCustomer = {
+        id: res.id,
+        name: loyaltyRegName.trim(),
+        phone: loyaltyRegPhone.trim(),
+        address: loyaltyRegAddress.trim(),
+        credit_limit: 0,
+        total_outstanding: 0,
+        loyalty_points: 0,
+        notes: '',
+        created_at: new Date().toISOString(),
+      };
+
+      setAttachedCustomer(newCust);
+      setIsRegisteringLoyalty(false);
+      setLoyaltyRegName('');
+      setLoyaltyRegPhone('');
+      setLoyaltyRegAddress('');
+      setShowCustomerPicker(false);
+
+      const listRes = await db.credit.getCustomers();
+      if (listRes.success && listRes.data) setCreditCustomers(listRes.data);
+
+      toast.success(`Loyalty customer "${newCust.name}" registered & attached to bill!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Error registering loyalty customer');
+    } finally {
+      setIsSubmittingLoyalty(false);
+    }
+  };
+
   const handleCheckout = async (
     method: string,
     tenderedAmount?: number,
@@ -799,6 +849,11 @@ export default function POS() {
             {/* Customer & Loyalty Picker Button */}
             <button
               onClick={async () => {
+                setIsRegisteringLoyalty(false);
+                setCustomerPickerSearch('');
+                setLoyaltyRegName('');
+                setLoyaltyRegPhone('');
+                setLoyaltyRegAddress('');
                 setShowCustomerPicker(true);
                 try {
                   const res = await db.credit.getCustomers();
@@ -1383,7 +1438,9 @@ export default function POS() {
         </div>
       )}
 
-      {/* Customer Picker Modal (Loyalty & E-Bill) */}
+
+
+      {/* Customer Picker Modal (Loyalty & E-Bill) with Inline Registration */}
       {showCustomerPicker && (
         <div
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
@@ -1393,77 +1450,206 @@ export default function POS() {
             className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
             <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-wide">Attach Customer</h3>
-                  <p className="text-xs text-purple-200">Earn loyalty points & send WhatsApp bill</p>
+                  <h3 className="text-lg font-black tracking-wide">
+                    {isRegisteringLoyalty ? 'Register Customer' : 'Attach Customer'}
+                  </h3>
+                  <p className="text-xs text-purple-200">
+                    {isRegisteringLoyalty ? 'Create customer for loyalty points & e-bill' : 'Earn loyalty points & send WhatsApp e-bill'}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCustomerPicker(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search customer by name or phone..."
-                  value={customerPickerSearch}
-                  onChange={(e) => setCustomerPickerSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  autoFocus
-                />
-              </div>
-
-              <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
-                {creditCustomers.filter(c =>
-                  c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
-                  c.phone.includes(customerPickerSearch)
-                ).length === 0 ? (
-                  <div className="p-6 text-center text-xs text-gray-400">
-                    No customers found matching search.
+            {!isRegisteringLoyalty ? (
+              <div className="p-5 space-y-3">
+                {/* Search Bar + Register Button */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by name or phone..."
+                      value={customerPickerSearch}
+                      onChange={(e) => setCustomerPickerSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      autoFocus
+                    />
                   </div>
-                ) : (
-                  creditCustomers
-                    .filter(c =>
-                      c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
-                      c.phone.includes(customerPickerSearch)
-                    )
-                    .map(cust => (
-                      <div
-                        key={cust.id}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (/^\+?\d+$/.test(customerPickerSearch.trim())) {
+                        setLoyaltyRegPhone(customerPickerSearch.trim());
+                        setLoyaltyRegName('');
+                      } else {
+                        setLoyaltyRegName(customerPickerSearch.trim());
+                        setLoyaltyRegPhone('');
+                      }
+                      setIsRegisteringLoyalty(true);
+                    }}
+                    className="px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ New</span>
+                  </button>
+                </div>
+
+                {/* Customer List */}
+                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
+                  {creditCustomers.filter(c =>
+                    c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
+                    c.phone.includes(customerPickerSearch)
+                  ).length === 0 ? (
+                    <div className="p-6 text-center space-y-3">
+                      <p className="text-xs text-gray-400">
+                        {customerPickerSearch.trim()
+                          ? `No customer found for "${customerPickerSearch}".`
+                          : 'No loyalty customers registered yet.'}
+                      </p>
+                      <button
+                        type="button"
                         onClick={() => {
-                          setAttachedCustomer(cust);
-                          setShowCustomerPicker(false);
-                          toast.success(`Customer "${cust.name}" attached to bill`);
+                          if (/^\+?\d+$/.test(customerPickerSearch.trim())) {
+                            setLoyaltyRegPhone(customerPickerSearch.trim());
+                            setLoyaltyRegName('');
+                          } else {
+                            setLoyaltyRegName(customerPickerSearch.trim());
+                            setLoyaltyRegPhone('');
+                          }
+                          setIsRegisteringLoyalty(true);
                         }}
-                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                       >
-                        <div>
-                          <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
-                          <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Register New Customer</span>
+                      </button>
+                    </div>
+                  ) : (
+                    creditCustomers
+                      .filter(c =>
+                        c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
+                        c.phone.includes(customerPickerSearch)
+                      )
+                      .map(cust => (
+                        <div
+                          key={cust.id}
+                          onClick={() => {
+                            setAttachedCustomer(cust);
+                            setShowCustomerPicker(false);
+                            toast.success(`Customer "${cust.name}" attached to bill`);
+                          }}
+                          className="p-3 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                        >
+                          <div>
+                            <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
+                            <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 justify-end">
+                              <Award className="w-3.5 h-3.5" />
+                              {cust.loyalty_points || 0} pts
+                            </span>
+                            {(cust.total_outstanding || 0) > 0 && (
+                              <span className="text-[10px] text-rose-500 font-semibold block">
+                                Due: Rs. {cust.total_outstanding.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 justify-end">
-                            <Award className="w-3.5 h-3.5" />
-                            {cust.loyalty_points || 0} pts
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                )}
+                      ))
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Inline Loyalty Customer Registration Form */
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Register Loyalty Customer</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsRegisteringLoyalty(false)}
+                    className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-semibold cursor-pointer"
+                  >
+                    ← Back to search
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                    Customer Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Nimal Silva"
+                    value={loyaltyRegName}
+                    onChange={(e) => setLoyaltyRegName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                    WhatsApp / Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0771234567"
+                    value={loyaltyRegPhone}
+                    onChange={(e) => setLoyaltyRegPhone(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <span className="text-[10px] text-gray-400 mt-1 block">
+                    Used for WhatsApp E-Bills and looking up loyalty points
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                    Address (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Avissawella"
+                    value={loyaltyRegAddress}
+                    onChange={(e) => setLoyaltyRegAddress(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegisteringLoyalty(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmittingLoyalty || !loyaltyRegName.trim()}
+                    onClick={handleRegisterLoyaltyCustomer}
+                    className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/25 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingLoyalty ? 'Saving...' : 'Register & Attach'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1681,90 +1867,7 @@ export default function POS() {
         </div>
       )}
 
-      {/* Customer Picker Modal (Loyalty & E-Bill) */}
-      {showCustomerPicker && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:hidden"
-          onClick={() => setShowCustomerPicker(false)}
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black tracking-wide">Attach Customer</h3>
-                  <p className="text-xs text-purple-200">Earn loyalty points & send WhatsApp bill</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCustomerPicker(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="p-5 space-y-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search customer by name or phone..."
-                  value={customerPickerSearch}
-                  onChange={(e) => setCustomerPickerSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  autoFocus
-                />
-              </div>
-
-              <div className="max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50/50 dark:bg-gray-900/40">
-                {creditCustomers.filter(c =>
-                  c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
-                  c.phone.includes(customerPickerSearch)
-                ).length === 0 ? (
-                  <div className="p-6 text-center text-xs text-gray-400">
-                    No customers found matching search.
-                  </div>
-                ) : (
-                  creditCustomers
-                    .filter(c =>
-                      c.name.toLowerCase().includes(customerPickerSearch.toLowerCase()) ||
-                      c.phone.includes(customerPickerSearch)
-                    )
-                    .map(cust => (
-                      <div
-                        key={cust.id}
-                        onClick={() => {
-                          setAttachedCustomer(cust);
-                          setShowCustomerPicker(false);
-                          toast.success(`Customer "${cust.name}" attached to bill`);
-                        }}
-                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
-                      >
-                        <div>
-                          <span className="font-bold text-sm text-gray-900 dark:text-gray-100 block">{cust.name}</span>
-                          <span className="text-xs text-gray-400">{cust.phone || 'No phone'}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 justify-end">
-                            <Award className="w-3.5 h-3.5" />
-                            {cust.loyalty_points || 0} pts
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* WhatsApp E-Bill Modal with Image Preview */}
       {showWhatsAppModal && whatsAppReceiptData && (
