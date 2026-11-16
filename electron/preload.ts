@@ -28,6 +28,9 @@ const ALLOWED_CHANNELS = new Set([
   'db:suppliers:getAll',
   'db:suppliers:upsert',
   'db:suppliers:delete',
+  'db:suppliers:getLedger',
+  'db:suppliers:addPayment',
+  'db:suppliers:deletePayment',
 
   'db:bills:getAll',
   'db:bills:getByMonth',

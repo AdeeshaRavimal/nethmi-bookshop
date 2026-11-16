@@ -67,8 +67,31 @@ export interface Supplier {
   id?: number;
   name: string;
   phone: string;
+  contact_person?: string;
+  address?: string;
+  email?: string;
   notes?: string;
+  total_purchases?: number;
+  credit_purchases?: number;
+  total_paid?: number;
+  total_outstanding?: number;
+  grn_count?: number;
+  pending_grn_count?: number;
+  created_at?: string;
   is_synced?: boolean;
+}
+
+export interface SupplierPayment {
+  id?: number;
+  supplier_id: number;
+  grn_id?: number | null;
+  grn_number?: string;
+  amount: number;
+  payment_method: 'CASH' | 'BANK_TRANSFER' | 'CHEQUE';
+  reference_no?: string;
+  payment_date: string;
+  notes?: string;
+  created_at?: string;
 }
 
 export interface GRNHeader {
@@ -76,6 +99,7 @@ export interface GRNHeader {
   grn_number: string;
   supplier_id?: number | null;
   supplier_name?: string;
+  supplier_invoice_no?: string | null;
   received_date: string;
   payment_type: 'CASH' | 'CREDIT';
   due_date?: string | null;
@@ -311,6 +335,32 @@ export const db = {
 
     delete: (id: number): Promise<{ success: boolean; error?: string }> =>
       ipc('db:suppliers:delete', { id }),
+
+    getLedger: (supplierId: number): Promise<{
+      success: boolean;
+      data?: {
+        supplier: Supplier;
+        grns: GRNHeader[];
+        payments: SupplierPayment[];
+        pendingGrns: GRNHeader[];
+      };
+      error?: string;
+    }> =>
+      ipc('db:suppliers:getLedger', { supplierId }),
+
+    addPayment: (payload: {
+      supplier_id: number;
+      grn_id?: number | null;
+      amount: number;
+      payment_method: string;
+      reference_no?: string;
+      payment_date: string;
+      notes?: string;
+    }): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:suppliers:addPayment', payload),
+
+    deletePayment: (paymentId: number): Promise<{ success: boolean; error?: string }> =>
+      ipc('db:suppliers:deletePayment', { paymentId }),
   },
 
   // ── Bills ─────────────────────────────────────────────────────────────────────

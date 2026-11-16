@@ -12,7 +12,7 @@ let db = new Database(dbPath);
 
 // ─── Schema versioning ────────────────────────────────────────────────────────
 // Bump this number every time you add a new migration below.
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 /**
  * Run incremental migrations to bring an existing database up to date.
@@ -228,6 +228,41 @@ export function runMigrations(instance: Database.Database) {
     currentVersion = 12;
   }
 
+  // ── Migration v12 → v13: Supplier Payables & Payments Ledger ─────────────────
+  if (currentVersion < 13) {
+    try {
+      instance.exec('ALTER TABLE suppliers ADD COLUMN contact_person TEXT;');
+    } catch {}
+    try {
+      instance.exec('ALTER TABLE suppliers ADD COLUMN address TEXT;');
+    } catch {}
+    try {
+      instance.exec('ALTER TABLE suppliers ADD COLUMN email TEXT;');
+    } catch {}
+    try {
+      instance.exec('ALTER TABLE suppliers ADD COLUMN created_at TEXT;');
+    } catch {}
+    try {
+      instance.exec('ALTER TABLE grn_headers ADD COLUMN supplier_invoice_no TEXT;');
+    } catch {}
+
+    instance.exec(`
+      CREATE TABLE IF NOT EXISTS supplier_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+        grn_id INTEGER REFERENCES grn_headers(id),
+        amount REAL NOT NULL,
+        payment_method TEXT NOT NULL DEFAULT 'CASH',
+        reference_no TEXT,
+        payment_date TEXT NOT NULL,
+        notes TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id);
+    `);
+    currentVersion = 13;
+  }
+
   // Persist the version so we don't re-run migrations next time.
   if (row === undefined) {
     instance.prepare('INSERT INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
@@ -248,7 +283,11 @@ export function initPragmasAndSchema(instance: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       phone TEXT,
+      contact_person TEXT,
+      address TEXT,
+      email TEXT,
       notes TEXT,
+      created_at TEXT,
       is_synced BOOLEAN DEFAULT 0
     );
 
@@ -326,6 +365,7 @@ export function initPragmasAndSchema(instance: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       grn_number TEXT UNIQUE NOT NULL,
       supplier_id INTEGER REFERENCES suppliers(id),
+      supplier_invoice_no TEXT,
       received_date DATE NOT NULL,
       payment_type TEXT NOT NULL DEFAULT 'CASH',
       due_date DATE,
@@ -335,6 +375,19 @@ export function initPragmasAndSchema(instance: Database.Database) {
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS supplier_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+      grn_id INTEGER REFERENCES grn_headers(id),
+      amount REAL NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'CASH',
+      reference_no TEXT,
+      payment_date TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id);
 
     CREATE TABLE IF NOT EXISTS grn_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

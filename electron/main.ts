@@ -632,7 +632,36 @@ ipcMain.handle('db:saleItems:getAll', () => {
 
 ipcMain.handle('db:suppliers:getAll', () => {
   try {
-    const rows = getDb().prepare('SELECT * FROM suppliers ORDER BY name ASC').all();
+    const db = getDb();
+    const rows = db.prepare(`
+      SELECT 
+        s.*,
+        COALESCE(grn_totals.total_purchases, 0) AS total_purchases,
+        COALESCE(grn_totals.credit_purchases, 0) AS credit_purchases,
+        COALESCE(payments.total_paid, 0) AS total_paid,
+        MAX(0, ROUND(COALESCE(grn_totals.credit_purchases, 0) - COALESCE(payments.total_paid, 0), 2)) AS total_outstanding,
+        COALESCE(grn_totals.grn_count, 0) AS grn_count,
+        COALESCE(grn_totals.pending_grn_count, 0) AS pending_grn_count
+      FROM suppliers s
+      LEFT JOIN (
+        SELECT 
+          supplier_id,
+          COUNT(*) AS grn_count,
+          SUM(total_amount) AS total_purchases,
+          SUM(CASE WHEN payment_type = 'CREDIT' THEN total_amount ELSE 0 END) AS credit_purchases,
+          SUM(CASE WHEN payment_type = 'CREDIT' AND status = 'PENDING' THEN 1 ELSE 0 END) AS pending_grn_count
+        FROM grn_headers
+        GROUP BY supplier_id
+      ) grn_totals ON s.id = grn_totals.supplier_id
+      LEFT JOIN (
+        SELECT 
+          supplier_id,
+          SUM(amount) AS total_paid
+        FROM supplier_payments
+        GROUP BY supplier_id
+      ) payments ON s.id = payments.supplier_id
+      ORDER BY total_outstanding DESC, s.name ASC
+    `).all();
     return { success: true, data: rows };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -642,13 +671,35 @@ ipcMain.handle('db:suppliers:getAll', () => {
 ipcMain.handle('db:suppliers:upsert', (_e, item: Record<string, unknown>) => {
   try {
     const db = getDb();
+    const now = new Date().toISOString();
     if (item.id) {
-      db.prepare('UPDATE suppliers SET name = ?, phone = ?, notes = ? WHERE id = ?')
-        .run(item.name, item.phone, item.notes, item.id);
+      db.prepare(`
+        UPDATE suppliers 
+        SET name = ?, phone = ?, contact_person = ?, address = ?, email = ?, notes = ? 
+        WHERE id = ?
+      `).run(
+        item.name,
+        item.phone || null,
+        item.contact_person || null,
+        item.address || null,
+        item.email || null,
+        item.notes || null,
+        item.id
+      );
       return { success: true, id: item.id };
     } else {
-      const info = db.prepare('INSERT INTO suppliers (name, phone, notes) VALUES (?, ?, ?)')
-        .run(item.name, item.phone, item.notes);
+      const info = db.prepare(`
+        INSERT INTO suppliers (name, phone, contact_person, address, email, notes, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        item.name,
+        item.phone || null,
+        item.contact_person || null,
+        item.address || null,
+        item.email || null,
+        item.notes || null,
+        now
+      );
       return { success: true, id: info.lastInsertRowid };
     }
   } catch (err: any) {
@@ -658,7 +709,139 @@ ipcMain.handle('db:suppliers:upsert', (_e, item: Record<string, unknown>) => {
 
 ipcMain.handle('db:suppliers:delete', (_e, { id }: { id: number }) => {
   try {
-    getDb().prepare('DELETE FROM suppliers WHERE id = ?').run(id);
+    const db = getDb();
+    const count = (db.prepare('SELECT COUNT(*) as count FROM grn_headers WHERE supplier_id = ?').get(id) as { count: number })?.count || 0;
+    if (count > 0) {
+      return { success: false, error: `Cannot delete supplier with ${count} existing Goods Received Notes (GRNs).` };
+    }
+    db.prepare('DELETE FROM suppliers WHERE id = ?').run(id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:suppliers:getLedger', (_e, { supplierId }: { supplierId: number }) => {
+  try {
+    const db = getDb();
+    const supplier = db.prepare(`
+      SELECT 
+        s.*,
+        COALESCE(grn_totals.total_purchases, 0) AS total_purchases,
+        COALESCE(grn_totals.credit_purchases, 0) AS credit_purchases,
+        COALESCE(payments.total_paid, 0) AS total_paid,
+        MAX(0, ROUND(COALESCE(grn_totals.credit_purchases, 0) - COALESCE(payments.total_paid, 0), 2)) AS total_outstanding
+      FROM suppliers s
+      LEFT JOIN (
+        SELECT 
+          supplier_id,
+          SUM(total_amount) AS total_purchases,
+          SUM(CASE WHEN payment_type = 'CREDIT' THEN total_amount ELSE 0 END) AS credit_purchases
+        FROM grn_headers
+        WHERE supplier_id = ?
+      ) grn_totals ON s.id = grn_totals.supplier_id
+      LEFT JOIN (
+        SELECT 
+          supplier_id,
+          SUM(amount) AS total_paid
+        FROM supplier_payments
+        WHERE supplier_id = ?
+      ) payments ON s.id = payments.supplier_id
+      WHERE s.id = ?
+    `).get(supplierId, supplierId, supplierId);
+
+    if (!supplier) return { success: false, error: 'Supplier not found' };
+
+    const grns = db.prepare(`
+      SELECT 
+        id, grn_number, supplier_invoice_no, received_date, payment_type, due_date, status, paid_date, total_amount, notes, created_at
+      FROM grn_headers
+      WHERE supplier_id = ?
+      ORDER BY received_date DESC, id DESC
+    `).all(supplierId) as any[];
+
+    const payments = db.prepare(`
+      SELECT 
+        sp.*, gh.grn_number
+      FROM supplier_payments sp
+      LEFT JOIN grn_headers gh ON sp.grn_id = gh.id
+      WHERE sp.supplier_id = ?
+      ORDER BY sp.payment_date DESC, sp.id DESC
+    `).all(supplierId) as any[];
+
+    const pendingGrns = grns.filter(g => g.payment_type === 'CREDIT' && g.status === 'PENDING');
+
+    return {
+      success: true,
+      data: {
+        supplier,
+        grns,
+        payments,
+        pendingGrns,
+      }
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:suppliers:addPayment', (_e, payload: {
+  supplier_id: number;
+  grn_id?: number | null;
+  amount: number;
+  payment_method: string;
+  reference_no?: string;
+  payment_date: string;
+  notes?: string;
+}) => {
+  try {
+    const db = getDb();
+    if (!payload.supplier_id || !payload.amount || payload.amount <= 0) {
+      return { success: false, error: 'Invalid supplier payment details' };
+    }
+    const now = new Date().toISOString();
+
+    db.transaction(() => {
+      db.prepare(`
+        INSERT INTO supplier_payments 
+        (supplier_id, grn_id, amount, payment_method, reference_no, payment_date, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        payload.supplier_id,
+        payload.grn_id || null,
+        payload.amount,
+        payload.payment_method || 'CASH',
+        payload.reference_no || null,
+        payload.payment_date || now.split('T')[0],
+        payload.notes || null,
+        now
+      );
+
+      if (payload.grn_id) {
+        const grn = db.prepare('SELECT total_amount FROM grn_headers WHERE id = ?').get(payload.grn_id) as { total_amount: number } | undefined;
+        if (grn) {
+          const totalPaidForGrn = (db.prepare('SELECT SUM(amount) as paid FROM supplier_payments WHERE grn_id = ?').get(payload.grn_id) as { paid: number })?.paid || 0;
+          if (totalPaidForGrn >= grn.total_amount) {
+            db.prepare('UPDATE grn_headers SET status = "PAID", paid_date = ? WHERE id = ?').run(payload.payment_date || now.split('T')[0], payload.grn_id);
+          }
+        }
+      }
+    })();
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:suppliers:deletePayment', (_e, { paymentId }: { paymentId: number }) => {
+  try {
+    const db = getDb();
+    const pmt = db.prepare('SELECT grn_id FROM supplier_payments WHERE id = ?').get(paymentId) as { grn_id: number | null } | undefined;
+    if (pmt?.grn_id) {
+      db.prepare('UPDATE grn_headers SET status = "PENDING", paid_date = NULL WHERE id = ?').run(pmt.grn_id);
+    }
+    db.prepare('DELETE FROM supplier_payments WHERE id = ?').run(paymentId);
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
