@@ -43,7 +43,7 @@
     "publish": {
       "provider": "github",
       "owner": "AdeeshaRavimal",
-      "repo": "nethmi-bookshop-releases"
+      "repo": "nethmi-bookshop"
     }
   },
   "description": "Hiru Bookshop & Communication Point of Sale System",
