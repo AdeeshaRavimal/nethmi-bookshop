@@ -17,12 +17,17 @@ import {
   Wallet,
   Users,
   RefreshCw,
+  Lock,
+  Unlock,
+  Settings,
 } from 'lucide-react';
 import { db } from '../db';
 import { useToast } from './Toast';
 import BackupModal from './BackupModal';
 import UpdateNotifier from './UpdateNotifier';
 import AboutModal from './AboutModal';
+import SecuritySettingsModal from './SecuritySettingsModal';
+import { useSecurity, type SecurityConfig } from '../context/SecurityContext';
 import hiruLogo from '../assets/logo.png';
 import inkoartLogo from '../assets/inkoart-logo.png';
 
@@ -32,6 +37,7 @@ interface NavGroup {
     name: string;
     path: string;
     icon: any;
+    permKey?: keyof Omit<SecurityConfig, 'autoLockMinutes'>;
     badge?: string;
   }>;
 }
@@ -42,25 +48,25 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'POS & Sales', path: '/', icon: ShoppingCart },
       { name: 'Invoices', path: '/invoices', icon: FileText },
-      { name: 'Cashbook', path: '/cashbook', icon: Wallet },
+      { name: 'Cashbook', path: '/cashbook', icon: Wallet, permKey: 'requireForCashbook' },
       { name: 'Credit Book', path: '/credit', icon: Users },
     ],
   },
   {
     label: 'STOCK & PROCUREMENT',
     items: [
-      { name: 'Inventory', path: '/inventory', icon: Package },
-      { name: 'GRN (Stock In)', path: '/grn', icon: ClipboardList },
-      { name: 'Credit GRN Invoices', path: '/bills', icon: Receipt },
-      { name: 'Suppliers', path: '/suppliers', icon: Truck },
-      { name: 'Assets', path: '/assets', icon: Monitor },
+      { name: 'Inventory', path: '/inventory', icon: Package, permKey: 'requireForInventory' },
+      { name: 'GRN (Stock In)', path: '/grn', icon: ClipboardList, permKey: 'requireForGRN' },
+      { name: 'Credit GRN Invoices', path: '/bills', icon: Receipt, permKey: 'requireForBills' },
+      { name: 'Suppliers', path: '/suppliers', icon: Truck, permKey: 'requireForSuppliers' },
+      { name: 'Assets', path: '/assets', icon: Monitor, permKey: 'requireForAssets' },
     ],
   },
   {
     label: 'ANALYTICS & GROWTH',
     items: [
-      { name: 'Reports & Analytics', path: '/reports', icon: BarChart3 },
-      { name: 'Marketing', path: '/marketing', icon: Megaphone },
+      { name: 'Reports & Analytics', path: '/reports', icon: BarChart3, permKey: 'requireForReports' },
+      { name: 'Marketing', path: '/marketing', icon: Megaphone, permKey: 'requireForMarketing' },
     ],
   },
 ];
@@ -77,15 +83,17 @@ function useTheme() {
     localStorage.setItem('hiru-theme', dark ? 'dark' : 'light');
   }, [dark]);
 
-  return { dark, toggle: () => setDark(d => !d) };
+  return { dark, toggle: () => setDark((d) => !d) };
 }
 
 export default function Layout() {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isSecuritySettingsOpen, setIsSecuritySettingsOpen] = useState(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const toast = useToast();
   const { dark, toggle } = useTheme();
+  const { isUnlocked, config, lock, requestAuth } = useSecurity();
 
   const handleManualCheckUpdate = async () => {
     setIsCheckingUpdate(true);
@@ -104,6 +112,14 @@ export default function Layout() {
     } finally {
       setTimeout(() => setIsCheckingUpdate(false), 2000);
     }
+  };
+
+  const handleOpenBackup = async () => {
+    if (config.requireForBackup && !isUnlocked) {
+      const authorized = await requestAuth('Manager authorization required to access Data & Backup.');
+      if (!authorized) return;
+    }
+    setIsBackupModalOpen(true);
   };
 
   return (
@@ -134,6 +150,55 @@ export default function Layout() {
           </div>
         </div>
 
+        {/* Security Role Mode Pill */}
+        <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+              }`}
+            />
+            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+              {isUnlocked ? 'Manager Mode' : 'Cashier Mode'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {isUnlocked ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsSecuritySettingsOpen(true)}
+                  title="Security & PIN Settings"
+                  className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={lock}
+                  title="Lock to Cashier Mode"
+                  className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-[10px] font-semibold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Lock className="w-2.5 h-2.5" />
+                  <span>Lock</span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  requestAuth('Enter Manager PIN to unlock full management access.')
+                }
+                className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 text-[10px] font-semibold transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+              >
+                <Unlock className="w-2.5 h-2.5" />
+                <span>Unlock</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Grouped Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
           {navGroups.map((group) => (
@@ -144,6 +209,9 @@ export default function Layout() {
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
+                  const isItemLocked =
+                    !isUnlocked && item.permKey && config[item.permKey];
+
                   return (
                     <li key={item.name}>
                       <NavLink
@@ -160,6 +228,10 @@ export default function Layout() {
                           <Icon className="w-4 h-4 shrink-0 stroke-[1.8]" />
                           <span className="truncate">{item.name}</span>
                         </div>
+
+                        {isItemLocked && (
+                          <Lock className="w-3 h-3 text-slate-400 dark:text-slate-500 stroke-[2] shrink-0" />
+                        )}
                       </NavLink>
                     </li>
                   );
@@ -179,18 +251,30 @@ export default function Layout() {
             title="Toggle theme (Light / Dark)"
           >
             <div className="flex items-center gap-2">
-              {dark ? <Moon className="w-3.5 h-3.5 text-blue-400" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
+              {dark ? (
+                <Moon className="w-3.5 h-3.5 text-blue-400" />
+              ) : (
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+              )}
               <span>{dark ? 'Dark Mode' : 'Light Mode'}</span>
             </div>
-            <span className={`w-8 h-4.5 rounded-full p-0.5 transition-colors ${dark ? 'bg-blue-600' : 'bg-slate-300'}`}>
-              <span className={`block w-3.5 h-3.5 rounded-full bg-white transition-transform ${dark ? 'translate-x-3.5' : ''}`} />
+            <span
+              className={`w-8 h-4.5 rounded-full p-0.5 transition-colors ${
+                dark ? 'bg-blue-600' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`block w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                  dark ? 'translate-x-3.5' : ''
+                }`}
+              />
             </span>
           </button>
 
           {/* Data & Backup */}
           <button
             type="button"
-            onClick={() => setIsBackupModalOpen(true)}
+            onClick={handleOpenBackup}
             className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors text-xs font-medium border border-slate-200 dark:border-slate-700/80 cursor-pointer shadow-2xs"
             title="Backup or restore database"
           >
@@ -198,7 +282,11 @@ export default function Layout() {
               <Database className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Data & Backup</span>
             </div>
-            <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+            {!isUnlocked && config.requireForBackup ? (
+              <Lock className="w-3 h-3 text-slate-400" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+            )}
           </button>
 
           {/* Online Updates */}
@@ -210,10 +298,16 @@ export default function Layout() {
             title="Check for software updates"
           >
             <div className="flex items-center gap-2">
-              <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isCheckingUpdate ? 'animate-spin text-blue-600' : ''}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 text-slate-400 ${
+                  isCheckingUpdate ? 'animate-spin text-blue-600' : ''
+                }`}
+              />
               <span>{isCheckingUpdate ? 'Checking...' : 'Check for Updates'}</span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">Online</span>
+            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+              Online
+            </span>
           </button>
 
           {/* System & Developer Info */}
@@ -251,6 +345,12 @@ export default function Layout() {
       <AboutModal
         isOpen={isAboutModalOpen}
         onClose={() => setIsAboutModalOpen(false)}
+      />
+
+      {/* Security & PIN Settings Modal */}
+      <SecuritySettingsModal
+        isOpen={isSecuritySettingsOpen}
+        onClose={() => setIsSecuritySettingsOpen(false)}
       />
 
       {/* Auto-updater notifications */}

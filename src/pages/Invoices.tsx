@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { db, type Sale } from '../db';
 import { FileText, Search, Printer, X, Eye, Edit, Trash2, Plus, Minus, CreditCard, Banknote, Save, RotateCcw, Check } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { useSecurity } from '../context/SecurityContext';
 import { printReceipt, printReturnReceipt, type ReturnReceiptData } from '../utils/receipt';
 import { SkeletonRows, EmptyState } from '../components/Skeleton';
 
 export default function Invoices() {
   const toast = useToast();
+  const { isUnlocked, config, requestAuth } = useSecurity();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [editingSale, setEditingSale] = useState<any>(null);
@@ -36,6 +38,10 @@ export default function Invoices() {
   const [lastProcessedReturn, setLastProcessedReturn] = useState<ReturnReceiptData | null>(null);
 
   const handleOpenReturn = async (sale: Sale) => {
+    if (config.requireForReturns && !isUnlocked) {
+      const authorized = await requestAuth(`Manager authorization required to process a return on receipt ${sale.receipt_no}.`);
+      if (!authorized) return;
+    }
     try {
       const [itemsRes, prevReturnsRes] = await Promise.all([
         db.saleItems.getBySale(sale.id!),
@@ -199,6 +205,10 @@ export default function Invoices() {
   };
 
   const handleDeleteInvoice = async (sale: Sale) => {
+    if (config.requireForReturns && !isUnlocked) {
+      const authorized = await requestAuth(`Manager authorization required to delete invoice ${sale.receipt_no}.`);
+      if (!authorized) return;
+    }
     if (!window.confirm(`Are you sure you want to delete invoice "${sale.receipt_no}"?\n\nThis will return all items back to stock.`)) {
       return;
     }
@@ -218,6 +228,10 @@ export default function Invoices() {
   };
 
   const handleStartEdit = async (sale: Sale) => {
+    if (config.requireForReturns && !isUnlocked) {
+      const authorized = await requestAuth(`Manager authorization required to edit completed invoice ${sale.receipt_no}.`);
+      if (!authorized) return;
+    }
     try {
       const res = await db.saleItems.getBySale(sale.id!);
       const items = (res.data ?? []).map((item: any) => {

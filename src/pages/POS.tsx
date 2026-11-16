@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { calculateCartTotals, clampCartQuantity } from '../utils/checkout';
 import { useToast } from '../components/Toast';
+import { useSecurity } from '../context/SecurityContext';
 import { printReceipt, buildWhatsAppReceiptText, printReturnReceipt, type ReturnReceiptData } from '../utils/receipt';
 import type { ReceiptData } from '../utils/receipt';
 import { soundFX } from '../utils/audio';
@@ -29,6 +30,7 @@ const SHORTCUTS = [
 
 export default function POS() {
   const toast = useToast();
+  const { isUnlocked, config, requestAuth } = useSecurity();
   const [cart, setCart] = useState<CartItem[]>([]);
   const checkoutPending = useRef(false);
   const checkoutRequestId = useRef<string | null>(null);
@@ -1407,7 +1409,11 @@ export default function POS() {
                 {/* POS Item Return & Exchange Button */}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
+                    if (config.requireForReturns && !isUnlocked) {
+                      const authorized = await requestAuth('Manager authorization required to process an item return or exchange.');
+                      if (!authorized) return;
+                    }
                     setShowReturnModal(true);
                     setLastProcessedReturn(null);
                   }}
