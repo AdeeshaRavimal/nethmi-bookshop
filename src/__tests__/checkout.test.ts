@@ -158,5 +158,33 @@ describe('Checkout & POS Calculations', () => {
       expect(receiptText).not.toContain('Special Discount');
       expect(receiptText).not.toContain('Discount');
     });
+
+    it('displays total due credit amount at the end of the bill for credit customers', () => {
+      const receiptText = buildWhatsAppReceiptText({
+        receipt_no: 'REC-20261116-003',
+        created_at: '2026-11-16T11:00:00',
+        payment_type: 'CREDIT',
+        customer_name: 'Nimal Perera',
+        customer_phone: '0712345678',
+        total_amount: 1500,
+        credit_due_amount: 4500,
+        items: [
+          {
+            title: 'Atlas 120pg Exercise Book',
+            quantity: 5,
+            unit_price: 300,
+          },
+        ],
+      });
+
+      expect(receiptText).toContain('Customer: Nimal Perera (0712345678)');
+      expect(receiptText).toContain('TOTAL: Rs. 1500.00');
+      expect(receiptText).toContain('TOTAL CREDIT DUE: Rs. 4500.00');
+      // Verify total credit due is placed near the end of the bill before the closing thank you
+      const creditPos = receiptText.indexOf('TOTAL CREDIT DUE: Rs. 4500.00');
+      const thankYouPos = receiptText.indexOf('Thank you for shopping with us!');
+      expect(creditPos).toBeGreaterThan(-1);
+      expect(thankYouPos).toBeGreaterThan(creditPos);
+    });
   });
 });

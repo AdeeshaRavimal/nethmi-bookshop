@@ -23,6 +23,7 @@ export interface ReceiptData {
   customer_phone?: string;
   points_earned?: number;
   points_balance?: number;
+  credit_due_amount?: number;
 }
 
 const SHOP_NAME = 'Hiru Bookshop & Communication';
@@ -107,6 +108,7 @@ export function printReceipt(data: ReceiptData): void {
       <p>No: ${escapeHtml(data.receipt_no)}</p>
       <p>Date: ${date}</p>
       <p>Payment: ${escapeHtml(data.payment_type)}</p>
+      ${data.customer_name ? `<p>Customer: <strong>${escapeHtml(data.customer_name)}</strong>${data.customer_phone ? ` (${escapeHtml(data.customer_phone)})` : ''}</p>` : ''}
     </div>
   </div>
 
@@ -146,6 +148,11 @@ export function printReceipt(data: ReceiptData): void {
     <div class="total-row" style="font-weight: bold; color: #15803d;">
       <span>Change Return</span>
       <span>${money(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount))}</span>
+    </div>` : ''}
+    ${(data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) ? `
+    <div class="total-row" style="margin-top: 8px; border-top: 2px dashed #dc2626; padding-top: 6px; color: #dc2626; font-weight: 800; font-size: 15px;">
+      <span>TOTAL CREDIT DUE</span>
+      <span>${money(data.credit_due_amount)}</span>
     </div>` : ''}
   </div>
 
@@ -226,6 +233,10 @@ export function buildWhatsAppReceiptText(data: ReceiptData): string {
     text += `\nChange Returned: Rs. ${(data.change_amount ?? Math.max(0, data.cash_tendered - data.total_amount)).toFixed(2)}`;
   }
 
+  if (data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT')) {
+    text += `\n----------------------------------------\n*TOTAL CREDIT DUE: Rs. ${Number(data.credit_due_amount).toFixed(2)}*`;
+  }
+
   text += `\n\nThank you for shopping with us! Have a great day!`;
 
   return text;
@@ -241,7 +252,8 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
       const canvas = document.createElement('canvas');
       const width = 600;
       const rowHeight = 32;
-      const baseHeight = 560;
+      const hasCreditDue = data.credit_due_amount != null && (data.credit_due_amount > 0 || data.payment_type === 'CREDIT');
+      const baseHeight = 560 + (hasCreditDue ? 50 : 0);
       const height = baseHeight + (data.items.length * rowHeight);
 
       canvas.width = width;
@@ -391,6 +403,23 @@ export function generateBillImage(data: ReceiptData): Promise<string> {
         ctx.fillText(`Change: Rs. ${(data.change_amount || 0).toFixed(2)}`, width - 32, y);
         ctx.textAlign = 'left';
         y += 25;
+      }
+
+      if (hasCreditDue) {
+        y += 8;
+        ctx.fillStyle = '#fef2f2';
+        ctx.fillRect(20, y, width - 40, 36);
+        ctx.strokeStyle = '#f87171';
+        ctx.strokeRect(20, y, width - 40, 36);
+
+        ctx.fillStyle = '#dc2626';
+        ctx.font = 'bold 13px "Segoe UI", sans-serif';
+        ctx.fillText('TOTAL DUE CREDIT BALANCE:', 32, y + 23);
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 16px "Segoe UI", sans-serif';
+        ctx.fillText(`Rs. ${Number(data.credit_due_amount).toFixed(2)}`, width - 32, y + 23);
+        ctx.textAlign = 'left';
+        y += 42;
       }
 
       // ── Footer

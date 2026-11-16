@@ -144,14 +144,17 @@ export function executeCheckout(db: Database.Database, params: {
     }
 
     // ── Credit sale: record outstanding balance ───────────────────────────────
+    let creditBalance: number | undefined;
     if (params.paymentType === 'CREDIT' && params.customerId != null) {
       db.prepare('INSERT INTO credit_payments (customer_id, sale_id, amount, payment_type, notes) VALUES (?, ?, ?, ?, ?)')
         .run(params.customerId, saleId, finalTotalAmount, 'SALE', `Sale ${receiptNo}`);
       db.prepare('UPDATE credit_customers SET total_outstanding = total_outstanding + ? WHERE id = ?')
         .run(finalTotalAmount, params.customerId);
+      const cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(params.customerId) as any;
+      if (cust) creditBalance = cust.total_outstanding;
     }
 
-    return { saleId, receiptNo, totalAmount: finalTotalAmount, billDiscount };
+    return { saleId, receiptNo, totalAmount: finalTotalAmount, billDiscount, creditBalance };
   })();
 }
 

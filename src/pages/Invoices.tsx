@@ -369,6 +369,9 @@ export default function Invoices() {
     if (!selectedSale) return;
     printReceipt({
       ...selectedSale,
+      customer_name: selectedSale.customer_name,
+      customer_phone: selectedSale.customer_phone,
+      credit_due_amount: selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount,
       bill_discount: selectedSale.bill_discount ?? 0,
       subtotal: (selectedSale.total_amount ?? 0) + (selectedSale.bill_discount ?? 0),
     });
@@ -505,6 +508,9 @@ export default function Invoices() {
               <div className="border-b border-dashed border-gray-400 dark:border-gray-600 mb-4 pb-4">
                 <p><strong>Receipt No:</strong> {selectedSale.receipt_no}</p>
                 <p><strong>Payment:</strong> {selectedSale.payment_type}</p>
+                {selectedSale.customer_name && (
+                  <p><strong>Customer:</strong> {selectedSale.customer_name} {selectedSale.customer_phone ? `(${selectedSale.customer_phone})` : ''}</p>
+                )}
               </div>
 
               <table className="w-full mb-4">
@@ -544,6 +550,12 @@ export default function Invoices() {
                   </>
                 )}
                 <p className="text-lg font-bold">Total: Rs. {selectedSale.total_amount.toFixed(2)}</p>
+                {(selectedSale.customer_total_outstanding != null || selectedSale.credit_due_amount != null) && (
+                  <div className="pt-2 mt-2 border-t-2 border-dashed border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 font-bold text-base flex justify-between">
+                    <span>Total Credit Due:</span>
+                    <span>Rs. {Number(selectedSale.customer_total_outstanding ?? selectedSale.credit_due_amount).toFixed(2)}</span>
+                  </div>
+                )}
               </div>
             </div>
 

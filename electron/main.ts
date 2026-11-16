@@ -339,9 +339,16 @@ ipcMain.handle('db:inventory:bulkUpsert', (_e, items: Record<string, unknown>[])
 
 ipcMain.handle('db:sales:getRecent', (_e, { limit = 20 }: { limit?: number }) => {
   try {
-    const rows = getDb().prepare(
-      'SELECT * FROM sales ORDER BY created_at DESC LIMIT ?'
-    ).all(limit);
+    const db = getDb();
+    const hasCreditCust = !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='credit_customers'").get() &&
+      !!db.prepare("SELECT 1 FROM pragma_table_info('sales') WHERE name='customer_id'").get();
+    const query = hasCreditCust
+      ? `SELECT s.*, c.name AS customer_name, c.phone AS customer_phone, c.total_outstanding AS customer_total_outstanding
+         FROM sales s
+         LEFT JOIN credit_customers c ON s.customer_id = c.id
+         ORDER BY s.created_at DESC LIMIT ?`
+      : `SELECT * FROM sales ORDER BY created_at DESC LIMIT ?`;
+    const rows = db.prepare(query).all(limit);
     return { success: true, data: rows };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -400,8 +407,19 @@ ipcMain.handle('db:sales:search', (_e, { term = '', limit = 50, offset = 0 }) =>
   try {
     const pageSize = Math.max(1, Math.min(200, Math.trunc(Number(limit)) || 50));
     const skip = Math.max(0, Math.trunc(Number(offset)) || 0);
-    const rows = getDb().prepare('SELECT * FROM sales WHERE INSTR(LOWER(receipt_no), LOWER(?)) > 0 ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?')
-      .all(String(term).trim(), pageSize + 1, skip);
+    const db = getDb();
+    const hasCreditCust = !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='credit_customers'").get() &&
+      !!db.prepare("SELECT 1 FROM pragma_table_info('sales') WHERE name='customer_id'").get();
+    const query = hasCreditCust
+      ? `SELECT s.*, c.name AS customer_name, c.phone AS customer_phone, c.total_outstanding AS customer_total_outstanding
+         FROM sales s
+         LEFT JOIN credit_customers c ON s.customer_id = c.id
+         WHERE INSTR(LOWER(s.receipt_no), LOWER(?)) > 0
+         ORDER BY s.created_at DESC, s.id DESC LIMIT ? OFFSET ?`
+      : `SELECT s.* FROM sales s
+         WHERE INSTR(LOWER(s.receipt_no), LOWER(?)) > 0
+         ORDER BY s.created_at DESC, s.id DESC LIMIT ? OFFSET ?`;
+    const rows = db.prepare(query).all(String(term).trim(), pageSize + 1, skip);
     return { success: true, data: rows.slice(0, pageSize), hasMore: rows.length > pageSize };
   } catch (err: any) { return { success: false, error: err.message }; }
 });

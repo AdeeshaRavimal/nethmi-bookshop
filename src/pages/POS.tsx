@@ -848,6 +848,12 @@ export default function POS() {
         ? (activeCustomer.loyalty_points || 0) - pointsToRedeem + pointsEarned
         : undefined;
 
+      const creditDueAmount = (res as any)?.creditBalance != null
+        ? (res as any).creditBalance
+        : (method === 'CREDIT'
+            ? ((activeCustomer?.total_outstanding || 0) + adjustedNetTotal)
+            : (activeCustomer?.total_outstanding && activeCustomer.total_outstanding > 0 ? activeCustomer.total_outstanding : undefined));
+
       const receiptPayload: ReceiptData = {
         receipt_no: receiptNo,
         created_at: now,
@@ -869,6 +875,7 @@ export default function POS() {
         customer_phone: activeCustomer?.phone,
         points_earned: pointsEarned,
         points_balance: pointsBalance,
+        credit_due_amount: creditDueAmount,
       };
 
       if (method === 'CASH') {
@@ -955,6 +962,7 @@ export default function POS() {
       customer_phone: lastSale.customer_phone,
       points_earned: lastSale.points_earned,
       points_balance: lastSale.points_balance,
+      credit_due_amount: lastSale.customer_total_outstanding ?? lastSale.credit_due_amount,
     };
 
     const targetPhone = (lastSale.customer_phone || '').trim();
@@ -998,6 +1006,9 @@ export default function POS() {
       items: lastSale.items || [],
       bill_discount: lastSale.bill_discount ?? 0,
       subtotal: lastSale.subtotal ?? ((lastSale.total_amount ?? 0) + (lastSale.bill_discount ?? 0)),
+      customer_name: lastSale.customer_name,
+      customer_phone: lastSale.customer_phone,
+      credit_due_amount: lastSale.customer_total_outstanding ?? lastSale.credit_due_amount,
     });
   };
 
