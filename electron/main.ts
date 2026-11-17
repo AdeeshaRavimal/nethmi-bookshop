@@ -95,7 +95,7 @@ function setupAutoUpdater() {
   if (process.env.VITE_DEV_SERVER_URL) return;
 
   autoUpdater.autoDownload = false; // Ask user before downloading
-  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.autoInstallOnAppQuit = true;
 
   const push = (status: string, payload?: object) => {
     mainWindow?.webContents.send('updater:status', { status, ...payload });
@@ -131,9 +131,9 @@ ipcMain.handle('updater:check', async () => {
 
 ipcMain.handle('updater:install', () => {
   autoUpdater.downloadUpdate();
-  // When downloaded, autoUpdater 'update-downloaded' fires → we quitAndInstall
+  // When downloaded, autoUpdater 'update-downloaded' fires → we quitAndInstall silently and restart
   autoUpdater.once('update-downloaded', () => {
-    autoUpdater.quitAndInstall(false, true);
+    autoUpdater.quitAndInstall(true, true);
   });
   return { success: true };
 });

@@ -140,7 +140,7 @@ export default function Layout() {
                   Hiru Bookshop
                 </h1>
                 <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700">
-                  v1.0.6
+                  v1.0.7
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-medium">
