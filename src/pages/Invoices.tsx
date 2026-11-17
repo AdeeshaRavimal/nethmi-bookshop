@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db, type Sale } from '../db';
-import { FileText, Search, Printer, X, Eye, Edit, Trash2, Plus, Minus, CreditCard, Banknote, Save, RotateCcw, Check } from 'lucide-react';
+import { FileText, Search, Printer, X, Eye, Edit, Trash2, Plus, Minus, CreditCard, Banknote, Users, Save, RotateCcw, Check } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useSecurity } from '../context/SecurityContext';
 import { printReceipt, printReturnReceipt, type ReturnReceiptData } from '../utils/receipt';
@@ -352,6 +352,7 @@ export default function Invoices() {
       const res = await db.sales.update({
         id: editingSale.id,
         payment_type: editingSale.payment_type,
+        customer_id: editingSale.customer_id ?? null,
         bill_discount: billDiscountVal,
         items: editingSale.items.map((i: any) => ({
           product_id: i.product_id,
@@ -694,17 +695,24 @@ export default function Invoices() {
             <div className="p-5 overflow-y-auto flex-1 space-y-4">
               {/* Payment Type Selection */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                  Payment Method
-                </label>
-                <div className="grid grid-cols-2 gap-2.5 max-w-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Payment Method
+                  </label>
+                  {editingSale.customer_name && (
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                      Customer: <strong className="text-slate-900 dark:text-slate-100">{editingSale.customer_name}</strong>
+                    </span>
+                  )}
+                </div>
+                <div className={`grid ${(editingSale.customer_id || editingSale.payment_type === 'CREDIT') ? 'grid-cols-3 max-w-sm' : 'grid-cols-2 max-w-xs'} gap-2.5`}>
                   <button
                     type="button"
                     onClick={() => setEditingSale({ ...editingSale, payment_type: 'CASH' })}
                     className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
                       editingSale.payment_type === 'CASH'
                         ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <Banknote className="w-3.5 h-3.5" /> Cash
@@ -715,11 +723,24 @@ export default function Invoices() {
                     className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
                       editingSale.payment_type === 'CARD'
                         ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <CreditCard className="w-3.5 h-3.5" /> Card
                   </button>
+                  {(editingSale.customer_id || editingSale.payment_type === 'CREDIT') && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingSale({ ...editingSale, payment_type: 'CREDIT' })}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold text-xs border transition-all cursor-pointer ${
+                        editingSale.payment_type === 'CREDIT'
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-2xs dark:bg-rose-600 dark:border-rose-600'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5" /> Credit
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -858,6 +879,18 @@ export default function Invoices() {
                 <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-slate-100 pt-2 border-t border-slate-200 dark:border-slate-800">
                   <span>Net Total</span>
                   <span className="text-blue-600 dark:text-blue-400 tabular-nums">Rs. {editNetTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[11px] pt-1">
+                  <span className="text-slate-500 dark:text-slate-400">Payment:</span>
+                  <span className={`font-semibold uppercase ${
+                    editingSale.payment_type === 'CREDIT'
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : editingSale.payment_type === 'CARD'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {editingSale.payment_type}
+                  </span>
                 </div>
               </div>
             </div>

@@ -160,7 +160,7 @@ export function executeCheckout(db: Database.Database, params: {
 
 export function deleteSale(db: Database.Database, saleId: number) {
   return db.transaction(() => {
-    const sale = db.prepare('SELECT id, receipt_no FROM sales WHERE id = ?').get(saleId) as any;
+    const sale = db.prepare('SELECT id, receipt_no, payment_type, total_amount, customer_id, points_earned, points_redeemed FROM sales WHERE id = ?').get(saleId) as any;
     if (!sale) throw new Error('Invoice not found');
 
     const items = db.prepare('SELECT product_id, quantity, unit_cost, original_price FROM sale_items WHERE sale_id = ?').all(saleId) as any[];
@@ -183,6 +183,19 @@ export function deleteSale(db: Database.Database, saleId: number) {
       }
     }
 
+    // Revert customer credit & loyalty if attached
+    if (sale.customer_id != null) {
+      if (sale.points_earned || sale.points_redeemed) {
+        db.prepare('UPDATE credit_customers SET loyalty_points = MAX(0, COALESCE(loyalty_points, 0) - ? + ?) WHERE id = ?')
+          .run(sale.points_earned || 0, sale.points_redeemed || 0, sale.customer_id);
+      }
+      if (sale.payment_type === 'CREDIT') {
+        db.prepare('UPDATE credit_customers SET total_outstanding = MAX(0, total_outstanding - ?) WHERE id = ?')
+          .run(Number(sale.total_amount) || 0, sale.customer_id);
+        db.prepare("DELETE FROM credit_payments WHERE sale_id = ?").run(saleId);
+      }
+    }
+
     db.prepare('DELETE FROM sale_items WHERE sale_id = ?').run(saleId);
     db.prepare('DELETE FROM sales WHERE id = ?').run(saleId);
     return { success: true };
@@ -193,6 +206,7 @@ export function updateSale(db: Database.Database, params: {
   id: number;
   payment_type: string;
   bill_discount?: number;
+  customer_id?: number | null;
   items: Array<{
     id?: number;
     product_id: number;
@@ -286,22 +300,74 @@ export function updateSale(db: Database.Database, params: {
     const finalTotalAmount = Math.max(0, Math.round((totalAmount - billDiscount) * 100) / 100);
     const finalGrossProfit = Math.round((finalTotalAmount - totalCost) * 100) / 100;
 
+    const targetPaymentType = ['CASH', 'CARD', 'CREDIT'].includes(params.payment_type)
+      ? params.payment_type
+      : (sale.payment_type || 'CASH');
+
+    const customerId = params.customer_id !== undefined ? params.customer_id : sale.customer_id;
+
     db.prepare(`
       UPDATE sales SET
         total_amount = ?,
         total_cost = ?,
         gross_profit = ?,
         payment_type = ?,
-        bill_discount = ?
+        bill_discount = ?,
+        customer_id = ?
       WHERE id = ?
     `).run(
       finalTotalAmount,
       totalCost,
       finalGrossProfit,
-      ['CASH', 'CARD'].includes(params.payment_type) ? params.payment_type : 'CASH',
+      targetPaymentType,
       billDiscount,
+      customerId ?? null,
       saleId
     );
+
+    // ── Handle Credit Customer Balance & Payments Ledger ──
+    const oldPaymentType = sale.payment_type;
+    const oldTotal = Number(sale.total_amount) || 0;
+    const oldCustomerId = sale.customer_id;
+
+    if (oldCustomerId !== customerId) {
+      if (oldPaymentType === 'CREDIT' && oldCustomerId != null) {
+        db.prepare('UPDATE credit_customers SET total_outstanding = MAX(0, total_outstanding - ?) WHERE id = ?')
+          .run(oldTotal, oldCustomerId);
+        db.prepare("DELETE FROM credit_payments WHERE sale_id = ? AND payment_type = 'SALE'").run(saleId);
+      }
+      if (targetPaymentType === 'CREDIT' && customerId != null) {
+        db.prepare('UPDATE credit_customers SET total_outstanding = total_outstanding + ? WHERE id = ?')
+          .run(finalTotalAmount, customerId);
+        db.prepare("INSERT INTO credit_payments (customer_id, sale_id, amount, payment_type, notes) VALUES (?, ?, ?, 'SALE', ?)")
+          .run(customerId, saleId, finalTotalAmount, `Sale ${sale.receipt_no}`);
+      }
+    } else if (customerId != null) {
+      if (oldPaymentType === 'CREDIT' && targetPaymentType === 'CREDIT') {
+        const diff = Math.round((finalTotalAmount - oldTotal) * 100) / 100;
+        if (diff !== 0) {
+          db.prepare('UPDATE credit_customers SET total_outstanding = MAX(0, total_outstanding + ?) WHERE id = ?')
+            .run(diff, customerId);
+        }
+        const existingPayment = db.prepare("SELECT id FROM credit_payments WHERE sale_id = ? AND payment_type = 'SALE'").get(saleId);
+        if (existingPayment) {
+          db.prepare("UPDATE credit_payments SET amount = ? WHERE sale_id = ? AND payment_type = 'SALE'")
+            .run(finalTotalAmount, saleId);
+        } else {
+          db.prepare("INSERT INTO credit_payments (customer_id, sale_id, amount, payment_type, notes) VALUES (?, ?, ?, 'SALE', ?)")
+            .run(customerId, saleId, finalTotalAmount, `Sale ${sale.receipt_no}`);
+        }
+      } else if (oldPaymentType === 'CREDIT' && targetPaymentType !== 'CREDIT') {
+        db.prepare('UPDATE credit_customers SET total_outstanding = MAX(0, total_outstanding - ?) WHERE id = ?')
+          .run(oldTotal, customerId);
+        db.prepare("DELETE FROM credit_payments WHERE sale_id = ? AND payment_type = 'SALE'").run(saleId);
+      } else if (oldPaymentType !== 'CREDIT' && targetPaymentType === 'CREDIT') {
+        db.prepare('UPDATE credit_customers SET total_outstanding = total_outstanding + ? WHERE id = ?')
+          .run(finalTotalAmount, customerId);
+        db.prepare("INSERT INTO credit_payments (customer_id, sale_id, amount, payment_type, notes) VALUES (?, ?, ?, 'SALE', ?)")
+          .run(customerId, saleId, finalTotalAmount, `Sale ${sale.receipt_no}`);
+      }
+    }
 
     return { success: true };
   })();

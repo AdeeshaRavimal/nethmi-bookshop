@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hiru Bookshop & Communication - POS & Store Management User Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 16mm 14mm;
+      @bottom-center {
+        content: "Hiru Bookshop & Communication • User Operations Manual • Page " counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.5;
+      font-size: 9.5pt;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Page container */
+    .page {
+      padding: 0;
+      page-break-after: always;
+      position: relative;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      min-height: 960px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px 30px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    }
+
+    .cover-header {
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 25px;
+    }
+
+    .cover-brand {
+      font-size: 26pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+
+    .cover-subtitle {
+      font-size: 13pt;
+      font-weight: 600;
+      color: #2563eb;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .cover-location {
+      font-size: 10pt;
+      color: #64748b;
+      margin-top: 6px;
+    }
+
+    .cover-hero {
+      margin: 60px 0;
+      text-align: left;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 15px;
+    }
+
+    .cover-desc {
+      font-size: 11pt;
+      color: #475569;
+      max-width: 600px;
+      line-height: 1.6;
+    }
+
+    .cover-roles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .role-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .role-card.cashier {
+      border-left: 4px solid #2563eb;
+    }
+
+    .role-card.owner {
+      border-left: 4px solid #0f172a;
+    }
+
+    .role-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-desc {
+      font-size: 8.5pt;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .cover-meta {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+
+    /* Content Typography */
+    h1 {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1 .chapter-no {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    h2 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      border-left: 3px solid #2563eb;
+      padding-left: 8px;
+    }
+
+    h3 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    /* Table of contents */
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .toc-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toc-title {
+      font-size: 9pt;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .toc-subtitle {
+      font-size: 7.5pt;
+      color: #64748b;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .toc-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      font-weight: 700;
+      color: #2563eb;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    /* Cards & Callout Boxes */
+    .callout {
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 12px 0;
+      font-size: 9pt;
+      line-height: 1.45;
+    }
+
+    .callout-blue {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 4px solid #2563eb;
+      color: #1e40af;
+    }
+
+    .callout-emerald {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-left: 4px solid #059669;
+      color: #065f46;
+    }
+
+    .callout-amber {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+
+    .callout-rose {
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      border-left: 4px solid #e11d48;
+      color: #9f1239;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Action Steps */
+    .step-list {
+      margin: 12px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-card {
+      display: flex;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      align-items: flex-start;
+    }
+
+    .step-badge {
+      background: #0f172a;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      font-weight: 700;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .step-desc {
+      font-size: 8.5pt;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.5pt;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+      padding: 8px 10px;
+      border-top: 1px solid #cbd5e1;
+      border-bottom: 2px solid #94a3b8;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: middle;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    kbd {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      font-weight: 700;
+      color: #0f172a;
+      box-shadow: 0 1px 0 #94a3b8;
+    }
+
+    .code-val {
+      font-family: 'JetBrains Mono', monospace;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 8pt;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Two column grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 10px 0;
+    }
+
+    .panel-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .panel-header {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Print specific tweaks */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .page {
+        page-break-after: always !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= PAGE 1: COVER PAGE ================= -->
+  <div class="page">
+    <div class="cover-page">
+      <div class="cover-header">
+        <div class="cover-brand">Hiru Bookshop & Communication</div>
+        <div class="cover-subtitle">Point of Sale & Retail Management System</div>
+        <div class="cover-location">Maniyangama, Avissawella &bull; Hotline: 070200042 &bull; Version 1.0.6 Enterprise</div>
+      </div>
+
+      <div class="cover-hero">
+        <div class="cover-badge">Complete Operations Manual</div>
+        <div class="cover-title">Standard Operating Procedures & User Guide</div>
+        <div class="cover-desc">
+          A non-technical, comprehensive operational manual prepared for store owners, cashiers, and shop assistants. Covers retail checkout, photocopy/communication services, cash reconciliation, customer credit, stock management, and auditing.
+        </div>
+
+        <div class="cover-roles">
+          <div class="role-card cashier">
+            <div class="role-title">🛒 For Cashiers & Staff</div>
+            <div class="role-desc">
+              Fast POS checkout, barcode scanning, photocopy & laminating services, discount rules, payment options, receipt printing, customer credit lookup, and daily drawer cash count.
+            </div>
+          </div>
+          <div class="role-card owner">
+            <div class="role-title">🛡️ For Store Owner & Managers</div>
+            <div class="role-desc">
+              Security PIN & Google Authenticator TOTP gate, profit margin visibility, stock restocking (GRN), supplier credit payments, daily cashbook auditing, and USB backup.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cover-meta">
+        <div><strong>Publication:</strong> Official Software Release v1.0.6</div>
+        <div><strong>System Architecture:</strong> Desktop POS (Offline SQLite + Auto-Update)</div>
+        <div><strong>Support:</strong> Inkoart (info@inkoart.online)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 2: TABLE OF CONTENTS & QUICK CHEAT SHEET ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>Table of Contents & Quick Reference</span>
+      <span class="chapter-no">QUICK START</span>
+    </h1>
+
+    <div class="toc-grid">
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">1. POS & Cashier Operations</span>
+          <span class="toc-subtitle">Scanning, Quick Services, Payments & A5 Bills</span>
+        </div>
+        <div class="toc-num">01</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">2. Daily Shift Close & Z-Report</span>
+          <span class="toc-subtitle">Drawer Count, Denominations & Reconciliation</span>
+        </div>
+        <div class="toc-num">02</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">3. Communication & Print Services</span>
+          <span class="toc-subtitle">Photocopy, Laminating & Spiral Binding</span>
+        </div>
+        <div class="toc-num">03</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">4. Customer Credit Ledger</span>
+          <span class="toc-subtitle">Credit Limits, Billing & Debt Settlement</span>
+        </div>
+        <div class="toc-num">04</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">5. Stock & Inventory Control</span>
+          <span class="toc-subtitle">Adding Items, Barcodes & Low Stock Alerts</span>
+        </div>
+        <div class="toc-num">05</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">6. GRN & Supplier Purchases</span>
+          <span class="toc-subtitle">Receiving Stock, Supplier Dues & Invoices</span>
+        </div>
+        <div class="toc-num">06</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">7. Cashbook & Owner Auditing</span>
+          <span class="toc-subtitle">Daily Expenses, Cash Flow & Financial Reports</span>
+        </div>
+        <div class="toc-num">07</div>
+      </div>
+      <div class="toc-item">
+        <div>
+          <span class="toc-title">8. Security, PIN & Emergency OTP</span>
+          <span class="toc-subtitle">Cashier Mode & Google Authenticator TOTP</span>
+        </div>
+        <div class="toc-num">08</div>
+      </div>
+    </div>
+
+    <h2>⌨️ POS Keyboard Shortcuts (Cashier Cheat Sheet)</h2>
+    <p>Using keyboard shortcuts speeds up queue processing significantly. Keep this cheat sheet near the counter.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18%;">Shortcut Key</th>
+          <th style="width: 32%;">Action Name</th>
+          <th style="width: 50%;">Operational Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><kbd>F1</kbd></td>
+          <td><strong>Focus Item Search</strong></td>
+          <td>Instantly moves typing cursor to barcode / product search bar.</td>
+        </tr>
+        <tr>
+          <td><kbd>F2</kbd></td>
+          <td><strong>Quick Cash Checkout</strong></td>
+          <td>Opens cash payment prompt with calculated change & completes bill.</td>
+        </tr>
+        <tr>
+          <td><kbd>F3</kbd></td>
+          <td><strong>Card Payment</strong></td>
+          <td>Sets payment method to Card / Bank POS and records transaction.</td>
+        </tr>
+        <tr>
+          <td><kbd>F4</kbd></td>
+          <td><strong>Quick Services</strong></td>
+          <td>Opens Photocopy, Printout, Laminating, and Binding calculator dialog.</td>
+        </tr>
+        <tr>
+          <td><kbd>F6</kbd></td>
+          <td><strong>Attach Customer</strong></td>
+          <td>Searches customer by phone / name for Loyalty Points & WhatsApp bill.</td>
+        </tr>
+        <tr>
+          <td><kbd>F9</kbd></td>
+          <td><strong>Clear Bill / Cancel</strong></td>
+          <td>Empties the current cart so cashier can start a fresh sale.</td>
+        </tr>
+        <tr>
+          <td><kbd>Enter</kbd></td>
+          <td><strong>Confirm / Add</strong></td>
+          <td>Adds highlighted search item to cart or confirms payment dialog.</td>
+        </tr>
+        <tr>
+          <td><kbd>Esc</kbd></td>
+          <td><strong>Close Modal / Back</strong></td>
+          <td>Dismisses any open popup window, discount box, or customer search.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-blue">
+      <div class="callout-title">💡 Pro Tip for Cashiers</div>
+      You do not need to click with the mouse to scan items! As long as the search bar is active (<kbd>F1</kbd>), scanning any barcode directly adds the item to the bill and keeps the cursor ready for the next scan.
+    </div>
+  </div>
+
+  <!-- ================= PAGE 3: CASHIER OPERATIONS & POS ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>1. Everyday POS & Customer Sales</span>
+      <span class="chapter-no">CASHIER</span>
+    </h1>
+
+    <p>The Point of Sale (POS) screen is the heart of your daily store operations. Follow these simple steps for fast and error-free sales processing.</p>
+
+    <h2>Step-by-Step Checkout Process</h2>
+
+    <div class="step-list">
+      <div class="step-card">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-title">Scan or Search the Product</div>
+          <div class="step-desc">
+            Point the barcode scanner at the product. If an item doesn't have a barcode (e.g. exercise books or loose stationery), press <kbd>F1</kbd> and type the first 2-3 letters of the item name or SKU code. Press <kbd>Enter</kbd> to add it to the cart.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-title">Adjust Quantity or Apply Discount (If needed)</div>
+          <div class="step-desc">
+            Click <strong>+</strong> or <strong>-</strong> to adjust quantities, or type the exact quantity directly. To give a discount, click the discount button on the item line or at the bottom of the bill for a total order discount (percentage or fixed rupees).
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">3</div>
+        <div class="step-content">
+          <div class="step-title">Attach Customer (Optional for Loyalty & Credit)</div>
+          <div class="step-desc">
+            Press <kbd>F6</kbd> to search for an existing customer or enter their mobile phone number. Attaching a customer allows sending automated WhatsApp e-bills and tracking credit accounts.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">4</div>
+        <div class="step-content">
+          <div class="step-title">Choose Payment Method & Complete Bill</div>
+          <div class="step-desc">
+            Select how the customer is paying:
+            <ul style="margin: 4px 0 0 16px; font-size: 8.5pt;">
+              <li><strong>CASH (<kbd>F2</kbd>):</strong> Enter the cash amount handed by customer. The screen displays the exact change to return.</li>
+              <li><strong>CARD (<kbd>F3</kbd>):</strong> Swipe/tap the card on your bank terminal, then confirm.</li>
+              <li><strong>CUSTOMER CREDIT:</strong> Charges to customer's account (requires attached customer with available credit balance).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">5</div>
+        <div class="step-content">
+          <div class="step-title">Bill Printing (A5 Portrait Format)</div>
+          <div class="step-desc">
+            The system generates a clean, executive A5 Portrait Cash Bill / Tax Invoice. If the customer does not want a paper slip, simply close the print dialog or send the invoice to their phone via the green WhatsApp button.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Customer Returns & Exchanges</h2>
+    <div class="grid-2">
+      <div class="panel-box">
+        <div class="panel-header">🔄 How to Handle a Return</div>
+        <p style="font-size: 8.5pt; color: #475569;">
+          1. Go to <strong>Bills</strong> from the sidebar.<br>
+          2. Enter the Receipt Number from the customer's bill.<br>
+          3. Select <strong>Process Return</strong>.<br>
+          4. Choose items returned and reason (Damage / Wrong Item).<br>
+          5. System automatically restocks inventory and generates an official <strong>A5 Return Voucher / Credit Note</strong>.
+        </p>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-header">⚠️ Return Rules & Safety</div>
+        <div class="callout callout-amber" style="margin: 0; padding: 8px;">
+          Only Cashiers with return privileges or Managers (via PIN) can approve refunds. This prevents fraudulent duplicate returns and preserves inventory accuracy.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 4: COMMUNICATION SERVICES & Z-REPORT ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>2. Communication Services & Daily Shift Close</span>
+      <span class="chapter-no">SERVICES & CLOSE</span>
+    </h1>
+
+    <h2>Quick Communication Services (<kbd>F4</kbd>)</h2>
+    <p>Hiru Bookshop & Communication handles high-volume document services. The built-in Services modal lets you price jobs instantly without manual math.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Service Category</th>
+          <th style="width: 35%;">Options & Rates</th>
+          <th style="width: 40%;">How to Enter in POS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Photocopy & Printing</strong></td>
+          <td>
+            &bull; B&W Single: Rs. 10.00 / Double: Rs. 15.00<br>
+            &bull; Colour Single: Rs. 50.00 / Double: Rs. 80.00
+          </td>
+          <td>Press <kbd>F4</kbd> &rarr; Select Photocopy &rarr; Enter total page count &rarr; Click <em>Add to Cart</em>.</td>
+        </tr>
+        <tr>
+          <td><strong>Laminating</strong></td>
+          <td>
+            &bull; Identity Card / Badge: Rs. 50.00<br>
+            &bull; A4 Document: Rs. 120.00<br>
+            &bull; A3 Certificate / Poster: Rs. 250.00
+          </td>
+          <td>Press <kbd>F4</kbd> &rarr; Select Laminating &rarr; Pick size (ID/A4/A3) &rarr; Set sheets &rarr; Click <em>Add to Cart</em>.</td>
+        </tr>
+        <tr>
+          <td><strong>Spiral & Tape Binding</strong></td>
+          <td>
+            &bull; Small (Up to 50 pgs): Rs. 150.00<br>
+            &bull; Medium (51-150 pgs): Rs. 250.00<br>
+            &bull; Large / Project Book: Rs. 400.00
+          </td>
+          <td>Press <kbd>F4</kbd> &rarr; Select Binding &rarr; Pick ring size &rarr; Set book count &rarr; Click <em>Add to Cart</em>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 18px 0;">
+
+    <h2>Daily Shift Close & Z-Report (Drawer Reconciliation)</h2>
+    <p>At the end of every business day or cashier shift, the physical cash in the till <strong>must be reconciled</strong> against system recorded transactions.</p>
+
+    <div class="step-list">
+      <div class="step-card">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-title">Open Cashbook & Click "Daily Shift Close & Z-Report"</div>
+          <div class="step-desc">
+            Navigate to <strong>Cashbook</strong> on the left menu, then click the blue <strong>"Daily Shift Close & Z-Report"</strong> button at top right.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-title">Count Physical Notes Using the Denomination Calculator</div>
+          <div class="step-desc">
+            Count every note and coin in your drawer and type the count:
+            <div style="margin-top: 6px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 8pt; font-family: 'JetBrains Mono', monospace;">
+              <span class="code-val">Rs. 5,000 Notes</span>
+              <span class="code-val">Rs. 1,000 Notes</span>
+              <span class="code-val">Rs. 500 Notes</span>
+              <span class="code-val">Rs. 100 Notes</span>
+              <span class="code-val">Rs. 50 Notes</span>
+              <span class="code-val">Rs. 20 Notes</span>
+              <span class="code-val">Total Loose Coins</span>
+              <span class="code-val">Total Counted</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">3</div>
+        <div class="step-content">
+          <div class="step-title">Review Drawer Variance (Balanced / Surplus / Shortage)</div>
+          <div class="step-desc">
+            The system compares <strong>Expected Cash</strong> (Opening + Cash Sales + Debt Collections - Supplier Payments - Petty Cash) against your <strong>Actual Count</strong>:
+            <ul style="margin: 4px 0 0 16px; font-size: 8.5pt;">
+              <li><span style="color: #059669; font-weight: bold;">Balanced (Rs. 0.00):</span> Perfect match.</li>
+              <li><span style="color: #2563eb; font-weight: bold;">Surplus (+Rs):</span> More cash in drawer than recorded (e.g. unrecorded tip or customer forgot change).</li>
+              <li><span style="color: #dc2626; font-weight: bold;">Shortage (-Rs):</span> Less cash in drawer (e.g. wrong change given or unrecorded cash payout).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">4</div>
+        <div class="step-content">
+          <div class="step-title">Click "Save & Print Z-Report"</div>
+          <div class="step-desc">
+            Saves the audit snapshot into permanent records and prints an official <strong>A5 Portrait 2-Column Z-Report</strong>. Both the Cashier and Store Owner must sign the printed slip and attach it to the cash bag.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 5: CUSTOMER CREDIT & INVENTORY ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>3. Customer Credit & Stock Control</span>
+      <span class="chapter-no">ACCOUNTS & STOCK</span>
+    </h1>
+
+    <h2>Managing Customer Credit (Debt Book)</h2>
+    <p>Many local schools, teachers, offices, and regular families purchase books and photocopying on monthly credit. Hiru Bookshop keeps an automated ledger for each customer.</p>
+
+    <div class="grid-2">
+      <div class="panel-box">
+        <div class="panel-header">💳 Setting Up a Credit Account</div>
+        <p style="font-size: 8.5pt;">
+          1. Go to <strong>Credit Customers</strong>.<br>
+          2. Click <strong>+ Add New Customer</strong>.<br>
+          3. Enter Full Name, Mobile Phone, NIC (optional), and <strong>Credit Limit (Rs.)</strong>.<br>
+          4. Setting a Credit Limit (e.g. Rs. 15,000) prevents staff from issuing unauthorized debt beyond safe boundaries.
+        </p>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-header">💵 Recording Customer Payments</div>
+        <p style="font-size: 8.5pt;">
+          1. When customer arrives to pay off debt, open <strong>Credit Customers</strong>.<br>
+          2. Click <strong>Record Payment</strong> next to their name.<br>
+          3. Enter amount paid (Cash or Bank Transfer) & notes.<br>
+          4. The system automatically reduces their balance, records cash into today's drawer, and prints an official receipt.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout callout-rose">
+      <div class="callout-title">⚠️ Credit Limit Exceeded Warning</div>
+      If a customer attempts to buy items exceeding their assigned credit limit, the POS displays a prominent alert. Cashiers cannot complete the credit transaction unless approved by the Store Owner with Manager PIN.
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 18px 0;">
+
+    <h2>Inventory & Product Management</h2>
+    <p>Accurate stock tracking prevents lost inventory and ensures books and stationery are reordered before running out.</p>
+
+    <div class="step-list">
+      <div class="step-card">
+        <div class="step-badge">A</div>
+        <div class="step-content">
+          <div class="step-title">Adding a New Product</div>
+          <div class="step-desc">
+            Go to <strong>Inventory</strong> &rarr; Click <strong>+ Add Product</strong>. Scan or enter the Barcode/SKU, Title, Category (e.g. Stationery, Books, Office, Communication), Cost Price (Rs.), Selling Price (Rs.), and Alert Quantity.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">B</div>
+        <div class="step-content">
+          <div class="step-title">Generating Barcode Stickers for Loose Items</div>
+          <div class="step-desc">
+            For pens, rulers, or custom school packages that don't have factory barcodes, click the <strong>Barcode Generator</strong> icon. You can print sheet labels or single barcode stickers to attach to shelves or products.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">C</div>
+        <div class="step-content">
+          <div class="step-title">FIFO Batch Cost Tracking</div>
+          <div class="step-desc">
+            When prices change from suppliers, old stock retains the old wholesale cost, and new stock uses the new cost. The system automatically uses <strong>FIFO (First-In, First-Out)</strong> so your gross profit calculations are 100% accurate.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 6: GRN & SUPPLIERS ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>4. Goods Received Note (GRN) & Suppliers</span>
+      <span class="chapter-no">PURCHASING</span>
+    </h1>
+
+    <p>When stock deliveries arrive from stationery distributors or publishers, they must be received into the system using a <strong>Goods Received Note (GRN)</strong>.</p>
+
+    <h2>How to Enter a Supplier Delivery (GRN)</h2>
+
+    <div class="step-list">
+      <div class="step-card">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-title">Go to GRN in Sidebar & Select Supplier</div>
+          <div class="step-desc">
+            Click <strong>GRN</strong> on the sidebar. Choose the supplier from the dropdown (e.g. Atlas, Richard, PrintX) and type their paper invoice number and invoice date.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-title">Scan or Add Delivered Items</div>
+          <div class="step-desc">
+            Scan each incoming product. Enter the received quantity, cost price per unit, and new selling price if retail price has changed.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">3</div>
+        <div class="step-content">
+          <div class="step-title">Set Payment Terms: Cash Paid vs Supplier Credit</div>
+          <div class="step-desc">
+            If you paid the delivery driver cash immediately, enter the amount in <strong>Paid Amount</strong>. If the delivery is on credit (payable in 30 days), enter 0. The remaining balance automatically moves to <strong>Supplier Payables</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">4</div>
+        <div class="step-content">
+          <div class="step-title">Submit GRN</div>
+          <div class="step-desc">
+            Click <strong>Save GRN</strong>. Stock quantities immediately update in the POS, a new cost batch is created, and the supplier payable balance is recorded.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Managing Supplier Payables</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Task</th>
+          <th style="width: 40%;">Description</th>
+          <th style="width: 35%;">Action in System</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Check Outstanding Dues</strong></td>
+          <td>See how much money Hiru Bookshop owes each supplier.</td>
+          <td>Go to <strong>Suppliers</strong> &rarr; Review Total Payable column.</td>
+        </tr>
+        <tr>
+          <td><strong>Record Cheque / Cash Payment</strong></td>
+          <td>Record payment made to distributor rep or bank deposit.</td>
+          <td>Click <strong>Pay Supplier</strong> &rarr; Enter amount & cheque number.</td>
+        </tr>
+        <tr>
+          <td><strong>Print Supplier Statement</strong></td>
+          <td>Print official reconciliation statement to verify against supplier bill.</td>
+          <td>Click <strong>Print Statement</strong> on supplier profile page.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-emerald">
+      <div class="callout-title">✅ Cash Flow Safe Guard</div>
+      Whenever cash is paid to a supplier from the retail counter, recording it under "Pay Supplier" automatically records an expense in today's Cashbook, so your end-of-day drawer count matches perfectly!
+    </div>
+  </div>
+
+  <!-- ================= PAGE 7: CASHBOOK & OWNER AUDIT REPORTS ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>5. Cashbook & Owner Financial Reports</span>
+      <span class="chapter-no">FINANCIALS</span>
+    </h1>
+
+    <p>The Cashbook provides a real-time ledger of all store money movements, preventing unexplained cash leakages.</p>
+
+    <h2>Daily Cashbook Ledger Operations</h2>
+    <div class="grid-2">
+      <div class="panel-box">
+        <div class="panel-header">📥 Adding Daily Income / Cash In</div>
+        <p style="font-size: 8.5pt; color: #475569;">
+          &bull; <strong>POS Cash Sales:</strong> Recorded automatically from checkout.<br>
+          &bull; <strong>Customer Debt Collections:</strong> Recorded automatically.<br>
+          &bull; <strong>Manual Cash In:</strong> Capital injection or opening till replenishment from owner.
+        </p>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-header">📤 Adding Daily Expenses / Cash Out</div>
+        <p style="font-size: 8.5pt; color: #475569;">
+          &bull; <strong>Petty Cash:</strong> Tea, snacks, cleaning supplies, paper bags.<br>
+          &bull; <strong>Utility Bills:</strong> Electricity, water, shop internet bills.<br>
+          &bull; <strong>Owner Drawings:</strong> Personal cash withdrawals by store owner.<br>
+          &bull; <strong>Supplier Cash Payments:</strong> Paid to distributors at counter.
+        </p>
+      </div>
+    </div>
+
+    <h2>Printable Executive Audit Reports (A4 Format)</h2>
+    <p>All reports in Hiru Bookshop are formatted for crisp A4 paper printing or export to PDF, with automatic multi-page pagination.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Report Title</th>
+          <th style="width: 35%;">What it Covers</th>
+          <th style="width: 40%;">When to Generate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Daily Cashbook Audit Sheet</strong></td>
+          <td>
+            Opening cash, full transaction ledger with timestamps, expense categorization, closing balance, and variance.
+          </td>
+          <td>Printed every evening by the Store Owner or Head Cashier to file in the physical shop binder.</td>
+        </tr>
+        <tr>
+          <td><strong>Credit Invoices & Payables Statement</strong></td>
+          <td>
+            Detailed breakdown of customer credit dues vs supplier payables, aging analysis, and net business working capital.
+          </td>
+          <td>Generated weekly or monthly to follow up on overdue customer debts.</td>
+        </tr>
+        <tr>
+          <td><strong>Sales & Performance Analytics Report</strong></td>
+          <td>
+            Revenue breakdown by Category (Stationery, Communication, Books), top 20 revenue-generating items, wholesale cost of goods sold (COGS), and net gross profit margins.
+          </td>
+          <td>Generated weekly/monthly to evaluate shop profitability and best-selling inventory.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-blue">
+      <div class="callout-title">🖨️ Clean Monochrome Print Design</div>
+      All reports print with high-contrast monochrome formatting and crisp white backgrounds, ensuring clear visibility whether printed on a laser printer or saved as PDF.
+    </div>
+  </div>
+
+  <!-- ================= PAGE 8: SECURITY & BACKUPS ================= -->
+  <div class="page" style="padding-top: 10px;">
+    <h1>
+      <span>6. Security, Backups & Troubleshooting</span>
+      <span class="chapter-no">SECURITY & CARE</span>
+    </h1>
+
+    <h2>Cashier Mode vs Manager PIN</h2>
+    <p>To protect store profits and prevent unauthorized price tampering or bill voids, the system has built-in role protection:</p>
+
+    <div class="grid-2">
+      <div class="panel-box">
+        <div class="panel-header">🔒 What Cashier Mode Restricts</div>
+        <ul style="font-size: 8pt; color: #475569; margin-left: 14px; line-height: 1.6;">
+          <li>Hides Wholesale Cost Price & Gross Profit Margins</li>
+          <li>Prevents deleting or voiding paid sales receipts</li>
+          <li>Restricts modifying past audit records</li>
+          <li>Locks financial configuration and database settings</li>
+        </ul>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-header">🔑 Unlocking with Manager PIN</div>
+        <p style="font-size: 8.5pt; color: #475569; line-height: 1.4;">
+          Whenever a restricted action is triggered, a modal requests the <strong>4-Digit Manager PIN</strong>. Once entered, the manager action proceeds safely.
+        </p>
+      </div>
+    </div>
+
+    <h2>Remote Authorization with Google Authenticator (TOTP)</h2>
+    <div class="callout callout-amber">
+      <div class="callout-title">📱 What if the Owner is away from the shop?</div>
+      If the store owner is traveling or away from the shop and a cashier urgently needs to void a mistake, the owner can open <strong>Google Authenticator</strong> on their smartphone and read out the <strong>6-digit Emergency Code</strong> over a phone call. The code rotates every 30 seconds for maximum security!
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 18px 0;">
+
+    <h2>💾 1-Click Database Backup (Essential Routine)</h2>
+    <p>Protect your store data against computer hardware failure or accidental power cuts by taking regular backups:</p>
+
+    <div class="step-list">
+      <div class="step-card">
+        <div class="step-badge">1</div>
+        <div class="step-content">
+          <div class="step-title">Click "Backup & Restore" in the Sidebar</div>
+          <div class="step-desc">Open the Database Management modal.</div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">2</div>
+        <div class="step-content">
+          <div class="step-title">Click "Create Backup Now"</div>
+          <div class="step-desc">
+            Save the generated <span class="code-val">.sqlite</span> file onto a dedicated <strong>USB Pen Drive</strong> or your Google Drive folder. Take a backup every Saturday afternoon.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>❓ Frequently Asked Questions (Troubleshooting)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 35%;">Issue / Question</th>
+          <th style="width: 65%;">Recommended Solution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Barcode scanner doesn't enter text into POS</strong></td>
+          <td>Click inside the Search Box or press <kbd>F1</kbd> to ensure cursor focus before scanning. Verify scanner USB cable is firmly connected.</td>
+        </tr>
+        <tr>
+          <td><strong>Printer prints in wrong size</strong></td>
+          <td>In the Print Preview window, ensure <em>Paper Size</em> is set to <strong>A5</strong> for customer bills and <strong>A4</strong> for reports.</td>
+        </tr>
+        <tr>
+          <td><strong>Cash drawer has a shortage at night</strong></td>
+          <td>Check if a petty cash expense (tea/supplies) was paid out from the drawer without clicking "Record Expense" in the Cashbook.</td>
+        </tr>
+        <tr>
+          <td><strong>How to update to the latest version</strong></td>
+          <td>Click <strong>Check for Updates</strong> in the sidebar. If an update is found, the system will download and install it in one click.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 24px; border-top: 1px solid #cbd5e1; padding-top: 12px; text-align: center; font-size: 8pt; color: #64748b;">
+      Hiru Bookshop & Communication POS System &bull; Engineered by Inkoart &bull; Support: info@inkoart.online &bull; 070200042
+    </div>
+  </div>
+
+</body>
+</html>

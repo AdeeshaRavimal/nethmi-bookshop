@@ -355,6 +355,7 @@ export const db = {
       id: number;
       payment_type: string;
       bill_discount?: number;
+      customer_id?: number | null;
       items: Array<{
         product_id: number;
         quantity: number;

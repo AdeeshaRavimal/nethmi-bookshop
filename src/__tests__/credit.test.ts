@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { initPragmasAndSchema } from '../../electron/database';
-import { executeCheckout } from '../../electron/checkout';
+import { executeCheckout, updateSale, deleteSale } from '../../electron/checkout';
 
 describe('Credit Customer & Billing System', () => {
   let db: Database.Database;
@@ -137,5 +137,120 @@ describe('Credit Customer & Billing System', () => {
     // Remaining points: 5 - 3 + floor(247/100) = 2 + 2 = 4 points
     customer = db.prepare('SELECT loyalty_points FROM credit_customers WHERE id = ?').get(customerId) as any;
     expect(customer.loyalty_points).toBe(4);
+  });
+
+  it('editing a credit bill keeps payment_type as CREDIT and adjusts customer balance', () => {
+    // 1. Create customer
+    const custRes = db.prepare(`
+      INSERT INTO credit_customers (name, phone, credit_limit)
+      VALUES (?, ?, ?)
+    `).run('Nalaka Silva', '0778899001', 10000);
+    const customerId = Number(custRes.lastInsertRowid);
+
+    // 2. Buy 2 items @ Rs. 250 on CREDIT -> Rs. 500
+    const sale = executeCheckout(db, {
+      requestId: 'req-edit-credit-1',
+      paymentType: 'CREDIT',
+      customerId,
+      items: [{ id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 2, cost_price: 150, selling_price: 250 }],
+    });
+
+    let cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(cust.total_outstanding).toBe(500);
+
+    // 3. Edit invoice: change quantity to 3 @ Rs. 250 -> Rs. 750 (payment_type: 'CREDIT')
+    const updateRes = updateSale(db, {
+      id: sale.saleId,
+      payment_type: 'CREDIT',
+      customer_id: customerId,
+      items: [{ product_id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 3, unit_price: 250, original_price: 250 }],
+    });
+    expect(updateRes.success).toBe(true);
+
+    // Verify invoice remains CREDIT
+    const updatedSale = db.prepare('SELECT payment_type, total_amount FROM sales WHERE id = ?').get(sale.saleId) as any;
+    expect(updatedSale.payment_type).toBe('CREDIT');
+    expect(updatedSale.total_amount).toBe(750);
+
+    // Verify customer outstanding updated to 750
+    cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(cust.total_outstanding).toBe(750);
+
+    // Verify credit_payments entry updated
+    const payment = db.prepare("SELECT amount FROM credit_payments WHERE sale_id = ? AND payment_type = 'SALE'").get(sale.saleId) as any;
+    expect(payment.amount).toBe(750);
+  });
+
+  it('editing a credit bill to CASH removes customer outstanding credit', () => {
+    // 1. Create customer
+    const custRes = db.prepare(`
+      INSERT INTO credit_customers (name, phone, credit_limit)
+      VALUES (?, ?, ?)
+    `).run('Chathura Dias', '0712233445', 10000);
+    const customerId = Number(custRes.lastInsertRowid);
+
+    // 2. Buy 2 items @ Rs. 250 on CREDIT -> Rs. 500
+    const sale = executeCheckout(db, {
+      requestId: 'req-switch-credit-cash-1',
+      paymentType: 'CREDIT',
+      customerId,
+      items: [{ id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 2, cost_price: 150, selling_price: 250 }],
+    });
+
+    let cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(cust.total_outstanding).toBe(500);
+
+    // 3. Edit bill and switch payment to CASH
+    const updateRes = updateSale(db, {
+      id: sale.saleId,
+      payment_type: 'CASH',
+      customer_id: customerId,
+      items: [{ product_id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 2, unit_price: 250, original_price: 250 }],
+    });
+    expect(updateRes.success).toBe(true);
+
+    const updatedSale = db.prepare('SELECT payment_type, total_amount FROM sales WHERE id = ?').get(sale.saleId) as any;
+    expect(updatedSale.payment_type).toBe('CASH');
+
+    // Customer balance should be 0 now
+    cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(cust.total_outstanding).toBe(0);
+
+    // Payment entry should be removed
+    const payment = db.prepare("SELECT id FROM credit_payments WHERE sale_id = ? AND payment_type = 'SALE'").get(sale.saleId);
+    expect(payment).toBeUndefined();
+  });
+
+  it('deleting a credit bill restores stock and clears customer outstanding credit', () => {
+    const custRes = db.prepare(`
+      INSERT INTO credit_customers (name, phone, credit_limit)
+      VALUES (?, ?, ?)
+    `).run('Mahesh Perera', '0761122334', 10000);
+    const customerId = Number(custRes.lastInsertRowid);
+
+    const sale = executeCheckout(db, {
+      requestId: 'req-delete-credit-1',
+      paymentType: 'CREDIT',
+      customerId,
+      items: [{ id: 1, barcode: 'BK-001', title: 'CR Book 120 Pages', quantity: 2, cost_price: 150, selling_price: 250 }],
+    });
+
+    let cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(cust.total_outstanding).toBe(500);
+    expect(db.prepare('SELECT quantity FROM inventory WHERE id = 1').get()).toEqual({ quantity: 48 });
+
+    // Delete the credit sale
+    const delRes = deleteSale(db, sale.saleId);
+    expect(delRes.success).toBe(true);
+
+    // Stock restored to 50
+    expect(db.prepare('SELECT quantity FROM inventory WHERE id = 1').get()).toEqual({ quantity: 50 });
+
+    // Customer debt cleared
+    cust = db.prepare('SELECT total_outstanding FROM credit_customers WHERE id = ?').get(customerId) as any;
+    expect(cust.total_outstanding).toBe(0);
+
+    // Payment record removed
+    expect(db.prepare("SELECT id FROM credit_payments WHERE sale_id = ?").get(sale.saleId)).toBeUndefined();
   });
 });
